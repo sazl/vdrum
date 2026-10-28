@@ -137,7 +137,10 @@ impl Plugin for VDrum {
         let mut engine = match (self.pipeline.take(), self.engine.take()) {
             (Some(p), _) => p.engine,
             (None, Some(e)) => e,
-            (None, None) => ActiveEngine::new(),
+            (None, None) => {
+                let _ieee = fp::IeeeGuard::new();
+                ActiveEngine::new()
+            }
         };
 
         let ieee = fp::IeeeGuard::new();

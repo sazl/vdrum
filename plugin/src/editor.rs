@@ -20,9 +20,9 @@ use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
 
-const CELL_W: f32 = 116.0;
+const CELL_W: f32 = 104.0;
 const ROW_H: f32 = 17.0;
-const GLOBAL_W: f32 = 250.0;
+const GLOBAL_W: f32 = 232.0;
 
 pub const TRACK_NAMES: [&str; 7] = ["Drum 1", "Drum 2", "Drum 3", "Snare", "Cymbal", "Closed hi-hat", "Open hi-hat"];
 pub const PAD_LABELS: [&str; 7] = ["D1", "D2", "D3", "SN", "CY", "CH", "OH"];
@@ -44,7 +44,8 @@ pub struct Layout {
 
 impl Layout {
     pub fn build(params: &VDrumParams) -> Layout {
-        let exposed = |p: u16| (p as usize) < N && params.slot_of[p as usize] >= 0 && p < lxr_params::END_OF_SOUND_PARAMETERS;
+        let _ = params;
+        let exposed = |p: u16| lxr_params::info(p).is_some_and(|i| i.kind == lxr_params::ParamKind::Sound);
         let mut matrix = Vec::new();
         #[allow(clippy::needless_range_loop)]
         for v in 0..6 {
@@ -68,10 +69,10 @@ impl Layout {
         let placed: Vec<u16> = matrix.iter().flatten().flatten().copied().collect();
         let mut fx = Vec::new();
         let mut performance = Vec::new();
-        for info in params.infos.iter() {
+        for info in lxr_params::sound_params() {
             if info.voice == Voice::Fx {
                 fx.push(info.index);
-            } else if info.kind != lxr_params::ParamKind::Global && !placed.contains(&info.index) {
+            } else if !placed.contains(&info.index) {
                 performance.push(info.index);
             }
         }
@@ -112,7 +113,7 @@ fn cell_label(info: &ParamInfo) -> String {
 pub fn create(params: Arc<VDrumParams>, shared: Arc<Shared>) -> Option<Box<dyn Editor>> {
     let egui_state = params.editor_state.clone();
     let mut labels = vec![String::new(); N];
-    for info in params.infos.iter() {
+    for info in lxr_params::PARAMS.iter().chain(lxr_params::GLOBAL_PARAMS.iter()) {
         labels[info.index as usize] = cell_label(info);
     }
     let data = Data {
@@ -338,7 +339,7 @@ fn global_column(ui: &mut Ui, setter: &ParamSetter, data: &mut Data, params: &VD
                 Some(t) if (par::FX_P1..=par::FX_P4).contains(&idx) => {
                     format!("P{}: {}", idx - par::FX_P1 + 1, lxr_params::format::text_label(t))
                 }
-                _ => data.labels[idx as usize].clone(),
+                _ => lxr_params::info(idx).map(|i| i.name.strip_prefix("FX ").unwrap_or(i.name).to_string()).unwrap_or_default(),
             };
             let relevant = text.is_some() || matches!(idx, par::FX_TYPE | par::FX_ROUTING | par::FX_DRY_WET);
             param_cell(ui, setter, params, shared, idx, GLOBAL_W, &label, !relevant);
@@ -476,8 +477,20 @@ fn midi_help(info: &ParamInfo, params: &VDrumParams) -> String {
 
 #[allow(clippy::too_many_arguments)]
 fn param_cell(ui: &mut Ui, setter: &ParamSetter, params: &VDrumParams, shared: &Shared, idx: u16, width: f32, label: &str, dim: bool) {
-    let (Some(info), Some(p)) = (lxr_params::info(idx), params.param(idx)) else {
+    let Some(info) = lxr_params::info(idx) else {
         ui.allocate_exact_size(vec2(width, ROW_H), Sense::hover());
+        return;
+    };
+    let Some(p) = params.param(idx) else {
+        // Not a host parameter (single possible value): shown read-only.
+        let (rect, resp) = ui.allocate_exact_size(vec2(width, ROW_H), Sense::hover());
+        let painter = ui.painter().with_clip_rect(rect.intersect(ui.clip_rect()));
+        painter.rect_filled(rect, 2.0, ui.visuals().widgets.noninteractive.bg_fill);
+        let font = FontId::proportional(11.0);
+        let col = ui.visuals().weak_text_color();
+        painter.text(rect.left_center() + vec2(4.0, 0.0), Align2::LEFT_CENTER, label, font.clone(), col);
+        painter.text(rect.right_center() - vec2(4.0, 0.0), Align2::RIGHT_CENTER, value_text(info, shared.value(idx)), font, col);
+        resp.on_hover_text(format!("{}\nOnly one value exists in the firmware; not a host parameter.\nID: {}", info.name, info.id));
         return;
     };
     let (rect, resp) = ui.allocate_exact_size(vec2(width, ROW_H), Sense::click_and_drag());
@@ -544,7 +557,7 @@ fn param_cell(ui: &mut Ui, setter: &ParamSetter, params: &VDrumParams, shared: &
         let frac = (v - min) as f32 / (max - min) as f32;
         let mut f = rect;
         f.set_width(rect.width() * frac);
-        painter.rect_filled(f, 2.0, Color32::from_rgba_unmultiplied(70, 130, 200, if dim { 40 } else { 90 }));
+        painter.rect_filled(f, 2.0, Color32::from_rgb(38, 78, 128).gamma_multiply(if dim { 0.5 } else { 1.0 }));
     } else if list {
         let tri = Rect::from_min_size(pos2(rect.max.x - 9.0, rect.center().y - 2.0), vec2(6.0, 4.0));
         painter.add(egui::Shape::convex_polygon(
@@ -557,10 +570,10 @@ fn param_cell(ui: &mut Ui, setter: &ParamSetter, params: &VDrumParams, shared: &
     let text_col = |c: Color32| Color32::from_rgba_unmultiplied(c.r(), c.g(), c.b(), alpha);
     let font = FontId::proportional(11.0);
     let value = value_text(info, v as u16);
-    let vg = painter.layout_no_wrap(value, font.clone(), text_col(visuals.strong_text_color()));
+    let vg = painter.layout_no_wrap(value, font.clone(), text_col(Color32::from_gray(240)));
     let right = rect.max.x - if list { 12.0 } else { 4.0 };
     let vpos = pos2(right - vg.size().x, rect.center().y - vg.size().y / 2.0);
-    let lg = painter.layout_no_wrap(label.to_string(), font, text_col(visuals.text_color()));
+    let lg = painter.layout_no_wrap(label.to_string(), font, text_col(Color32::from_gray(185)));
     let lclip = Rect::from_min_max(rect.min, pos2((vpos.x - 4.0).max(rect.min.x), rect.max.y));
     painter
         .with_clip_rect(lclip.intersect(ui.clip_rect()))

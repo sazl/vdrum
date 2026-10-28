@@ -147,12 +147,14 @@ pub fn scale_cc(info: &ParamInfo, v: u8) -> u16 {
     info.min + ((v.min(127) as u32 * span + 63) / 127) as u16
 }
 
-/// The parameters exposed to the host: every sound parameter and the global settings (the unused
-/// kit slots are kept in the kit but not exposed).
+/// The parameters exposed to the host: every sound parameter and the global settings. Not exposed
+/// (but kept in the kit): the unused kit slots, and parameters with a single possible value
+/// (`PAR_FX_REVERB_TYPE`: the firmware lists one reverb type), which a host parameter cannot
+/// represent (zero-width range).
 pub fn host_param_infos() -> Vec<&'static ParamInfo> {
     PARAMS
         .iter()
-        .filter(|p| p.kind == ParamKind::Sound)
+        .filter(|p| p.kind == ParamKind::Sound && p.min < p.max)
         .chain(GLOBAL_PARAMS.iter())
         .collect()
 }
@@ -227,7 +229,7 @@ impl VDrumParams {
             .collect();
         let groups = infos.iter().map(|i| group_of(i)).collect();
         VDrumParams {
-            editor_state: EguiState::from_size(1640, 760),
+            editor_state: EguiState::from_size(1580, 740),
             ui_scale: AtomicF32::new(1.0),
             infos,
             ints,
@@ -380,7 +382,9 @@ mod tests {
     fn host_params_have_unique_stable_ids() {
         let p = VDrumParams::new(Arc::new(Shared::new()));
         let map = p.param_map();
-        assert_eq!(map.len(), 234 + 16 + 2);
+        assert_eq!(map.len(), 233 + 16 + 2);
+        // Ranges must not be empty (hosts reject them).
+        assert!(p.infos.iter().all(|i| i.min < i.max));
         let mut ids: Vec<_> = map.iter().map(|m| m.0.clone()).collect();
         ids.sort();
         ids.dedup();
