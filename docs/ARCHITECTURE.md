@@ -35,9 +35,11 @@ MIDI bytes are parsed in the main loop between interrupts (`uart_processMidi()`)
 
 * `new()` reproduces the power-on state without SD card (exact sequence documented in `docs/ENGINE_CONTRACT.md`,
   written together with the emulator), then loads the init kit.
-* `midi_byte(b)` feeds one byte of DIN MIDI through the firmware parser (main-loop context, FPSCR.FZ = 0).
-* `tick() -> Block { dac1: [i16; 128], dac2: [i16; 128] }` runs one interrupt (FPSCR.FZ = 1, as set by
-  `soundengine_init` in FPDSCR).
+* `midi_byte(b)` feeds one byte of DIN MIDI through the firmware parser.
+* `tick() -> Block { dac1: [i16; 128], dac2: [i16; 128] }` renders one block.
+* FPSCR: everything, including audio rendering, runs with **FZ = 0**. `USE_INTERRUPT_ONLY_DURING_SAVE_PROJ` = 1
+  makes the firmware render in the main loop; `soundengine_init` only sets FZ in FPDSCR, which applies to
+  interrupt handlers. Details and the exact call sequence: `docs/ENGINE_CONTRACT.md` (authoritative).
 * The hardware RNG (`GetRngValue`) is replaced by a deterministic generator in both implementations:
   xorshift32 (`x ^= x << 13; x ^= x >> 17; x ^= x << 5;`), state seeded with `0x2545F491` by `new()`,
   returning the new state. Every call to `GetRngValue` in the firmware consumes exactly one value.
@@ -66,10 +68,9 @@ MIDI bytes are parsed in the main loop between interrupts (`uart_processMidi()`)
    * calls to libm (`expf`, `logf`, `exp`, `fmod`, ...) → `crate::fpu::libm` functions that are bit-exact
      ports of the implementation **in the shipped v1.71 binary** (its newlib differs from GCC 11.3's).
    * integer conversions exactly as the machine code (`ssat`, `usat`, `uxtb`, `sxth`, wrap-around).
-3. **Flush-to-zero.** Code that runs in the interrupt (`seq_tick`, `soundengine_calcNextSampleBlock` and
-   everything below) executes with FZ = 1 on the hardware; main-loop code (MIDI parsing, parameter setters,
-   kit loading, init) with FZ = 0. `crate::fpu::FtzGuard` sets x86 MXCSR FTZ|DAZ or AArch64 FPCR.FZ for the
-   duration of `tick()`; nothing else may depend on the host FP environment.
+3. **No flush-to-zero.** All engine code runs with FZ = 0 (IEEE subnormals), see the engine contract.
+   Rust code must therefore NOT run under `FtzGuard`, and the plugin must make sure the host's FTZ/DAZ
+   setting is cleared while calling the engine (hosts and wrappers often enable FTZ).
 4. **Determinism across platforms.** No platform libm, no `f32::powf/exp/ln/sin` etc. from std (they call
    the system libm); use `crate::fpu::libm`. `f32::mul_add` is allowed only through `crate::fpu`.
 5. **No allocation or locking in `tick()`.** Large buffers (delay, reverb, sample RAM) are allocated in `new()`.
