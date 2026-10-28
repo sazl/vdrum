@@ -119,6 +119,12 @@ mod imp {
 
 pub use imp::flush_to_zero_enabled;
 
+/// Turn FTZ/DAZ on or off for the current thread (tests: simulate a host that enables them).
+#[cfg(test)]
+pub(crate) fn force_flush_to_zero(on: bool) {
+    imp::force(on)
+}
+
 impl IeeeGuard {
     #[inline(always)]
     #[must_use]

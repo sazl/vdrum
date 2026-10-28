@@ -3654,6 +3654,7 @@ name = "vdrum"
 version = "0.1.0"
 dependencies = [
  "crossbeam-queue",
+ "lxr-core",
  "lxr-params",
  "nih_plug",
  "nih_plug_egui",
@@ -3661,6 +3662,7 @@ dependencies = [
  "rubato",
  "serde",
  "serde_json",
+ "sha2",
 ]
 
 [[package]]

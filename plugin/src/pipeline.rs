@@ -29,6 +29,8 @@ pub enum Ev {
     Midi { bytes: [u8; 3], len: u8 },
     /// A parameter change. `learned`: from a MIDI-learned CC (the host parameter must follow).
     Param { idx: u16, val: u16, learned: bool },
+    /// A voice fader moved (`Engine::set_fader_adc`).
+    Fader { index: u8, adc: u16 },
 }
 
 impl Ev {

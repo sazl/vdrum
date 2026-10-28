@@ -8,6 +8,8 @@ pub mod engine;
 pub mod fp;
 pub mod params;
 pub mod pipeline;
+#[cfg(test)]
+mod real_engine_tests;
 
 use engine::{tracks_for_note, Block, Engine};
 use lxr_params::{GLOBAL_PARAMS, PARAMS};
@@ -20,8 +22,29 @@ use std::num::NonZeroU32;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
-/// The engine the plugin runs. Replace with the `lxr-core` port once it implements [`Engine`].
-pub type ActiveEngine = engine::StubEngine;
+/// The engine the plugin runs: the `lxr-core` port of the LXR-02 sound engine.
+pub type ActiveEngine = engine::LxrEngine;
+
+/// A new engine in its power-on state, with the plugin's MIDI defaults
+/// ([`params::DEFAULT_TRACK_NOTES`]) applied through the firmware's parameter path. Allocates; not
+/// for the audio thread.
+pub fn new_engine() -> Box<ActiveEngine> {
+    let _ieee = fp::IeeeGuard::new();
+    let mut e = ActiveEngine::new();
+    apply_plugin_defaults(&mut *e);
+    e
+}
+
+/// Set the parameters whose plugin default differs from the firmware's power-on value.
+pub fn apply_plugin_defaults<E: Engine>(e: &mut E) {
+    let _ieee = fp::IeeeGuard::new();
+    for p in GLOBAL_PARAMS.iter() {
+        let d = params::plugin_default(p);
+        if e.get_parameter(p.index) != d {
+            e.set_parameter(p.index, d);
+        }
+    }
+}
 
 pub struct VDrum {
     params: Arc<VDrumParams>,
@@ -30,6 +53,8 @@ pub struct VDrum {
     pipeline: Option<Pipeline<ActiveEngine>>,
     /// Last seen host value of every host parameter slot.
     last_host: Vec<i32>,
+    /// Last seen value of the fader parameters.
+    last_fader: [i32; 6],
     has_aux: bool,
     /// Whether the pipeline currently runs the engine at the hardware clock rate.
     hardware_clock: bool,
@@ -41,12 +66,10 @@ impl Default for VDrum {
     fn default() -> Self {
         let shared = Arc::new(Shared::new());
         let params = Arc::new(VDrumParams::new(shared.clone()));
-        let engine = {
-            let _ieee = fp::IeeeGuard::new();
-            ActiveEngine::new()
-        };
+        let engine = new_engine();
         let s = VDrum {
             last_host: params.ints.iter().map(|p| p.value()).collect(),
+            last_fader: std::array::from_fn(|i| params.faders[i].value()),
             params,
             shared,
             engine: Some(engine),
@@ -137,10 +160,7 @@ impl Plugin for VDrum {
         let mut engine = match (self.pipeline.take(), self.engine.take()) {
             (Some(p), _) => p.engine,
             (None, Some(e)) => e,
-            (None, None) => {
-                let _ieee = fp::IeeeGuard::new();
-                ActiveEngine::new()
-            }
+            (None, None) => new_engine(),
         };
 
         let ieee = fp::IeeeGuard::new();
@@ -164,6 +184,9 @@ impl Plugin for VDrum {
                 }
             }
         }
+        for (i, f) in self.params.faders.iter().enumerate() {
+            engine.set_fader_adc(i, params::fader_adc(f.value()));
+        }
         drop(ieee);
         sync_mirror(&*engine, &self.shared, false);
         // Host parameters that differ from the engine are updated by the GUI.
@@ -173,6 +196,7 @@ impl Plugin for VDrum {
             }
         }
         self.last_host = self.params.ints.iter().map(|p| p.value()).collect();
+        self.last_fader = std::array::from_fn(|i| self.params.faders[i].value());
 
         self.hardware_clock = self.params.hardware_clock.value();
         let (rate, alt) = if self.hardware_clock {
@@ -246,6 +270,14 @@ impl Plugin for VDrum {
                 self.last_host[slot] = v;
                 let idx = params.infos[slot].index;
                 pipeline.push_event(0, Ev::Param { idx, val: v as u16, learned: false }, &mut apply);
+            }
+        }
+
+        for (i, f) in params.faders.iter().enumerate() {
+            let v = f.value();
+            if v != self.last_fader[i] {
+                self.last_fader[i] = v;
+                pipeline.push_event(0, Ev::Fader { index: i as u8, adc: params::fader_adc(v) }, &mut apply);
             }
         }
 
@@ -348,6 +380,7 @@ fn apply_event<E: Engine>(e: &mut E, shared: &Shared, midi_applied: &Cell<bool>,
                 }
             }
         }
+        Ev::Fader { index, adc } => e.set_fader_adc(index as usize, adc),
     }
 }
 

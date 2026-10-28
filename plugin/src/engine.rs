@@ -47,6 +47,66 @@ pub trait Engine: Send {
     fn load_kit(&mut self, kit: &[u8]);
     /// The current kit as `.snd` file bytes.
     fn save_kit(&self) -> Vec<u8>;
+    /// Move voice fader `i` (0..6: Drum 1..3, Snare, Cymbal, Hi-hat) to a 16 bit ADC reading (12
+    /// bits, left aligned), as the hardware's `adc_checkFaders` reads it. The default ignores it.
+    fn set_fader_adc(&mut self, _i: usize, _adc: u16) {}
+}
+
+/// The `lxr-core` port: the LXR-02 sound engine (`docs/ENGINE_CONTRACT.md`), wrapped so that the
+/// trait methods do not collide with `Lxr`'s own.
+///
+/// * `set_parameter` is the menu path (`menu_encoderChangeParameter`), `get_parameter` reads
+///   `activeParameters[]` (the edit buffer). Out-of-range indices are ignored / read as 0 instead
+///   of panicking on the audio thread, and values are truncated to the firmware's `uint8_t`.
+/// * `save_kit` writes what `preset_saveDrumsetSD` writes after the edit buffer was stored: the kit
+///   name (`savefileNames[0][KIT_NAMES]`, set by `load_kit`) and `activeParameters[0..247]`.
+/// * `load_kit` accepts 8..=255 bytes (anything else is ignored).
+/// * Faders start at the top (the contract's power-on state) and move through `set_fader_adc`.
+pub struct LxrEngine(pub lxr_core::Lxr);
+
+impl Engine for LxrEngine {
+    fn new() -> Box<Self> {
+        // `Lxr` itself is about 14 kB; its large buffers are boxed by `Lxr::new_zeroed`.
+        Box::new(LxrEngine(lxr_core::Lxr::new()))
+    }
+
+    fn midi_byte(&mut self, b: u8) {
+        self.0.midi_byte(b);
+    }
+
+    fn tick(&mut self) -> Block {
+        let b = self.0.tick();
+        Block { dac1: b.dac1, dac2: b.dac2 }
+    }
+
+    fn set_parameter(&mut self, param: u16, value: u16) {
+        if param < NUM_PARAMS {
+            self.0.set_parameter(param, value.min(255) as u8);
+        }
+    }
+
+    fn get_parameter(&self, param: u16) -> u16 {
+        self.0.activeParameters.get(param as usize).map_or(0, |v| *v as u16)
+    }
+
+    fn load_kit(&mut self, kit: &[u8]) {
+        if (8..=8 + KIT_PARAMS).contains(&kit.len()) {
+            self.0.load_kit(kit);
+        }
+    }
+
+    fn save_kit(&self) -> Vec<u8> {
+        let mut v = Vec::with_capacity(8 + KIT_PARAMS);
+        v.extend_from_slice(&self.0.savefileNames[0][0]);
+        v.extend_from_slice(&self.0.activeParameters[..KIT_PARAMS]);
+        v
+    }
+
+    fn set_fader_adc(&mut self, i: usize, adc: u16) {
+        if i < 6 {
+            self.0.set_fader_adc(i, adc);
+        }
+    }
 }
 
 /// A stand-in engine that reacts like the firmware at the interface level (parameter storage, kit

@@ -3,7 +3,7 @@
 
 use crossbeam_queue::ArrayQueue;
 use lxr_params::kit::{Kit, KIT_FILE_LEN, KIT_PARAMS};
-use lxr_params::{Dtype, ParamInfo, ParamKind, GLOBAL_PARAMS, NUM_PARAMS, PARAMS};
+use lxr_params::{Dtype, ParamInfo, ParamKind, Voice, GLOBAL_PARAMS, NUM_PARAMS, PARAMS};
 use nih_plug::params::internals::ParamPtr;
 use nih_plug::params::persist::PersistentField;
 use nih_plug::prelude::*;
@@ -21,6 +21,63 @@ pub const SUM_AUX_ID: &str = "vdrum_sum_aux";
 /// Stable ID of the "hardware clock" switch: run the engine at the hardware's 44140.625 Hz and
 /// resample, instead of 44100 Hz (pass-through at a 44100 Hz host rate).
 pub const HARDWARE_CLOCK_ID: &str = "vdrum_hardware_clock";
+/// Stable ID prefix of the voice fader parameters (`vdrum_fader_1` .. `vdrum_fader_6`).
+pub const FADER_ID_PREFIX: &str = "vdrum_fader_";
+const FADER_NAMES: [&str; 6] =
+    ["Drum 1 Fader", "Drum 2 Fader", "Drum 3 Fader", "Snare Fader", "Cymbal Fader", "Hi-hat Fader"];
+
+/// Plugin default MIDI notes of the 7 tracks (Drum 1, Drum 2, Drum 3, Snare, Cymbal, closed hi-hat,
+/// open hi-hat), all on MIDI channel 1: General MIDI drum notes (36 Bass Drum 1, 45 Low Tom,
+/// 50 High Tom, 38 Acoustic Snare, 49 Crash Cymbal 1, 42 Closed Hi-Hat, 46 Open Hi-Hat), so that each
+/// voice can be played on its own. The firmware's defaults (`preset_loadDefaultGlobals`, also what
+/// `preset_createGlobals` writes to a new `glo.cfg`) put every track on note 48, so one note plays
+/// all seven. The plugin sets these after `Lxr::new()` through the firmware's own menu path
+/// (`set_parameter(PAR_MIDI_NOTEx)`, which only writes `activeParameters`); a track note only
+/// selects which note triggers the voice (the voice then plays `SEQ_DEFAULT_NOTE` either way), so
+/// the sound does not change.
+pub const DEFAULT_TRACK_NOTES: [u8; 7] = [36, 45, 50, 38, 49, 42, 46];
+
+/// The plugin's default value of a parameter: the firmware default, except for the track notes
+/// ([`DEFAULT_TRACK_NOTES`]).
+pub fn plugin_default(info: &ParamInfo) -> u16 {
+    if (lxr_params::par::MIDI_NOTE1..=lxr_params::par::MIDI_NOTE7).contains(&info.index) {
+        DEFAULT_TRACK_NOTES[(info.index - lxr_params::par::MIDI_NOTE1) as usize] as u16
+    } else {
+        info.default
+    }
+}
+
+/// Highest step of a voice fader host parameter (0..=`FADER_MAX`).
+pub const FADER_MAX: i32 = 99;
+
+/// The 16 bit ADC reading (12 bits, left aligned) of fader step `step`: `36 + 41 * step` in 12 bits.
+/// Consecutive steps are 41 counts apart, more than `adc_checkFaders`' hysteresis of 40, so every
+/// step reaches the engine; step 0 reads below 1 % (silence), step 99 is the top (`0xFFF0`, the
+/// power-on value).
+pub fn fader_adc(step: i32) -> u16 {
+    ((36 + 41 * step.clamp(0, FADER_MAX)) as u16) << 4
+}
+
+/// The gain `adc_checkFaders` derives from a fader step (`v * v`, `v = (adc >> 4) / 4096`, 0 below
+/// 0.01).
+pub fn fader_gain(step: i32) -> f32 {
+    let v = (fader_adc(step) >> 4) as f32 / 4096.0;
+    if v < 0.01 {
+        0.0
+    } else {
+        v * v
+    }
+}
+
+/// Display text of a fader step: its gain in dB.
+pub fn fader_text(step: i32) -> String {
+    let g = fader_gain(step);
+    if g <= 0.0 {
+        "-inf dB".to_string()
+    } else {
+        format!("{:.1} dB", 20.0 * g.log10())
+    }
+}
 
 /// A message from the GUI to the audio thread.
 #[derive(Clone, Copy)]
@@ -86,7 +143,7 @@ impl Shared {
         let init = Kit::init();
         s.set_name(&init.name);
         for p in PARAMS.iter().chain(GLOBAL_PARAMS.iter()) {
-            s.values[p.index as usize].store(p.default, Ordering::Relaxed);
+            s.values[p.index as usize].store(plugin_default(p), Ordering::Relaxed);
         }
         s
     }
@@ -202,6 +259,8 @@ pub struct VDrumParams {
     pub slot_of: [i16; N],
     pub sum_aux: BoolParam,
     pub hardware_clock: BoolParam,
+    /// The six voice volume faders (Drum 1..3, Snare, Cymbal, Hi-hat), steps 0..=[`FADER_MAX`].
+    pub faders: [IntParam; 6],
     pub shared: Arc<Shared>,
     groups: Vec<String>,
 }
@@ -218,7 +277,7 @@ impl VDrumParams {
                 let i: &'static ParamInfo = info;
                 IntParam::new(
                     info.name,
-                    info.default as i32,
+                    plugin_default(info) as i32,
                     IntRange::Linear { min: info.min as i32, max: info.max as i32 },
                 )
                 .with_value_to_string(Arc::new(move |v| value_text(i, v as u16)))
@@ -229,13 +288,28 @@ impl VDrumParams {
             .collect();
         let groups = infos.iter().map(|i| group_of(i)).collect();
         VDrumParams {
-            editor_state: EguiState::from_size(1580, 740),
+            editor_state: EguiState::from_size(crate::editor::DEFAULT_SIZE.0, crate::editor::DEFAULT_SIZE.1),
             ui_scale: AtomicF32::new(1.0),
             infos,
             ints,
             slot_of,
             sum_aux: BoolParam::new("Sum Aux Into Main", false),
             hardware_clock: BoolParam::new("Hardware Clock (44140.625 Hz)", false).non_automatable(),
+            faders: std::array::from_fn(|i| {
+                IntParam::new(FADER_NAMES[i], FADER_MAX, IntRange::Linear { min: 0, max: FADER_MAX })
+                    .with_value_to_string(Arc::new(fader_text))
+                    .with_string_to_value(Arc::new(|s| {
+                        let s = s.trim().trim_end_matches("dB").trim();
+                        if s.eq_ignore_ascii_case("-inf") {
+                            return Some(0);
+                        }
+                        let db: f32 = s.parse().ok()?;
+                        (0..=FADER_MAX).min_by(|a, b| {
+                            let d = |x: i32| (20.0 * fader_gain(x).max(1e-9).log10() - db).abs();
+                            d(*a).total_cmp(&d(*b))
+                        })
+                    }))
+            }),
             shared,
             groups,
         }
@@ -288,6 +362,9 @@ unsafe impl Params for VDrumParams {
             .collect();
         v.push((SUM_AUX_ID.to_string(), self.sum_aux.as_ptr(), "Output".to_string()));
         v.push((HARDWARE_CLOCK_ID.to_string(), self.hardware_clock.as_ptr(), "Output".to_string()));
+        for (i, f) in self.faders.iter().enumerate() {
+            v.push((format!("{FADER_ID_PREFIX}{}", i + 1), f.as_ptr(), format!("{}/Mix", Voice::VOICES[i].label())));
+        }
         v
     }
 
@@ -382,7 +459,7 @@ mod tests {
     fn host_params_have_unique_stable_ids() {
         let p = VDrumParams::new(Arc::new(Shared::new()));
         let map = p.param_map();
-        assert_eq!(map.len(), 233 + 16 + 2);
+        assert_eq!(map.len(), 233 + 16 + 2 + 6);
         // Ranges must not be empty (hosts reject them).
         assert!(p.infos.iter().all(|i| i.min < i.max));
         let mut ids: Vec<_> = map.iter().map(|m| m.0.clone()).collect();
@@ -410,6 +487,23 @@ mod tests {
         assert_eq!(kit.values[lxr_params::par::VOL1 as usize], 5);
         assert_eq!(kit.name_str(), "Initkit");
         assert_eq!(r.globals.len(), 16);
+    }
+
+    #[test]
+    fn fader_steps_pass_the_hysteresis() {
+        assert_eq!(fader_adc(FADER_MAX), lxr_core::engine::FADER_FULL_ADC);
+        assert_eq!(fader_gain(FADER_MAX).to_bits(), 0x3F7FE001);
+        assert_eq!(fader_gain(0), 0.0);
+        assert!(fader_gain(1) > 0.0);
+        for s in 1..=FADER_MAX {
+            assert!((fader_adc(s) >> 4) - (fader_adc(s - 1) >> 4) > 40);
+        }
+        // Every step reaches the engine, also after jumps.
+        let mut e = lxr_core::Lxr::new();
+        for s in [98, 0, 1, 50, 49, 99] {
+            e.set_fader_adc(0, fader_adc(s));
+            assert_eq!(e.adc_faderValues[0].to_bits(), fader_gain(s).to_bits(), "step {s}");
+        }
     }
 
     #[test]
