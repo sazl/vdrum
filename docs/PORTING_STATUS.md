@@ -149,103 +149,103 @@ Functions marked `gc`/`absent` cannot be checked against the reference binary.
 | `Drivers/CMSIS/Include/cmsis_gcc.h:219` | `__get_APSR` | `cmsis::__get_APSR` | P1 | inlined | ported (untestable: reads CPU flags, not observable in Rust; only caller calcNoise is gc'd) |
 | `Drivers/CMSIS/Include/cmsis_gcc.h:1644` | `__QADD16` | `cmsis::__QADD16` | P1 | inlined | ported+difftested |
 | `Drivers/CMSIS/Include/cmsis_gcc.h:1692` | `__QSUB16` | `cmsis::__QSUB16` | P1 | inlined | ported+difftested |
-| `Core/Src/Soundengine/DSPAudio/FX/Compressor.c:32` | `Compressor_init` | `dsp::fx::compressor::Compressor_init` | P2 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Compressor.c:45` | `lin2dB` | `dsp::fx::compressor::lin2dB` | P2 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Compressor.c:51` | `dB2lin` | `dsp::fx::compressor::dB2lin` | P2 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Compressor.c:57` | `Compressor_setAttack` | `dsp::fx::compressor::Compressor_setAttack` | P2 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Compressor.c:62` | `Compressor_setTreshold` | `dsp::fx::compressor::Compressor_setTreshold` | P2 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Compressor.c:67` | `Compressor_setGain` | `dsp::fx::compressor::Compressor_setGain` | P2 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Compressor.c:71` | `Compressor_setRelease` | `dsp::fx::compressor::Compressor_setRelease` | P2 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Compressor.c:77` | `Compressor_setRatio` | `dsp::fx::compressor::Compressor_setRatio` | P2 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Compressor.c:104` | `Compressor_process` | `dsp::fx::compressor::Compressor_process` | P2 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Delay.c:18` | `Delay_init` | `dsp::fx::delay::Delay_init` | P2 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Delay.c:40` | `interpolate_s16` | `dsp::fx::delay::interpolate_s16` | P2 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Delay.c:45` | `Delay_calcBufferPingPong` | `Lxr::Delay_calcBufferPingPong` | P2 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Delay.c:71` | `Delay_calcBuffer` | `Lxr::Delay_calcBuffer` | P2 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Delay.c:93` | `Delay_processPingPong` | `Lxr::Delay_processPingPong` | P2 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Delay.c:187` | `Delay_process` | `Lxr::Delay_process` | P2 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Delay.c:272` | `interpolate` | `dsp::fx::delay::interpolate` | P2 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Delay.c:276` | `calcDelayTime` | `dsp::fx::delay::calcDelayTime` | P2 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Delay.c:293` | `Delay_setDelayTime` | `dsp::fx::delay::Delay_setDelayTime` | P2 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Delay.c:349` | `Delay_setFeedback` | `dsp::fx::delay::Delay_setFeedback` | P2 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Delay.c:353` | `Delay_setRange` | `dsp::fx::delay::Delay_setRange` | P2 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Delay.c:359` | `Delay_setFilter` | `dsp::fx::delay::Delay_setFilter` | P2 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:111` | `clamp` | `dsp::fx::distortion::clamp` | P2 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:117` | `fnms` | `dsp::fx::distortion::fnms` | P2 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:122` | `lerp` | `dsp::fx::distortion::lerp` | P2 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:130` | `diode` | `dsp::fx::distortion::diode` | P2 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:147` | `Distortion_init` | `dsp::fx::distortion::Distortion_init` | P2 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:180` | `Distortion_setDrive` | `dsp::fx::distortion::Distortion_setDrive` | P2 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:184` | `Distortion_setParam1` | `dsp::fx::distortion::Distortion_setParam1` | P2 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:189` | `Distortion_setParam2` | `dsp::fx::distortion::Distortion_setParam2` | P2 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:194` | `Distortion_setParam3` | `dsp::fx::distortion::Distortion_setParam3` | P2 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:199` | `foldback` | `dsp::fx::distortion::foldback` | P2 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:208` | `Distortion_process` | `dsp::fx::distortion::Distortion_process` | P2 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Reverb.c:29` | `Reverb_init` | `Lxr::Reverb_init` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Reverb.c:207` | `Reverb_process` | `dsp::fx::reverb::Reverb_process` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Reverb.c:452` | `Reverb_setDelayTime` | `dsp::fx::reverb::Reverb_setDelayTime` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Reverb.c:480` | `Reverb_setFeedback` | `dsp::fx::reverb::Reverb_setFeedback` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Reverb.c:485` | `Reverb_setComposition` | `dsp::fx::reverb::Reverb_setComposition` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Reverb.c:494` | `Reverb_setVariation` | `dsp::fx::reverb::Reverb_setVariation` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Ringmod.c:18` | `Ringmod_init` | `dsp::fx::ringmod::Ringmod_init` | P2 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Ringmod.c:31` | `Ringmod_process` | `Lxr::Ringmod_process` | P2 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Ringmod.c:79` | `Ringmod_setFreq` | `dsp::fx::ringmod::Ringmod_setFreq` | P2 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Ringmod.c:84` | `Ringmod_setWave` | `dsp::fx::ringmod::Ringmod_setWave` | P2 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/Ringmod.c:89` | `Ringmod_resetPhase` | `dsp::fx::ringmod::Ringmod_resetPhase` | P2 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:20` | `AllpassDelay_init` | `dsp::fx::verb_tools::allpass_delay::AllpassDelay_init` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:26` | `AllpassDelay_process` | `dsp::fx::verb_tools::allpass_delay::AllpassDelay_process` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:33` | `AllpassDelay_setCoefficient` | `dsp::fx::verb_tools::allpass_delay::AllpassDelay_setCoefficient` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:37` | `AllpassDelay_setDelay` | `dsp::fx::verb_tools::allpass_delay::AllpassDelay_setDelay` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:41` | `AllpassDelay_setBuffer` | `dsp::fx::verb_tools::allpass_delay::AllpassDelay_setBuffer` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:45` | `AllpassDelay_setRoomSize` | `dsp::fx::verb_tools::allpass_delay::AllpassDelay_setRoomSize` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:54` | `AllpassModDelay_init` | `dsp::fx::verb_tools::allpass_delay::AllpassModDelay_init` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:60` | `AllpassModDelay_process` | `dsp::fx::verb_tools::allpass_delay::AllpassModDelay_process` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:68` | `AllpassModDelay_setCoefficient` | `dsp::fx::verb_tools::allpass_delay::AllpassModDelay_setCoefficient` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:72` | `AllpassModDelay_setDelay` | `dsp::fx::verb_tools::allpass_delay::AllpassModDelay_setDelay` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:76` | `AllpassModDelay_setBuffer` | `dsp::fx::verb_tools::allpass_delay::AllpassModDelay_setBuffer` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:80` | `AllpassModDelay_setRoomSize` | `dsp::fx::verb_tools::allpass_delay::AllpassModDelay_setRoomSize` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:84` | `AllpassModDelay_setModDepth` | `dsp::fx::verb_tools::allpass_delay::AllpassModDelay_setModDepth` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:89` | `AllpassModDelay_setModValue` | `dsp::fx::verb_tools::allpass_delay::AllpassModDelay_setModValue` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbDelay.c:17` | `VerbDelay_init` | `dsp::fx::verb_tools::verb_delay::VerbDelay_init` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbDelay.c:25` | `VerbDelay_getMaxSize` | `dsp::fx::verb_tools::verb_delay::VerbDelay_getMaxSize` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbDelay.c:30` | `VerbDelay_getLength` | `dsp::fx::verb_tools::verb_delay::VerbDelay_getLength` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbDelay.c:35` | `VerbDelay_setLength` | `dsp::fx::verb_tools::verb_delay::VerbDelay_setLength` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbDelay.c:45` | `VerbDelay_setRoomSize` | `dsp::fx::verb_tools::verb_delay::VerbDelay_setRoomSize` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbDelay.c:51` | `VerbDelay_read` | `dsp::fx::verb_tools::verb_delay::VerbDelay_read` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbDelay.c:59` | `VerbDelay_write` | `dsp::fx::verb_tools::verb_delay::VerbDelay_write` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbDelay.c:64` | `VerbDelay_ReadTap` | `dsp::fx::verb_tools::verb_delay::VerbDelay_ReadTap` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbDelay.c:74` | `VerbDelay_ReadTapSample` | `dsp::fx::verb_tools::verb_delay::VerbDelay_ReadTapSample` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbDelay.c:84` | `VerbDelay_process` | `dsp::fx::verb_tools::verb_delay::VerbDelay_process` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbDelay.c:92` | `VerbDelay_setBuffer` | `dsp::fx::verb_tools::verb_delay::VerbDelay_setBuffer` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbDelay.c:96` | `VerbDelay_calcLength` | `dsp::fx::verb_tools::verb_delay::VerbDelay_calcLength` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:19` | `VerbModDelay_init` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_init` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:33` | `VerbModDelay_getMaxSize` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_getMaxSize` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:38` | `VerbModDelay_getLength` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_getLength` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:43` | `VerbModDelay_setLength` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_setLength` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:48` | `VerbModDelay_setRoomSize` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_setRoomSize` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:54` | `VerbModDelay_setModDepth` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_setModDepth` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:60` | `VerbModDelay_setModValue` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_setModValue` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:66` | `VerbModDelay_read` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_read` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:74` | `VerbModDelay_readNext` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_readNext` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:83` | `VerbModDelay_write` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_write` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:90` | `fnms` | `dsp::fx::verb_tools::verb_mod_delay::fnms` | P2 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:95` | `lerp` | `dsp::fx::verb_tools::verb_mod_delay::lerp` | P2 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:103` | `interpolated_read` | `dsp::fx::verb_tools::verb_mod_delay::interpolated_read` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:107` | `VerbModDelay_calcLength` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_calcLength` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:119` | `VerbModDelay_interpolatedRead` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_interpolatedRead` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:127` | `VerbModDelay_interpolatedReadTap` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_interpolatedReadTap` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:140` | `VerbModDelay_process` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_process` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:156` | `VerbModDelay_setBuffer` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_setBuffer` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/sinCos.c:21` | `SineCosine_init` | `dsp::fx::verb_tools::sin_cos::SineCosine_init` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/sinCos.c:28` | `SineCosine_calc` | `dsp::fx::verb_tools::sin_cos::SineCosine_calc` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/sinCos.c:33` | `SineCosine_getSine` | `dsp::fx::verb_tools::sin_cos::SineCosine_getSine` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/sinCos.c:37` | `SineCosine_getCosine` | `dsp::fx::verb_tools::sin_cos::SineCosine_getCosine` | P2 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/sinCos.c:42` | `SineCosine_setFreq` | `dsp::fx::verb_tools::sin_cos::SineCosine_setFreq` | P2 | absent | stub |
-| `Core/Src/Soundengine/FxBus.c:21` | `FxBus_init` | `Lxr::FxBus_init` | P2 | flash | stub |
-| `Core/Src/Soundengine/FxBus.c:41` | `FxBus_process` | `Lxr::FxBus_process` | P2 | itcm | stub |
-| `Core/Src/Soundengine/FxBus.c:137` | `FxBus_prepareFxChange` | `fx_bus::FxBus_prepareFxChange` | P2 | flash | stub |
-| `Core/Src/Soundengine/FxBus.c:143` | `FxBus_updateParameter` | `Lxr::FxBus_updateParameter` | P2 | itcm | stub |
-| `Core/Src/Soundengine/FxBus.c:192` | `FxBus_setParameter` | `Lxr::FxBus_setParameter` | P2 | itcm | stub |
+| `Core/Src/Soundengine/DSPAudio/FX/Compressor.c:32` | `Compressor_init` | `dsp::fx::compressor::Compressor_init` | P2 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/FX/Compressor.c:45` | `lin2dB` | `dsp::fx::compressor::lin2dB` | P2 | inlined | ported+difftested (inlined form, via its callers) |
+| `Core/Src/Soundengine/DSPAudio/FX/Compressor.c:51` | `dB2lin` | `dsp::fx::compressor::dB2lin` | P2 | inlined | ported+difftested (inlined form, via its callers) |
+| `Core/Src/Soundengine/DSPAudio/FX/Compressor.c:57` | `Compressor_setAttack` | `dsp::fx::compressor::Compressor_setAttack` | P2 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/FX/Compressor.c:62` | `Compressor_setTreshold` | `dsp::fx::compressor::Compressor_setTreshold` | P2 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/FX/Compressor.c:67` | `Compressor_setGain` | `dsp::fx::compressor::Compressor_setGain` | P2 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/FX/Compressor.c:71` | `Compressor_setRelease` | `dsp::fx::compressor::Compressor_setRelease` | P2 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/FX/Compressor.c:77` | `Compressor_setRatio` | `dsp::fx::compressor::Compressor_setRatio` | P2 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/FX/Compressor.c:104` | `Compressor_process` | `dsp::fx::compressor::Compressor_process` | P2 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/FX/Delay.c:18` | `Delay_init` | `dsp::fx::delay::Delay_init` | P2 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/FX/Delay.c:40` | `interpolate_s16` | `dsp::fx::delay::interpolate_s16` | P2 | inlined | ported+difftested (inlined form, via its callers) |
+| `Core/Src/Soundengine/DSPAudio/FX/Delay.c:45` | `Delay_calcBufferPingPong` | `Lxr::Delay_calcBufferPingPong` | P2 | inlined | ported+difftested (inlined form, via its callers) |
+| `Core/Src/Soundengine/DSPAudio/FX/Delay.c:71` | `Delay_calcBuffer` | `Lxr::Delay_calcBuffer` | P2 | inlined | ported+difftested (inlined form, via its callers) |
+| `Core/Src/Soundengine/DSPAudio/FX/Delay.c:93` | `Delay_processPingPong` | `Lxr::Delay_processPingPong` | P2 | flash | ported+difftested (except: first read/write after a normal->ping-pong switch with pointers > 0x3fff goes past FX_BUFFER in C; not modelled, not bit-exact) |
+| `Core/Src/Soundengine/DSPAudio/FX/Delay.c:187` | `Delay_process` | `Lxr::Delay_process` | P2 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/FX/Delay.c:272` | `interpolate` | `dsp::fx::delay::interpolate` | P2 | inlined | ported+difftested (inlined form, via its callers) |
+| `Core/Src/Soundengine/DSPAudio/FX/Delay.c:276` | `calcDelayTime` | `dsp::fx::delay::calcDelayTime` | P2 | inlined | ported+difftested (inlined form, via its callers) |
+| `Core/Src/Soundengine/DSPAudio/FX/Delay.c:293` | `Delay_setDelayTime` | `dsp::fx::delay::Delay_setDelayTime` | P2 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/FX/Delay.c:349` | `Delay_setFeedback` | `dsp::fx::delay::Delay_setFeedback` | P2 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/FX/Delay.c:353` | `Delay_setRange` | `dsp::fx::delay::Delay_setRange` | P2 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/FX/Delay.c:359` | `Delay_setFilter` | `dsp::fx::delay::Delay_setFilter` | P2 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:111` | `clamp` | `dsp::fx::distortion::clamp` | P2 | inlined | ported+difftested (inlined form, via its callers) |
+| `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:117` | `fnms` | `dsp::fx::distortion::fnms` | P2 | inlined | ported+difftested (inlined form, via its callers) |
+| `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:122` | `lerp` | `dsp::fx::distortion::lerp` | P2 | inlined | ported+difftested (inlined form, via its callers) |
+| `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:130` | `diode` | `dsp::fx::distortion::diode` | P2 | inlined | ported+difftested (inlined form, via its callers) |
+| `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:147` | `Distortion_init` | `dsp::fx::distortion::Distortion_init` | P2 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:180` | `Distortion_setDrive` | `dsp::fx::distortion::Distortion_setDrive` | P2 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:184` | `Distortion_setParam1` | `dsp::fx::distortion::Distortion_setParam1` | P2 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:189` | `Distortion_setParam2` | `dsp::fx::distortion::Distortion_setParam2` | P2 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:194` | `Distortion_setParam3` | `dsp::fx::distortion::Distortion_setParam3` | P2 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:199` | `foldback` | `dsp::fx::distortion::foldback` | P2 | inlined | ported+difftested (inlined form, via its callers) |
+| `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:208` | `Distortion_process` | `dsp::fx::distortion::Distortion_process` | P2 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/FX/Reverb.c:29` | `Reverb_init` | `Lxr::Reverb_init` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/Reverb.c:207` | `Reverb_process` | `dsp::fx::reverb::Reverb_process` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/Reverb.c:452` | `Reverb_setDelayTime` | `dsp::fx::reverb::Reverb_setDelayTime` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/Reverb.c:480` | `Reverb_setFeedback` | `dsp::fx::reverb::Reverb_setFeedback` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/Reverb.c:485` | `Reverb_setComposition` | `dsp::fx::reverb::Reverb_setComposition` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/Reverb.c:494` | `Reverb_setVariation` | `dsp::fx::reverb::Reverb_setVariation` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/Ringmod.c:18` | `Ringmod_init` | `dsp::fx::ringmod::Ringmod_init` | P2 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/FX/Ringmod.c:31` | `Ringmod_process` | `Lxr::Ringmod_process` | P2 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/FX/Ringmod.c:79` | `Ringmod_setFreq` | `dsp::fx::ringmod::Ringmod_setFreq` | P2 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/FX/Ringmod.c:84` | `Ringmod_setWave` | `dsp::fx::ringmod::Ringmod_setWave` | P2 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/FX/Ringmod.c:89` | `Ringmod_resetPhase` | `dsp::fx::ringmod::Ringmod_resetPhase` | P2 | gc | ported (not in firmware build: removed by --gc-sections, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:20` | `AllpassDelay_init` | `dsp::fx::verb_tools::allpass_delay::AllpassDelay_init` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:26` | `AllpassDelay_process` | `dsp::fx::verb_tools::allpass_delay::AllpassDelay_process` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:33` | `AllpassDelay_setCoefficient` | `dsp::fx::verb_tools::allpass_delay::AllpassDelay_setCoefficient` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:37` | `AllpassDelay_setDelay` | `dsp::fx::verb_tools::allpass_delay::AllpassDelay_setDelay` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:41` | `AllpassDelay_setBuffer` | `dsp::fx::verb_tools::allpass_delay::AllpassDelay_setBuffer` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:45` | `AllpassDelay_setRoomSize` | `dsp::fx::verb_tools::allpass_delay::AllpassDelay_setRoomSize` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:54` | `AllpassModDelay_init` | `dsp::fx::verb_tools::allpass_delay::AllpassModDelay_init` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:60` | `AllpassModDelay_process` | `dsp::fx::verb_tools::allpass_delay::AllpassModDelay_process` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:68` | `AllpassModDelay_setCoefficient` | `dsp::fx::verb_tools::allpass_delay::AllpassModDelay_setCoefficient` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:72` | `AllpassModDelay_setDelay` | `dsp::fx::verb_tools::allpass_delay::AllpassModDelay_setDelay` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:76` | `AllpassModDelay_setBuffer` | `dsp::fx::verb_tools::allpass_delay::AllpassModDelay_setBuffer` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:80` | `AllpassModDelay_setRoomSize` | `dsp::fx::verb_tools::allpass_delay::AllpassModDelay_setRoomSize` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:84` | `AllpassModDelay_setModDepth` | `dsp::fx::verb_tools::allpass_delay::AllpassModDelay_setModDepth` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:89` | `AllpassModDelay_setModValue` | `dsp::fx::verb_tools::allpass_delay::AllpassModDelay_setModValue` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbDelay.c:17` | `VerbDelay_init` | `dsp::fx::verb_tools::verb_delay::VerbDelay_init` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbDelay.c:25` | `VerbDelay_getMaxSize` | `dsp::fx::verb_tools::verb_delay::VerbDelay_getMaxSize` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbDelay.c:30` | `VerbDelay_getLength` | `dsp::fx::verb_tools::verb_delay::VerbDelay_getLength` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbDelay.c:35` | `VerbDelay_setLength` | `dsp::fx::verb_tools::verb_delay::VerbDelay_setLength` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbDelay.c:45` | `VerbDelay_setRoomSize` | `dsp::fx::verb_tools::verb_delay::VerbDelay_setRoomSize` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbDelay.c:51` | `VerbDelay_read` | `dsp::fx::verb_tools::verb_delay::VerbDelay_read` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbDelay.c:59` | `VerbDelay_write` | `dsp::fx::verb_tools::verb_delay::VerbDelay_write` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbDelay.c:64` | `VerbDelay_ReadTap` | `dsp::fx::verb_tools::verb_delay::VerbDelay_ReadTap` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbDelay.c:74` | `VerbDelay_ReadTapSample` | `dsp::fx::verb_tools::verb_delay::VerbDelay_ReadTapSample` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbDelay.c:84` | `VerbDelay_process` | `dsp::fx::verb_tools::verb_delay::VerbDelay_process` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbDelay.c:92` | `VerbDelay_setBuffer` | `dsp::fx::verb_tools::verb_delay::VerbDelay_setBuffer` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbDelay.c:96` | `VerbDelay_calcLength` | `dsp::fx::verb_tools::verb_delay::VerbDelay_calcLength` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:19` | `VerbModDelay_init` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_init` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:33` | `VerbModDelay_getMaxSize` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_getMaxSize` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:38` | `VerbModDelay_getLength` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_getLength` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:43` | `VerbModDelay_setLength` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_setLength` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:48` | `VerbModDelay_setRoomSize` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_setRoomSize` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:54` | `VerbModDelay_setModDepth` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_setModDepth` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:60` | `VerbModDelay_setModValue` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_setModValue` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:66` | `VerbModDelay_read` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_read` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:74` | `VerbModDelay_readNext` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_readNext` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:83` | `VerbModDelay_write` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_write` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:90` | `fnms` | `dsp::fx::verb_tools::verb_mod_delay::fnms` | P2 | inlined | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:95` | `lerp` | `dsp::fx::verb_tools::verb_mod_delay::lerp` | P2 | inlined | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:103` | `interpolated_read` | `dsp::fx::verb_tools::verb_mod_delay::interpolated_read` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:107` | `VerbModDelay_calcLength` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_calcLength` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:119` | `VerbModDelay_interpolatedRead` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_interpolatedRead` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:127` | `VerbModDelay_interpolatedReadTap` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_interpolatedReadTap` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:140` | `VerbModDelay_process` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_process` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/VerbModDelay.c:156` | `VerbModDelay_setBuffer` | `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_setBuffer` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/sinCos.c:21` | `SineCosine_init` | `dsp::fx::verb_tools::sin_cos::SineCosine_init` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/sinCos.c:28` | `SineCosine_calc` | `dsp::fx::verb_tools::sin_cos::SineCosine_calc` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/sinCos.c:33` | `SineCosine_getSine` | `dsp::fx::verb_tools::sin_cos::SineCosine_getSine` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/sinCos.c:37` | `SineCosine_getCosine` | `dsp::fx::verb_tools::sin_cos::SineCosine_getCosine` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/FX/VerbTools/sinCos.c:42` | `SineCosine_setFreq` | `dsp::fx::verb_tools::sin_cos::SineCosine_setFreq` | P2 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/FxBus.c:21` | `FxBus_init` | `Lxr::FxBus_init` | P2 | flash | ported+difftested |
+| `Core/Src/Soundengine/FxBus.c:41` | `FxBus_process` | `Lxr::FxBus_process` | P2 | itcm | ported+difftested |
+| `Core/Src/Soundengine/FxBus.c:137` | `FxBus_prepareFxChange` | `fx_bus::FxBus_prepareFxChange` | P2 | flash | ported+difftested |
+| `Core/Src/Soundengine/FxBus.c:143` | `FxBus_updateParameter` | `Lxr::FxBus_updateParameter` | P2 | itcm | ported+difftested |
+| `Core/Src/Soundengine/FxBus.c:192` | `FxBus_setParameter` | `Lxr::FxBus_setParameter` | P2 | itcm | ported+difftested |
 | `Core/Inc/Soundengine/MIDI/valueShaper.h:22` | `valueShaperI2F` | `midi::value_shaper::valueShaperI2F` | P3 | absent | stub |
 | `Core/Inc/Soundengine/MIDI/valueShaper.h:30` | `valueShaperF2F` | `midi::value_shaper::valueShaperF2F` | P3 | inlined | stub |
 | `Core/Src/IO/adcPots.c:282` | `adc_getFaderVolume` | `Lxr::adc_getFaderVolume` | P3 | flash | stub (external) |

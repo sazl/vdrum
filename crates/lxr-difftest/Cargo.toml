@@ -11,4 +11,5 @@ lxr-emu = { path = "../lxr-emu" }
 anyhow = "1"
 
 [dev-dependencies]
+# register access in Firmware::intercept closures (P2 tests stub libm/oscillator callees)
 unicorn-engine = "2"
