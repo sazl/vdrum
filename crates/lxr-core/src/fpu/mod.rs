@@ -91,14 +91,83 @@ pub fn vfnms64(acc: f64, n: f64, m: f64) -> f64 {
 
 /// `VCVTB.F32.F16`: IEEE half precision (`__fp16`, `-mfp16-format=ieee`) bits to `f32`.
 /// Used for `FX_BUFFER` (`__fp16`). Group P2 (check FZ behaviour for half precision denormals).
+///
+/// Half precision conversions are exact (every `__fp16` value is representable in `f32`); FPSCR.FZ does not
+/// apply to half precision operands (ARMv7-M ARM, FPUnpack/FPRound with N = 16), so half precision denormals
+/// convert to normal `f32` values in both FZ modes. NaNs are quieted with their payload kept (FPSCR.DN = 0,
+/// as in the firmware). FPSCR.AHP = 0 (IEEE format, `-mfp16-format=ieee`).
 pub fn f16_bits_to_f32(h: u16) -> f32 {
-    todo!("port: VCVTB.F32.F16 semantics")
+    let sign = ((h as u32) & 0x8000) << 16;
+    let exp = ((h >> 10) & 0x1f) as u32;
+    let man = (h & 0x3ff) as u32;
+    let bits = if exp == 0x1f {
+        if man == 0 {
+            sign | 0x7f80_0000
+        } else {
+            sign | 0x7fc0_0000 | (man << 13)
+        }
+    } else if exp == 0 {
+        if man == 0 {
+            sign
+        } else {
+            // denormal: man * 2^-24, normalise
+            let lz = man.leading_zeros() - 21; // shift that brings the top set bit to bit 10
+            let m = (man << lz) & 0x3ff;
+            let e = 127 - 15 + 1 - lz;
+            sign | (e << 23) | (m << 13)
+        }
+    } else {
+        sign | ((exp + 127 - 15) << 23) | (man << 13)
+    };
+    f32::from_bits(bits)
 }
 
 /// `VCVTB.F16.F32`: `f32` to IEEE half precision bits with the FPSCR rounding mode (round to nearest even).
 /// Group P2 (check FZ behaviour and the overflow / NaN cases against the emulator).
+///
+/// Round to nearest even; overflow gives infinity; half precision denormal results are kept (FZ does not
+/// apply to the half precision result). `f32` denormal inputs give a signed zero in both FZ modes (flushed
+/// with FZ = 1, rounded to zero otherwise). NaNs are quieted with the top payload bits kept (FPSCR.DN = 0).
 pub fn f32_to_f16_bits(v: f32) -> u16 {
-    todo!("port: VCVTB.F16.F32 semantics")
+    let b = v.to_bits();
+    let sign = ((b >> 16) & 0x8000) as u16;
+    let exp = ((b >> 23) & 0xff) as i32;
+    let man = b & 0x7f_ffff;
+    if exp == 0xff {
+        return if man == 0 { sign | 0x7c00 } else { sign | 0x7e00 | (man >> 13) as u16 };
+    }
+    if exp == 0 {
+        return sign;
+    }
+    let e = exp - 127;
+    if e > 15 {
+        return sign | 0x7c00;
+    }
+    let m = man | 0x80_0000; // 24 significant bits
+    // round m * 2^-shift to nearest even
+    fn rne(m: u32, shift: u32) -> u32 {
+        if shift >= 32 {
+            return 0;
+        }
+        let q = m >> shift;
+        let r = m & ((1u32 << shift) - 1);
+        let half = 1u32 << (shift - 1);
+        if r > half || (r == half && (q & 1) == 1) {
+            q + 1
+        } else {
+            q
+        }
+    }
+    if e >= -14 {
+        // normal: carry out of the significand increments the exponent (up to infinity 0x7c00)
+        let q = rne(m, 13); // 11 bits incl. the implicit one (or 0x800 after carry)
+        let h = (((e + 15) as u32) << 10) + (q - 0x400);
+        sign | h as u16
+    } else {
+        // denormal result: value = m * 2^(e - 23), unit 2^-24 -> shift = -e - 1
+        let shift = (-e - 1) as u32;
+        sign | rne(m, shift) as u16
+    }
 }
 
 /// RAII guard that enables flush-to-zero for the duration of a `tick()` (the firmware sets FPSCR.FZ in

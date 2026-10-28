@@ -29,38 +29,45 @@ impl Default for SineCosine {
 }
 
 // ---- functions without access to globals
+//
+// Not in the reference firmware (Reverb is disabled with `USE_REVERB 0`): ported from C, untestable.
+
 /// C: `void SineCosine_init(SineCosine *sc)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/VerbTools/sinCos.c:21`. Reference build: not in the reference ELF (file not linked or function optimised away). Group P2.
 /// Calls: `dsp::fx::verb_tools::sin_cos::SineCosine_setFreq`.
 pub fn SineCosine_init(sc: &mut SineCosine) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/VerbTools/sinCos.c:21")
+    sc.s[0] = 0.5;
+    sc.s[1] = 0.0;
+    SineCosine_setFreq(sc, 0.5);
 }
 
 /// C: `void SineCosine_calc(SineCosine *sc)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/VerbTools/sinCos.c:28`. Reference build: not in the reference ELF (file not linked or function optimised away). Group P2.
 pub fn SineCosine_calc(sc: &mut SineCosine) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/VerbTools/sinCos.c:28")
+    sc.s[0] = sc.s[0] - sc.a * sc.s[1];
+    sc.s[1] = sc.s[1] + sc.a * sc.s[0];
 }
 
 /// C: `float SineCosine_getSine(SineCosine *sc)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/VerbTools/sinCos.c:33`. Reference build: not in the reference ELF (file not linked or function optimised away). Group P2.
 pub fn SineCosine_getSine(sc: &mut SineCosine) -> f32 {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/VerbTools/sinCos.c:33")
+    sc.s[0]
 }
 
 /// C: `float SineCosine_getCosine(SineCosine *sc)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/VerbTools/sinCos.c:37`. Reference build: not in the reference ELF (file not linked or function optimised away). Group P2.
 pub fn SineCosine_getCosine(sc: &mut SineCosine) -> f32 {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/VerbTools/sinCos.c:37")
+    sc.s[1]
 }
 
 /// C: `void SineCosine_setFreq(SineCosine *sc, float f)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/VerbTools/sinCos.c:42`. Reference build: not in the reference ELF (file not linked or function optimised away). Group P2.
+/// `M_PI*f/REAL_FS` is evaluated in double precision, then passed to `sinf`.
 pub fn SineCosine_setFreq(sc: &mut SineCosine, f: f32) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/VerbTools/sinCos.c:42")
+    sc.a = 2.0 * libm::sinf((core::f64::consts::PI * f as f64 / REAL_FS as f64) as f32);
 }
