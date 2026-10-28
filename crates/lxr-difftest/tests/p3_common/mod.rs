@@ -4,8 +4,8 @@
 //! audio output are compared.
 //!
 //! Firmware builds: the reference ELF (`LXR_FW_ELF`) and, when it is available, the shipped v1.71 update
-//! image (`LXR_FW_IMG`, default `/home/user/lxr-ref/LXRV2_update_v1.71.img`). For the shipped image the
-//! globals are found through the recovered symbol map (`crates/lxr-emu/data/v1.71_symbols.json`); RAM
+//! image (`LXR_FIRMWARE_IMG`, default `/home/user/lxr-ref/LXRV2_update_v1.71.img`). For the shipped image the
+//! globals are found through `lxr_core::midi::shipped_layout` (from the recovered symbol map); RAM
 //! pointers stored in globals are translated between the two layouts before comparing.
 #![allow(dead_code, non_snake_case)]
 
@@ -20,7 +20,7 @@ pub fn elf_path() -> Option<String> {
 }
 
 pub fn img_path() -> Option<String> {
-    let p = std::env::var("LXR_FW_IMG").unwrap_or_else(|_| "/home/user/lxr-ref/LXRV2_update_v1.71.img".into());
+    let p = std::env::var("LXR_FIRMWARE_IMG").unwrap_or_else(|_| "/home/user/lxr-ref/LXRV2_update_v1.71.img".into());
     std::path::Path::new(&p).exists().then_some(p)
 }
 
@@ -60,12 +60,9 @@ pub fn state_diff(l: &Lxr, emu: &EmuEngine, ignore: &[&str]) -> Vec<String> {
     let mut out = Vec::new();
     let elf = emu.build == lxr_emu::Build::Elf;
     // `Lxr` uses the reference ELF addresses; the shipped image is addressed through its symbol map
-    let addr_of = |a: u32, name: &str| -> Option<u32> { if elf { Some(a) } else { emu.addr(name).ok() } };
+    let addr_of = |a: u32, _name: &str| -> Option<u32> { if elf { Some(a) } else { lxr_core::midi::shipped_layout::to_shipped(a) } };
     // pointer translation: an `Lxr` (reference ELF layout) RAM address -> the same object in the emulated build
-    let xlat = |p: u32| -> Option<u32> {
-        let &(a, _, n) = GLOBALS.iter().find(|&&(a, s, _)| p >= a && p < a + s)?;
-        Some(addr_of(a, n)? + (p - a))
-    };
+    let xlat = |p: u32| -> Option<u32> { if elf { Some(p) } else { lxr_core::midi::shipped_layout::to_shipped(p) } };
     for &(a, size, name) in GLOBALS {
         if ignore.contains(&name) {
             continue;
@@ -81,6 +78,17 @@ pub fn state_diff(l: &Lxr, emu: &EmuEngine, ignore: &[&str]) -> Vec<String> {
                 }
             }
         }
+        if name == "parameterArray" {
+            for k in 0..rb.len() {
+                // padding bytes (not modelled: `CMem` reads 0; the firmware only writes them with
+                // out-of-range stores and never reads them), and, for the reference ELF, the pointers of
+                // entries 0..13 that out-of-range stores modify (`Lxr` reproduces the shipped layout there)
+                if k % 8 >= 5 || (elf && k < 14 * 8 && k % 8 < 4) {
+                    rb[k] = 0;
+                    fb[k] = 0;
+                }
+            }
+        }
         let mut k = 0usize;
         while k < size as usize {
             if rb[k] != fb[k] {
@@ -88,8 +96,8 @@ pub fn state_diff(l: &Lxr, emu: &EmuEngine, ignore: &[&str]) -> Vec<String> {
                 if (a as usize + w) % 4 == 0 && w + 4 <= size as usize {
                     let rw = u32::from_le_bytes(rb[w..w + 4].try_into().unwrap());
                     let fw = u32::from_le_bytes(fb[w..w + 4].try_into().unwrap());
-                    // a pointer field
-                    if xlat(rw) == Some(fw) {
+                    // a pointer field (a pointer outside the modelled objects holds the shipped address)
+                    if xlat(rw) == Some(fw) || (xlat(rw).is_none() && rw == fw && rw != 0) {
                         k = w + 4;
                         continue;
                     }
@@ -108,12 +116,30 @@ pub fn state_diff(l: &Lxr, emu: &EmuEngine, ignore: &[&str]) -> Vec<String> {
     out
 }
 
+/// Writes the `Lxr` bytes of the global `name` into the emulated firmware (for globals without pointers).
+pub fn push_global(l: &Lxr, emu: &mut EmuEngine, name: &str) {
+    let &(a, size, _) = GLOBALS.iter().find(|g| g.2 == name).unwrap_or_else(|| panic!("no global {name}"));
+    let fa = if emu.build == lxr_emu::Build::Elf {
+        a
+    } else {
+        lxr_core::midi::shipped_layout::to_shipped(a).unwrap_or_else(|| panic!("{name}: no shipped address"))
+    };
+    let b: Vec<u8> = (0..size).map(|k| l.global_get_byte(a + k).unwrap()).collect();
+    emu.fw.write(fa, &b).unwrap();
+}
+
+/// Calls a firmware function in main-loop context (FPSCR = 0, as `EmuEngine` does for MIDI input).
+pub fn call_fw(emu: &mut EmuEngine, addr: u32, args: &[u32]) -> u32 {
+    emu.fw.fpscr = 0;
+    emu.fw.call_addr(addr, args, &[]).unwrap().0
+}
+
 /// Number of globals that `state_diff` compares for this build.
 pub fn compared_globals(emu: &EmuEngine) -> usize {
     if emu.build == lxr_emu::Build::Elf {
         GLOBALS.len()
     } else {
-        GLOBALS.iter().filter(|g| emu.addr(g.2).is_ok()).count()
+        lxr_core::midi::shipped_layout::SHIPPED_GLOBALS.len()
     }
 }
 
@@ -144,9 +170,31 @@ impl Pair {
         Pair { l: Box::new(Lxr::new()), emu, ignore, blocks: 0 }
     }
 
+    /// Reference ELF only: true once out-of-range stores have changed bytes of the `parameterArray[0..14]`
+    /// pointers so that `Lxr` (which reproduces the shipped layout) and the ELF point to different fields.
+    /// From then on the two programs write through those pointers to different places by design, so only
+    /// the audio output is compared with the ELF (the shipped image is compared in full).
+    pub fn elf_layout_diverged(&self) -> bool {
+        if self.emu.build != lxr_emu::Build::Elf {
+            return false;
+        }
+        (0..14).any(|k| {
+            let fw = self.emu.fw.read_u32(lxr_core::memmap::ADDR_parameterArray + 8 * k as u32).unwrap();
+            fw != self.l.parameterArray[k].ptr
+        })
+    }
+
+    /// `state_diff` with this pair's ignore list (empty once `elf_layout_diverged`).
+    pub fn diff(&self) -> Vec<String> {
+        if self.elf_layout_diverged() {
+            return Vec::new();
+        }
+        state_diff(&self.l, &self.emu, self.ignore)
+    }
+
     #[track_caller]
     pub fn check(&self, ctx: &str) {
-        let d = state_diff(&self.l, &self.emu, self.ignore);
+        let d = self.diff();
         assert!(d.is_empty(), "{ctx}: state differs: {d:?}");
         assert_eq!(self.l.rng_state, self.emu.rng_state(), "{ctx}: RNG state");
     }
