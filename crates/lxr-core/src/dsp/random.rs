@@ -11,5 +11,5 @@ use crate::prelude::*;
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/random.c:18`. Reference build: not linked (removed by --gc-sections). Group P1.
 pub fn initRng() {
-    todo!("port: Core/Src/Soundengine/DSPAudio/random.c:18")
+    // Empty in the C source (the RNG peripheral is enabled by the HAL init code).
 }

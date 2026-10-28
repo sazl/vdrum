@@ -134,6 +134,12 @@ pub struct Lxr {
     ///
     /// Declared at `Core/Src/Soundengine/DSPAudio/mixer.c:28`; firmware address 0x2002198b (`.bss`), 1 bytes.
     pub r2_Available: u8,
+    // ---------------- Core/Src/IO/adcPots.c
+    /// `float adc_faderValues[6];`
+    ///
+    /// Declared at `Core/Src/IO/adcPots.c:33`; firmware address 0x20021134 (`.bss`), 24 bytes.
+    /// Read by `adc_getFaderVolume` (voice volume faders). Stays 0.0 without ADC input.
+    pub adc_faderValues: [f32; 6],
     // ---------------- Core/Src/Soundengine/DSPAudio/modulationNode.c
     /// `extern ModulationNode velocityModulators[6];`
     ///
@@ -593,6 +599,7 @@ impl Lxr {
             l2_Available: 0,
             r1_Available: 0,
             r2_Available: 0,
+            adc_faderValues: [0.0; 6],
             velocityModulators: [ModulationNode::ZERO; 6],
             fxBus: FxBus::ZERO,
             cortex_midiMsg: MidiMsg::ZERO,

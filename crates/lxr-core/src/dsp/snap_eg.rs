@@ -37,19 +37,26 @@ impl Default for SnapEg {
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/snapEg.c:19`. Reference build: out-of-line in flash. Group P1.
 pub fn SnapEg_init(eg: &mut SnapEg) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/snapEg.c:19")
+    eg.value = 0.0;
 }
 
 /// C: `void SnapEg_trigger(SnapEg* eg)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/snapEg.c:24`. Reference build: out-of-line in flash. Group P1.
 pub fn SnapEg_trigger(eg: &mut SnapEg) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/snapEg.c:24")
+    eg.value = 1.0;
 }
 
 /// C: `float SnapEg_calc(SnapEg* eg, float time)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/snapEg.c:29`. Reference build: out-of-line in flash. Group P1.
 pub fn SnapEg_calc(eg: &mut SnapEg, time: f32) -> f32 {
-    todo!("port: Core/Src/Soundengine/DSPAudio/snapEg.c:29")
+    let v = eg.value;
+    if v > 0.0 {
+        let sq = v * v;
+        eg.value = vfms(v, time, SNAP_REDUCTION);
+        sq * SNAP_MAX_VALUE
+    } else {
+        0.0
+    }
 }

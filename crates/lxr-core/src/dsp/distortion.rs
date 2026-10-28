@@ -35,14 +35,24 @@ impl Default for Distortion {
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/distortion.c:18`. Reference build: out-of-line in ITCM. Group P1.
 pub fn setDistortionShape(dist: &mut Distortion, shape: f32) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/distortion.c:18")
+    let a = shape - 0.0078125;
+    let b = f32::from_bits(0x3f810000) - shape; // 1 - (shape - 0.0078125) folded to 1.0078125 - shape
+    dist.shape = (a + a) / b;
 }
 
 /// C: `IN_ITCM_RAM void calcDistBlock(const Distortion *dist, int16_t* buf, const uint8_t size)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/distortion.c:24`. Reference build: out-of-line in ITCM. Group P1.
 pub fn calcDistBlock(dist: &Distortion, buf: &mut [i16], size: u8) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/distortion.c:24")
+    let shape = dist.shape;
+    let shape1 = shape + 1.0;
+    for i in 0..size as usize {
+        let x = buf[i] as i32 as f32 * f32::from_bits(0x38000100); // 1/32767.f
+        let num = shape1 * x;
+        let den = vfma(1.0, shape, x.abs());
+        let y = num / den;
+        buf[i] = ((y * 32767.0) as i32) as i16;
+    }
 }
 
 /// C: `void calcDistBlockFiltered(Distortion *dist, int16_t* buf, const uint8_t size)`
@@ -50,12 +60,20 @@ pub fn calcDistBlock(dist: &Distortion, buf: &mut [i16], size: u8) {
 /// Source: `Core/Src/Soundengine/DSPAudio/distortion.c:36`. Reference build: out-of-line in flash. Group P1.
 /// Calls: `dsp::one_pole_lp::calcOnePole`.
 pub fn calcDistBlockFiltered(dist: &mut Distortion, buf: &mut [i16], size: u8) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/distortion.c:36")
+    for i in 0..size as usize {
+        let shape = crate::dsp::one_pole_lp::calcOnePole(&mut dist.DriveParamFilter, dist.shape as f64);
+        let x = buf[i] as i32 as f32 * f32::from_bits(0x38000100); // 1/32767.f
+        let num = (shape + 1.0) * x;
+        let den = vfma(1.0, x.abs(), shape);
+        let y = num / den;
+        buf[i] = ((y * 32767.0) as i32) as i16;
+    }
 }
 
 /// C: `float distortion_calcSampleFloat(const Distortion *dist, float x)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/distortion.c:54`. Reference build: not linked (removed by --gc-sections). Group P1.
 pub fn distortion_calcSampleFloat(dist: &Distortion, x: f32) -> f32 {
-    todo!("port: Core/Src/Soundengine/DSPAudio/distortion.c:54")
+    // not linked in the firmware (untestable): ported from C
+    (1.0 + dist.shape) * x / (1.0 + dist.shape * x.abs())
 }

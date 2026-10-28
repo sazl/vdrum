@@ -78,7 +78,12 @@ impl Lxr {
     /// Source: `Core/Src/Soundengine/FxBus.c:41`. Reference build: out-of-line in ITCM. Group P2.
     /// Globals: `fxBus`.
     /// Calls: `dsp::fx::compressor::Compressor_process`, `Lxr::Delay_process`, `Lxr::Delay_processPingPong`, `dsp::fx::distortion::Distortion_process`, `Lxr::Ringmod_process`, `cmsis::__QADD16`.
-    pub fn FxBus_process(&mut self, fxBuffer: &mut [i16], outL: &mut [i16], outR: &mut [i16], outL2: &mut [i16], outR2: &mut [i16], size: u32) {
+    ///
+    /// Rust signature (agreed P2/P4): the C pointers `outL, outR, outL2, outR2` are `&output[0], &output[1],
+    /// &output2[0], &output2[1]` of the interleaved DAC buffers (2*size samples each); here the two buffers are
+    /// passed whole: C `outL[k]` = `output[k]`, `outR[k]` = `output[1 + k]`, `outL2[k]` = `output2[k]`,
+    /// `outR2[k]` = `output2[1 + k]`.
+    pub fn FxBus_process(&mut self, fxBuffer: &mut [i16], output: &mut [i16], output2: &mut [i16], size: u32) {
         todo!("port: Core/Src/Soundengine/FxBus.c:41")
     }
 

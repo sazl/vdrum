@@ -61,6 +61,22 @@ impl Lxr {
     /// Source: `Core/Src/Soundengine/DSPAudio/dither.c:26`. Reference build: not in the reference ELF (file not linked or function optimised away). Group P1.
     /// Calls: `Lxr::GetRngValue`.
     pub fn dither_process(&mut self, dither: &mut Dither, r#in: f32) -> i16 {
-        todo!("port: Core/Src/Soundengine/DSPAudio/dither.c:26")
+        // Not in the firmware build: ported from the C semantics (untestable against the reference ELF).
+        let mut r#in = r#in;
+        dither.r2 = dither.r1;
+        dither.r1 = self.GetRngValue() as i16;
+
+        r#in += DITHER_S * (dither.s1 + dither.s1 - dither.s2);
+        dither.tmp = r#in + DITHER_O + DITHER_D * (dither.r1 as i32 - dither.r2 as i32) as f32;
+
+        dither.out = ((DITHER_W * dither.tmp) as i32) as i16;
+        if dither.tmp < 0.0 {
+            dither.out = dither.out.wrapping_sub(1);
+        }
+
+        dither.s2 = dither.s1;
+        dither.s1 = r#in - DITHER_WI * dither.out as f32;
+
+        dither.out
     }
 }

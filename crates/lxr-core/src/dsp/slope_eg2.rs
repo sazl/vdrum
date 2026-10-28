@@ -64,21 +64,37 @@ impl Default for SlopeEg2 {
 /// Source: `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:22`. Reference build: out-of-line in flash. Group P1.
 /// Calls: `dsp::slope_eg2::slopeEg2_setSlope`.
 pub fn slopeEg2_init(eg: &mut SlopeEg2) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/SlopeEg2.c:22")
+    eg.attack = f64::from_bits(0x3f847ae147ae147b); // 0.01
+    eg.decay = f64::from_bits(0x3f847ae147ae147b);
+    eg.value = 0.0;
+    eg.state = EG_STOPPED as u8;
+    eg.repeat = 0;
+    // slopeEg2_setSlope(eg, 0.5f) (data2 = 0), constant folded by GCC: values from the literal pool
+    eg.slope = f64::from_bits(0xbfeffdf38e6f1d40);
+    eg.invSlope = f64::from_bits(0x40af3ba04d2513be);
 }
 
 /// C: `void slopeEg2_trigger(SlopeEg2* eg)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:33`. Reference build: out-of-line in flash. Group P1.
 pub fn slopeEg2_trigger(eg: &mut SlopeEg2) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/SlopeEg2.c:33")
+    if eg.repeat == 0 {
+        eg.state = EG_A as u8;
+    } else {
+        eg.state = EG_REPEAT as u8;
+        eg.value = 1.0;
+    }
+    eg.repeatCnt = eg.repeat;
 }
 
 /// C: `IN_ITCM_RAM double slopeEg2_calcSlopeValue(double val, double slope)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:51`. Reference build: out-of-line in ITCM. Group P1.
 pub fn slopeEg2_calcSlopeValue(val: f64, slope: f64) -> f64 {
-    todo!("port: Core/Src/Soundengine/DSPAudio/SlopeEg2.c:51")
+    // (val + slope*val) [vmla.f64, not fused] / vfma(1, |val|, slope)
+    let den = fpu::vfma64(1.0, val.abs(), slope);
+    let num = val + slope * val;
+    num / den
 }
 
 /// C: `IN_ITCM_RAM double slopeEg2_calc(SlopeEg2* eg)`
@@ -86,14 +102,65 @@ pub fn slopeEg2_calcSlopeValue(val: f64, slope: f64) -> f64 {
 /// Source: `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:56`. Reference build: out-of-line in ITCM. Group P1.
 /// Calls: `dsp::slope_eg2::slopeEg2_calcSlopeValue`.
 pub fn slopeEg2_calc(eg: &mut SlopeEg2) -> f64 {
-    todo!("port: Core/Src/Soundengine/DSPAudio/SlopeEg2.c:56")
+    let mut val = eg.value;
+    match eg.state as i32 {
+        EG_D => {
+            if val > 0.0 {
+                val -= eg.decay;
+                eg.value = val;
+                slopeEg2_calcSlopeValue(val, eg.slope)
+            } else {
+                eg.value = 0.0;
+                0.0
+            }
+        }
+        EG_REPEAT => {
+            let a;
+            if val > 0.0 {
+                val -= eg.attack;
+                a = val.abs();
+            } else {
+                eg.repeatCnt = eg.repeatCnt.wrapping_sub(1);
+                if eg.repeatCnt == 0 {
+                    eg.state = EG_D as u8;
+                }
+                val = 1.0;
+                a = 1.0;
+            }
+            eg.value = val;
+            let slope = eg.slope;
+            let den = fpu::vfma64(1.0, slope, a);
+            let num = val + slope * val;
+            num / den
+        }
+        EG_A => {
+            val += eg.attack;
+            if val >= 1.0 {
+                val = 1.0;
+                eg.state = EG_D as u8;
+            }
+            eg.value = val;
+            let slope = eg.invSlope;
+            let den = fpu::vfma64(1.0, slope, val.abs());
+            let num = val + slope * val;
+            num / den
+        }
+        _ => 0.0,
+    }
 }
 
 /// C: `double slopeEg2_calcTime(uint8_t data2, double amount)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:137`. Reference build: inlined into its callers only. Group P1.
 pub fn slopeEg2_calcTime(data2: u8, amount: f64) -> f64 {
-    todo!("port: Core/Src/Soundengine/DSPAudio/SlopeEg2.c:137")
+    // as inlined (USE_BIG_SAMPLE_BUFFER): fabs dropped (val >= 0); (1+amount) folded exactly for both callers
+    let val = data2 as i32 as f64 * f64::from_bits(0x3f80204081020408); // 1/127.0
+    let den = fpu::vfma64(1.0, val, amount);
+    let num = val * (1.0 + amount);
+    let mut ret = 1.0 - num / den;
+    ret = ret + ret;
+    // float ret; ret > 1.f ? 1.f : ret -> vminnm.f32
+    (ret as f32).min(1.0) as f64
 }
 
 /// C: `IN_ITCM_RAM void slopeEg2_setAttack(SlopeEg2* eg, uint8_t data2, uint8_t isSync)`
@@ -101,7 +168,11 @@ pub fn slopeEg2_calcTime(data2: u8, amount: f64) -> f64 {
 /// Source: `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:150`. Reference build: out-of-line in ITCM. Group P1.
 /// Calls: `dsp::slope_eg2::slopeEg2_calcTime`.
 pub fn slopeEg2_setAttack(eg: &mut SlopeEg2, data2: u8, isSync: u8) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/SlopeEg2.c:150")
+    let mut a = slopeEg2_calcTime(data2, TIME_K_ATTACK);
+    if isSync != 0 {
+        a *= 0.0625;
+    }
+    eg.attack = a;
 }
 
 /// C: `IN_ITCM_RAM void slopeEg2_setDecay(SlopeEg2* eg, uint8_t data2, uint8_t isSync)`
@@ -109,7 +180,11 @@ pub fn slopeEg2_setAttack(eg: &mut SlopeEg2, data2: u8, isSync: u8) {
 /// Source: `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:157`. Reference build: out-of-line in ITCM. Group P1.
 /// Calls: `dsp::slope_eg2::slopeEg2_calcTime`.
 pub fn slopeEg2_setDecay(eg: &mut SlopeEg2, data2: u8, isSync: u8) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/SlopeEg2.c:157")
+    let mut d = slopeEg2_calcTime(data2, TIME_K_DECAY);
+    if isSync != 0 {
+        d *= 0.0625;
+    }
+    eg.decay = d;
 }
 
 /// C: `double slopeEg2_calcDecay(uint8_t data2)`
@@ -117,12 +192,18 @@ pub fn slopeEg2_setDecay(eg: &mut SlopeEg2, data2: u8, isSync: u8) {
 /// Source: `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:164`. Reference build: out-of-line in flash. Group P1.
 /// Calls: `dsp::slope_eg2::slopeEg2_calcTime`.
 pub fn slopeEg2_calcDecay(data2: u8) -> f64 {
-    todo!("port: Core/Src/Soundengine/DSPAudio/SlopeEg2.c:164")
+    slopeEg2_calcTime(data2, TIME_K_DECAY)
 }
 
 /// C: `IN_ITCM_RAM void slopeEg2_setSlope(SlopeEg2* eg, uint8_t data2)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:169`. Reference build: out-of-line in ITCM. Group P1.
 pub fn slopeEg2_setSlope(eg: &mut SlopeEg2, data2: u8) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/SlopeEg2.c:169")
+    let a = vfma(-0.5, data2 as i32 as f32, f32::from_bits(0x3c010204)); // data2/127.f - 0.5f
+    let amount = (a * f32::from_bits(0x3fffdf3b)) as f64; // * 1.999f
+    let two = amount + amount;
+    let d3 = 1.0 - amount;
+    let d7 = amount + 1.0;
+    eg.slope = two / d3;
+    eg.invSlope = (-two) / d7;
 }
