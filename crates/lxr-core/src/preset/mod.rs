@@ -75,6 +75,40 @@ pub fn interpolate(a: u8, b: u8, x: u8) -> u8 {
 
 // ---- functions that use globals (methods on `Lxr`)
 impl Lxr {
+    /// C: `void preset_loadDefaultGlobals()` (`Core/Src/Preset/presetManager.c:1029`). Group P3 (engine
+    /// init, `docs/ENGINE_CONTRACT.md` section 2).
+    pub fn preset_loadDefaultGlobals(&mut self) {
+        self.activeParameters[PAR_BPM as usize] = 120;
+        self.activeParameters[PAR_MIDI_CHAN_1 as usize] = 1;
+        self.activeParameters[PAR_MIDI_CHAN_2 as usize] = 1;
+        self.activeParameters[PAR_MIDI_CHAN_3 as usize] = 1;
+        self.activeParameters[PAR_MIDI_CHAN_4 as usize] = 1;
+        self.activeParameters[PAR_MIDI_CHAN_5 as usize] = 1;
+        self.activeParameters[PAR_MIDI_CHAN_6 as usize] = 1;
+        self.activeParameters[PAR_MIDI_CHAN_7 as usize] = 1;
+        self.activeParameters[PAR_MIDI_NOTE1 as usize] = 48;
+        self.activeParameters[PAR_MIDI_NOTE2 as usize] = 48;
+        self.activeParameters[PAR_MIDI_NOTE3 as usize] = 48;
+        self.activeParameters[PAR_MIDI_NOTE4 as usize] = 48;
+        self.activeParameters[PAR_MIDI_NOTE5 as usize] = 48;
+        self.activeParameters[PAR_MIDI_NOTE6 as usize] = 48;
+        self.activeParameters[PAR_MIDI_NOTE7 as usize] = 48;
+        self.activeParameters[PAR_FETCH as usize] = 0;
+        self.activeParameters[PAR_FOLLOW as usize] = 0;
+        self.activeParameters[PAR_QUANTISATION as usize] = 0;
+        self.activeParameters[PAR_SCREENSAVER_ON_OFF as usize] = 1;
+        self.activeParameters[PAR_MIDI_ROUTING as usize] = 0;
+        self.activeParameters[PAR_MIDI_FILT_TX as usize] = 15;
+        self.activeParameters[PAR_MIDI_FILT_RX as usize] = 15;
+        self.activeParameters[PAR_PRESCALER_CLOCK_IN as usize] = 0;
+        self.activeParameters[PAR_PRESCALER_CLOCK_OUT1 as usize] = 0;
+        self.activeParameters[PAR_PRESCALER_CLOCK_OUT2 as usize] = 0;
+        self.activeParameters[PAR_TRIG_GATE_MODE as usize] = 0;
+        self.activeParameters[PAR_BAR_RESET_MODE as usize] = 1;
+        self.activeParameters[PAR_MIDI_CHAN_GLOBAL as usize] = 0;
+        self.activeParameters[PAR_PATTERN_MODE as usize] = 1;
+    }
+
     /// C: `void preset_touchTimer(PresetTimer type)`
     ///
     /// Source: `Core/Src/Preset/presetManager.c:174`. Reference build: out-of-line in flash. Group P3.

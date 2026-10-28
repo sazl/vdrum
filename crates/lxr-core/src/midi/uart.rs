@@ -9,6 +9,15 @@ use crate::fifo::fifo_bufferOut;
 
 // ---- functions that use globals (methods on `Lxr`)
 impl Lxr {
+    /// C: `void initMidiUart()` (`Core/Src/Soundengine/MIDI/Uart.c:164`): `fifo_init(&fifo_midiTx)` and
+    /// `fifo_init(&fifo_midiRx)`; the UART setup is hardware only. `fifo_midiTx` is not modelled (MIDI output
+    /// is not part of the engine). Group P3 (engine init, `docs/ENGINE_CONTRACT.md` section 2).
+    pub fn initMidiUart(&mut self) {
+        self.fifo_midiRx.data = [0; 256];
+        self.fifo_midiRx.read = 0;
+        self.fifo_midiRx.write = 0;
+    }
+
     /// C: `void uart_clearFrontFifo()`
     ///
     /// Source: `Core/Src/Soundengine/MIDI/Uart.c:42`. Reference build: out-of-line in flash. Group P3.

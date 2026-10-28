@@ -85,6 +85,14 @@ impl Default for ModTarg {
 
 // ---- functions that use globals (methods on `Lxr`)
 impl Lxr {
+    /// C: `void copyClear_clearCurrentPattern()` (`Core/Src/menu/copyClearTools.c:37`). Group P3 (engine
+    /// init, `docs/ENGINE_CONTRACT.md` section 2).
+    pub fn copyClear_clearCurrentPattern(&mut self) {
+        let pattern = self.menu_getViewedPattern();
+        self.led_clearSequencerLeds();
+        self.seq_clearPattern(pattern);
+    }
+
     /// C: `void menu_setShownPattern(uint8_t patternNr)`
     ///
     /// Source: `Core/Src/menu/menu.c:725`. Reference build: out-of-line in flash. Group P3.
