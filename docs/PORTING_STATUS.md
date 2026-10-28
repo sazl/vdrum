@@ -24,22 +24,22 @@ Functions marked `gc`/`absent` cannot be checked against the reference binary.
 
 | C file | C name | Rust | Group | Ref build | Status |
 |---|---|---|---|---|---|
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:23` | `bufferTool_addBuffers` | `dsp::buffer_tools::bufferTool_addBuffers` | P1 | absent | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:32` | `bufferTool_addBuffersSaturating` | `dsp::buffer_tools::bufferTool_addBuffersSaturating` | P1 | inlined | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:54` | `bufferTool_addBuffersSaturatingWithGain` | `dsp::buffer_tools::bufferTool_addBuffersSaturatingWithGain` | P1 | absent | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:63` | `bufferTool_subBuffersSaturating` | `dsp::buffer_tools::bufferTool_subBuffersSaturating` | P1 | absent | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:72` | `bufferTool_copyWithGain` | `dsp::buffer_tools::bufferTool_copyWithGain` | P1 | absent | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:81` | `bufferTool_clearBuffer` | `dsp::buffer_tools::bufferTool_clearBuffer` | P1 | inlined | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:103` | `bufferTool_addGain` | `dsp::buffer_tools::bufferTool_addGain` | P1 | inlined | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:112` | `bufferTool_addGainDithered` | `Lxr::bufferTool_addGainDithered` | P1 | absent | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:121` | `bufferTool_addGainInterpolated` | `dsp::buffer_tools::bufferTool_addGainInterpolated` | P1 | inlined | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:173` | `bufferTool_addGainInterpolatedDouble` | `dsp::buffer_tools::bufferTool_addGainInterpolatedDouble` | P1 | absent | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:186` | `bufferTool_addGainInterpolatedDoubleDithered` | `Lxr::bufferTool_addGainInterpolatedDoubleDithered` | P1 | absent | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:203` | `bufferTool_mulInt` | `dsp::buffer_tools::bufferTool_mulInt` | P1 | absent | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:212` | `bufferTool_multiplyWithFloatBuffer` | `dsp::buffer_tools::bufferTool_multiplyWithFloatBuffer` | P1 | absent | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:221` | `bufferTool_multiplyWithFloatBufferDithered` | `Lxr::bufferTool_multiplyWithFloatBufferDithered` | P1 | absent | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:231` | `bufferTool_moveBuffer` | `dsp::buffer_tools::bufferTool_moveBuffer` | P1 | absent | stub |
-| `Core/Inc/Soundengine/DSPAudio/medianFilter.h:23` | `medianFilter` | `dsp::median_filter::medianFilter` | P1 | gc | stub |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:23` | `bufferTool_addBuffers` | `dsp::buffer_tools::bufferTool_addBuffers` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:32` | `bufferTool_addBuffersSaturating` | `dsp::buffer_tools::bufferTool_addBuffersSaturating` | P1 | inlined | ported (inlined only; follows the machine code in the voice/mixer callers; difftested via P4 voice/mixer tests) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:54` | `bufferTool_addBuffersSaturatingWithGain` | `dsp::buffer_tools::bufferTool_addBuffersSaturatingWithGain` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:63` | `bufferTool_subBuffersSaturating` | `dsp::buffer_tools::bufferTool_subBuffersSaturating` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:72` | `bufferTool_copyWithGain` | `dsp::buffer_tools::bufferTool_copyWithGain` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:81` | `bufferTool_clearBuffer` | `dsp::buffer_tools::bufferTool_clearBuffer` | P1 | inlined | ported (inlined only; follows the machine code in the voice/mixer callers; difftested via P4 voice/mixer tests) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:103` | `bufferTool_addGain` | `dsp::buffer_tools::bufferTool_addGain` | P1 | inlined | ported (inlined only; follows the machine code in the voice/mixer callers; difftested via P4 voice/mixer tests) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:112` | `bufferTool_addGainDithered` | `Lxr::bufferTool_addGainDithered` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:121` | `bufferTool_addGainInterpolated` | `dsp::buffer_tools::bufferTool_addGainInterpolated` | P1 | inlined | ported (inlined only; follows the machine code in the voice/mixer callers; difftested via P4 voice/mixer tests) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:173` | `bufferTool_addGainInterpolatedDouble` | `dsp::buffer_tools::bufferTool_addGainInterpolatedDouble` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:186` | `bufferTool_addGainInterpolatedDoubleDithered` | `Lxr::bufferTool_addGainInterpolatedDoubleDithered` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:203` | `bufferTool_mulInt` | `dsp::buffer_tools::bufferTool_mulInt` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:212` | `bufferTool_multiplyWithFloatBuffer` | `dsp::buffer_tools::bufferTool_multiplyWithFloatBuffer` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:221` | `bufferTool_multiplyWithFloatBufferDithered` | `Lxr::bufferTool_multiplyWithFloatBufferDithered` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:231` | `bufferTool_moveBuffer` | `dsp::buffer_tools::bufferTool_moveBuffer` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Inc/Soundengine/DSPAudio/medianFilter.h:23` | `medianFilter` | `dsp::median_filter::medianFilter` | P1 | gc | ported as medianFilter_state (not in firmware build, untestable; statics passed explicitly, unit-tested natively) |
 | `Core/Src/Soundengine/DSPAudio/1PoleLp.c:21` | `initOnePole` | `dsp::one_pole_lp::initOnePole` | P1 | flash | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/1PoleLp.c:27` | `calcOnePole` | `dsp::one_pole_lp::calcOnePole` | P1 | itcm | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/1PoleLp.c:35` | `calcOnePoleAdaptiveVolume` | `dsp::one_pole_lp::calcOnePoleAdaptiveVolume` | P1 | gc | ported (not in firmware build, untestable) |
@@ -107,12 +107,12 @@ Functions marked `gc`/`absent` cannot be checked against the reference binary.
 | `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:157` | `slopeEg2_setDecay` | `dsp::slope_eg2::slopeEg2_setDecay` | P1 | itcm | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:164` | `slopeEg2_calcDecay` | `dsp::slope_eg2::slopeEg2_calcDecay` | P1 | flash | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:169` | `slopeEg2_setSlope` | `dsp::slope_eg2::slopeEg2_setSlope` | P1 | itcm | ported+difftested |
-| `Core/Src/Soundengine/DSPAudio/TiltEq.c:20` | `fasterpow2` | `dsp::tilt_eq::fasterpow2` | P1 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/TiltEq.c:28` | `fasterexp` | `dsp::tilt_eq::fasterexp` | P1 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/TiltEq.c:35` | `TiltEq_init` | `dsp::tilt_eq::TiltEq_init` | P1 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/TiltEq.c:40` | `TiltEq_process` | `dsp::tilt_eq::TiltEq_process` | P1 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/TiltEq.c:51` | `TiltEq_setFreq` | `dsp::tilt_eq::TiltEq_setFreq` | P1 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/TiltEq.c:60` | `TiltEq_setParameter` | `dsp::tilt_eq::TiltEq_setParameter` | P1 | absent | stub |
+| `Core/Src/Soundengine/DSPAudio/TiltEq.c:20` | `fasterpow2` | `dsp::tilt_eq::fasterpow2` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/TiltEq.c:28` | `fasterexp` | `dsp::tilt_eq::fasterexp` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/TiltEq.c:35` | `TiltEq_init` | `dsp::tilt_eq::TiltEq_init` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/TiltEq.c:40` | `TiltEq_process` | `dsp::tilt_eq::TiltEq_process` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/TiltEq.c:51` | `TiltEq_setFreq` | `dsp::tilt_eq::TiltEq_setFreq` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/TiltEq.c:60` | `TiltEq_setParameter` | `dsp::tilt_eq::TiltEq_setParameter` | P1 | absent | ported (not in firmware build, untestable) |
 | `Core/Src/Soundengine/DSPAudio/automationNode.c:17` | `autoNode_init` | `dsp::automation_node::autoNode_init` | P1 | flash | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/automationNode.c:22` | `autoNode_setDestination` | `Lxr::autoNode_setDestination` | P1 | flash | ported+difftested (midiParser_ccHandler intercepted: messages and values compared; callee is P3) |
 | `Core/Src/Soundengine/DSPAudio/automationNode.c:44` | `autoNode_updateValue` | `Lxr::autoNode_updateValue` | P1 | flash | ported+difftested (midiParser_ccHandler intercepted: messages and values compared; callee is P3) |
@@ -120,7 +120,7 @@ Functions marked `gc`/`absent` cannot be checked against the reference binary.
 | `Core/Src/Soundengine/DSPAudio/distortion.c:24` | `calcDistBlock` | `dsp::distortion::calcDistBlock` | P1 | itcm | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/distortion.c:36` | `calcDistBlockFiltered` | `dsp::distortion::calcDistBlockFiltered` | P1 | flash | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/distortion.c:54` | `distortion_calcSampleFloat` | `dsp::distortion::distortion_calcSampleFloat` | P1 | gc | ported (not in firmware build, untestable) |
-| `Core/Src/Soundengine/DSPAudio/dither.c:26` | `dither_process` | `Lxr::dither_process` | P1 | absent | stub |
+| `Core/Src/Soundengine/DSPAudio/dither.c:26` | `dither_process` | `Lxr::dither_process` | P1 | absent | ported (not in firmware build, untestable) |
 | `Core/Src/Soundengine/DSPAudio/lfo.c:25` | `lfo_init` | `Lxr::lfo_init` | P1 | flash | ported (not difftested yet: depends on P3 paramArray_setParameter / cptr_read_*) |
 | `Core/Src/Soundengine/DSPAudio/lfo.c:39` | `lfo_calc` | `Lxr::lfo_calc` | P1 | itcm | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/lfo.c:108` | `lfo_dispatchNextValue` | `Lxr::lfo_dispatchNextValue` | P1 | flash | ported+difftested |
@@ -136,7 +136,7 @@ Functions marked `gc`/`absent` cannot be checked against the reference binary.
 | `Core/Src/Soundengine/DSPAudio/modulationNode.c:108` | `modNode_reassignVeloMod` | `Lxr::modNode_reassignVeloMod` | P1 | itcm | ported+difftested (midiParser_ccHandler intercepted: messages and values compared; callee is P3) |
 | `Core/Src/Soundengine/DSPAudio/modulationNode.c:120` | `modNode_setDestination` | `Lxr::modNode_setDestination` | P1 | flash | ported (not difftested yet: depends on P3 paramArray_setParameter / cptr_read_*) |
 | `Core/Src/Soundengine/DSPAudio/modulationNode.c:164` | `modNode_updateValue` | `Lxr::modNode_updateValue` | P1 | flash | ported+difftested (midiParser_ccHandler intercepted: messages and values compared; callee is P3) |
-| `Core/Src/Soundengine/DSPAudio/random.c:18` | `initRng` | `dsp::random::initRng` | P1 | gc | stub |
+| `Core/Src/Soundengine/DSPAudio/random.c:18` | `initRng` | `dsp::random::initRng` | P1 | gc | ported (not in firmware build, untestable) |
 | `Core/Src/Soundengine/DSPAudio/random.c:27` | `GetRngValue` | `Lxr::GetRngValue` | P1 | flash | ported (`src/rng.rs`) |
 | `Core/Src/Soundengine/DSPAudio/snapEg.c:19` | `SnapEg_init` | `dsp::snap_eg::SnapEg_init` | P1 | flash | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/snapEg.c:24` | `SnapEg_trigger` | `dsp::snap_eg::SnapEg_trigger` | P1 | flash | ported+difftested |
