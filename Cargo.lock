@@ -234,6 +234,8 @@ dependencies = [
  "anyhow",
  "lxr-core",
  "lxr-emu",
+ "serde_json",
+ "sha2",
  "unicorn-engine",
 ]
 

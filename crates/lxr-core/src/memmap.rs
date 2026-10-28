@@ -659,6 +659,11 @@ impl Lxr {
     /// would read memory the port does not model).
     #[inline]
     fn cptr_byte(&self, p: CPtr) -> u8 {
+        // NULL pointer targets (`parameterArray` entries that `parameterArray_init` leaves zero): address
+        // 0x00000000 is ITCM RAM holding the shipped code, see `preset::SHIPPED_ITCM_HEAD`.
+        if (p as usize) < crate::preset::SHIPPED_ITCM_HEAD.len() {
+            return crate::preset::SHIPPED_ITCM_HEAD[p as usize];
+        }
         match self.global_get_byte(p) {
             Some(b) => b,
             None => panic!("cptr: read of unmapped firmware address {p:#010x}"),
