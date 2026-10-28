@@ -630,29 +630,47 @@ pub mod offset_of_c {
 }
 
 impl Lxr {
+    /// Byte at firmware address `p`, which must lie in an `Lxr` global (panics otherwise: the firmware
+    /// would read memory the port does not model).
+    #[inline]
+    fn cptr_byte(&self, p: CPtr) -> u8 {
+        match self.global_get_byte(p) {
+            Some(b) => b,
+            None => panic!("cptr: read of unmapped firmware address {p:#010x}"),
+        }
+    }
+    #[inline]
+    fn cptr_set_byte(&mut self, p: CPtr, v: u8) {
+        if !self.global_set_byte(p, v) {
+            panic!("cptr: write to unmapped firmware address {p:#010x}");
+        }
+    }
     /// Reads the `f32` at firmware address `p` (a field of an `Lxr` global). Non-C helper, group P3
-    /// (used by ParameterArray / modulationNode code).
+    /// (used by ParameterArray / modulationNode code). Byte-wise, so a load from a field of another
+    /// type (e.g. the low word of a `double`) reinterprets the bytes exactly like the firmware.
     pub fn cptr_read_f32(&self, p: CPtr) -> f32 {
-        todo!("non-C helper: map firmware address to Lxr field")
+        f32::from_bits(self.cptr_read_u32(p))
     }
     /// Writes the `f32` at firmware address `p`. Non-C helper, group P3.
     pub fn cptr_write_f32(&mut self, p: CPtr, v: f32) {
-        todo!("non-C helper: map firmware address to Lxr field")
+        self.cptr_write_u32(p, v.to_bits())
     }
     /// Reads the `u8` at firmware address `p`. Non-C helper, group P3.
     pub fn cptr_read_u8(&self, p: CPtr) -> u8 {
-        todo!("non-C helper: map firmware address to Lxr field")
+        self.cptr_byte(p)
     }
     /// Writes the `u8` at firmware address `p`. Non-C helper, group P3.
     pub fn cptr_write_u8(&mut self, p: CPtr, v: u8) {
-        todo!("non-C helper: map firmware address to Lxr field")
+        self.cptr_set_byte(p, v)
     }
     /// Reads the `u32` at firmware address `p`. Non-C helper, group P3.
     pub fn cptr_read_u32(&self, p: CPtr) -> u32 {
-        todo!("non-C helper: map firmware address to Lxr field")
+        u32::from_le_bytes([self.cptr_byte(p), self.cptr_byte(p + 1), self.cptr_byte(p + 2), self.cptr_byte(p + 3)])
     }
     /// Writes the `u32` at firmware address `p`. Non-C helper, group P3.
     pub fn cptr_write_u32(&mut self, p: CPtr, v: u32) {
-        todo!("non-C helper: map firmware address to Lxr field")
+        for (i, b) in v.to_le_bytes().into_iter().enumerate() {
+            self.cptr_set_byte(p + i as u32, b);
+        }
     }
 }
