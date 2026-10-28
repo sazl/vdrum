@@ -4,10 +4,33 @@ CLAP, VST3 and standalone builds of VDrum, built on a port of the LXR-02 sound e
 [nih-plug](https://github.com/robbert-vdh/nih-plug), pinned to rev `de421011f41a6d10fc8c7a6084e4f4dee0143683`.
 An AUv2 component and a macOS standalone app come from [clap-wrapper](../au/CMakeLists.txt).
 
-The plugin talks to the sound engine through the `Engine` trait in `src/engine.rs`. It currently
-runs `StubEngine`, which handles parameters, kits, CC/NRPN and note triggers at the interface level
-and plays a test sound (decaying sines). It is **not** the LXR-02 sound. To switch engines, change
-`ActiveEngine` in `src/lib.rs` once `lxr-core` implements the trait.
+![VDrum editor](../docs/screenshot.png)
+
+The plugin talks to the sound engine through the `Engine` trait in `src/engine.rs`. It runs
+`LxrEngine`, a wrapper around `lxr_core::Lxr` (the port of the LXR-02 engine, `ActiveEngine` in
+`src/lib.rs`):
+
+* `set_parameter` is the menu path of the contract (`menu_encoderChangeParameter`); `get_parameter`
+  reads `activeParameters[]`. Out-of-range indices are ignored.
+* `load_kit` / `save_kit` use the `.snd` format: 8 name bytes, then the 247 kit bytes
+  (`preset_loadDrumsetSD` / `preset_saveDrumsetSD`).
+* Faders: see *Voice faders* below.
+* `StubEngine` (a test sound, not the LXR-02) is kept for tests of the plugin layer.
+* **Safety net.** A panic inside the engine (an engine bug) must not unwind into the host, which
+  would abort it. `LxrEngine` catches it, marks itself faulted, then renders silence and ignores
+  input. `initialize()` replaces a faulted engine; the host parameters restore the kit. This path
+  is not real-time safe (unwinding allocates), and it only runs after a bug.
+* **Temporary workaround.** MIDI CC 0 (bank change) values 64–127 are dropped before the engine.
+  The firmware has 64 kit slots and reads past them; `lxr-core` currently panics there. See
+  `apply_event` in `src/lib.rs`. Remove this once `lxr-core` handles it.
+
+### Performance
+
+`cargo run --release -p vdrum --example engine_bench` retriggers all seven tracks every 8 ticks.
+All voices are routed to the FX bus, which runs each FX type at 100 % wet. On the Linux x86_64 build
+machine (generic `x86_64` target, no FMA, so `mul_add` is a software call) one `tick()` (64 frames)
+took 23.5 µs on average, p99 39.8 µs. That is **1.6 % of one core** at 44.1 kHz, so no profiling
+was needed. `new()` takes about 0.3 ms.
 
 ## Building
 
@@ -66,13 +89,24 @@ built this on macOS yet, so it should be treated as unverified until macOS CI ru
     `load_kit`, `get_parameter`, `new`) and restores the previous state afterwards:
     * x86: MXCSR bits 15 and 6.
     * aarch64: FPCR bit 24.
+* **Bit-exactness test.** `src/real_engine_tests.rs` runs the scenario corpus (`tests/scenarios`)
+  through the plugin's event scheduling and output path at 44100 Hz:
+  * events are placed at jittered host sample positions;
+  * five host buffer patterns are used, including 1, 7, 13, 947 and 4096 frames;
+  * FTZ/DAZ is switched on, as a plugin wrapper would.
+  
+  The output, converted back to i16, matches the reference hashes of the shipped v1.71 firmware for
+  all 299 scenarios without kit loads. `global_morph_no_target` and the 11 kit-load scenarios are
+  skipped. A second test checks the plugin's MIDI defaults with all voices and the FX bus against
+  `Lxr` called directly.
 * **No allocations or locks on the audio thread.**
   * Fixed-capacity event queue and output FIFO.
   * Preallocated resampler buffers.
   * A lock-free `ArrayQueue` for commands from the GUI.
   * Kits travel inline.
-  * This was checked in a debug build with the `assert_process_allocs` feature: playing notes,
-    changing parameters and loading a kit while the audio ran raised no allocation panics.
+  * This was checked with the real engine, in a debug build with the `assert_process_allocs`
+    feature, in the standalone on Xvfb. Pads were played, parameters and faders dragged, and the
+    init kit loaded while audio ran, with no allocation panics.
 
 ## Timing and latency
 
@@ -99,8 +133,20 @@ change is applied at the start of the next tick.
 * **Firmware behaviours worth knowing:**
   * A track triggers when the message is on its channel and the note matches. A track note of 0
     means any note.
-  * By default all seven tracks are on channel 1 with note 48 (C 4), so one note triggers every
-    voice. Set per-track channels and notes in the MIDI section.
+  * **Default note map (plugin choice).** The firmware's default globals
+    (`preset_loadDefaultGlobals`, which `preset_createGlobals` also writes to a new `glo.cfg`) put all
+    seven tracks on channel 1 with note 48, so one note triggers every voice. Hardware with a
+    `glo.cfg` behaves the same until the user changes it.
+    * The plugin instead defaults to one General MIDI drum note per track, all on channel 1:
+      Drum 1 = 36 (Bass Drum 1), Drum 2 = 45 (Low Tom), Drum 3 = 50 (High Tom), Snare = 38,
+      Cymbal = 49 (Crash 1), closed hi-hat = 42, open hi-hat = 46.
+    * It sets them after `Lxr::new()` through the firmware's own parameter path
+      (`set_parameter(PAR_MIDI_NOTEx)`, which only writes `activeParameters`). These are also the
+      host parameters' defaults.
+    * The sound does not change: with a track note set, a matching note plays the voice at
+      `SEQ_DEFAULT_NOTE`, as note 48 did before.
+    * The engine itself keeps the firmware defaults, so the scenario reference hashes still hold.
+    * Projects saved with older versions restore their stored notes.
   * The global channel defaults to 0, which means off.
   * CCs 2–127 control parameters 1–126. The channel rule is `midiParser_cc2voiceNr`: drum 1's CCs
     follow the drum 2 channel (`midi_MidiChannels[n]` is the channel of track n+1).
@@ -124,6 +170,13 @@ change is applied at the start of the next tick.
   of its firmware enum name, lower case and without `PAR_` (for example `coarse1` or
   `midi_chan_global`). Groups follow voice and section (`Drum 1/Oscillator`, `FX/FX Bus`,
   `Global/MIDI`). Values show the firmware's edit-mode text; modulation targets are spelled out.
+* **Voice faders.** The plugin adds six parameters, `vdrum_fader_1` … `vdrum_fader_6`, for the
+  hardware's volume faders (Drum 1–3, Snare, Cymbal, Hi-hat). They are not part of the kit.
+  * They have steps 0–99 and go through the hardware path, `adc_checkFaders` (`set_fader_adc`).
+  * Step `s` reads ADC `36 + 41·s` (12 bit). Every step therefore clears the 40-count
+    hysteresis, step 0 is silence, and step 99 is the top.
+  * The top (0xFFF0, gain 0.99951) is the power-on value of the contract, and it is the default.
+  * The gain is the square of the fader position, displayed in dB.
 * **Not exposed.** `PAR_FX_REVERB_TYPE` has a single possible value (the firmware lists one reverb
   type), and a host parameter cannot have a zero-width range. It stays in the kit and the GUI shows
   it read-only. The 13 unused kit slots are also kept in the kit but not exposed.
@@ -158,31 +211,49 @@ change is applied at the start of the next tick.
   controls generated from the `lxr-params` table), and immediate mode builds that from data without
   per-widget state or bindings. Vizia and iced would need a retained widget tree for every cell.
 * **Layout.**
-  * Two voice matrices: six voice columns by sections. The first holds Oscillator, Amp EG,
-    Modulation and FM. The second holds Transient, Filter, LFO and Mix.
-  * The hi-hat column shows the closed and open hi-hat pages.
+  * One card per voice. Each card holds all of that voice's sections:
+    * Oscillator, FM (or the mod oscillators for the cymbal and hi-hat), Amp EG, Mod EG (pitch);
+    * Filter, Transient, LFO, Velocity modulation;
+    * Mix, including the fader.
+  * Card headers show the trigger note and channel, with trigger pads that light when the track
+    plays. The hi-hat card has CH and OH and shows the closed and open hi-hat pages.
+  * Labels are spelled out ("Pitch Mod Amount", "Destination Voice"). Values are shown as the
+    LXR-02 display shows them in edit mode. The tooltip has the full name and, for modulation
+    destinations, the spelled-out target.
+  * Values that differ from their default (the init kit, or the plugin default for globals) have an
+    amber stripe. The top bar counts them.
+  * The default window is 1812 × 960 and fits everything at 100 % on a 1920 × 1080 display.
   * A right-hand column holds:
     * the FX bus, with P1–P4 labelled for the current FX type from the firmware's FX page and
       controls not used by the type dimmed;
     * performance;
     * MIDI (BPM, global channel, channel and note per track);
     * output meters, the sum and hardware clock switches, and status.
-  * The top bar has the kit name, Load/Save/Init, seven trigger pads (D1 D2 D3 SN CY CH OH, lit
-    when a track triggers) and zoom.
+  * The top bar has the kit name, Load/Save/Init, the count of changed values, status and zoom.
 * **Controls.**
   * Drag a value bar to change it; hold Shift for fine steps.
   * Double-click resets to the default.
   * List parameters (waveforms, filter types, LFO and velocity targets, …) open a list on click.
     Mod-target lists offer the destination voice's range (`modTargetVoiceOffsets`).
   * Tooltips show the full name, value, range, default, CC/NRPN, learned CC and stable ID.
-* **Window.** Resizable from the corner. Zoom with −/+ (persisted); the content scrolls if it does
-  not fit.
+* **Window.** Resizable from the corner. Zoom with −/+ (persisted); click the percentage to reset
+  it to 100 %. The content scrolls if it does not fit.
 
 ## Validation (Linux, x86_64)
 
+These results are for the real engine (`lxr-core`), from `cargo xtask bundle vdrum --release`.
+
 * **clap-validator 0.3.2** on `VDrum.clap`: 18 passed, 0 failed, 3 skipped (preset discovery is
   not implemented).
+  * Before the CC 0 workaround, the parameter fuzz test failed with the `lxr-core` panic
+    described above.
 * **pluginval 1.0.4** on `VDrum.vst3`: strictness 10, editor tests included, run on Xvfb: SUCCESS.
+  * The log still shows two panics on the editor thread when windows close: an X11 `BadDrawable`
+    from `unwrap()` in `baseview::gl::GlContext::swap_buffers` (baseview `src/gl/x11.rs:237`).
+  * The host destroys the parent window while baseview's render thread draws one more frame.
+  * The panic ends only that GUI thread, and pluginval passes.
+  * A fix needs a change in baseview: handle the error in `swap_buffers`, or stop rendering
+    before the parent window goes away. It is not in the plugin's code.
 * **Standalone.** Ran with `--backend dummy` at 44100 and 48000 Hz on Xvfb. Checked by driving
   the GUI with xdotool: pads trigger notes (meters move), dragging changes values, and the MIDI
   learn menu opens.
