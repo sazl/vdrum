@@ -1,0 +1,9 @@
+[package]
+name = "lxr-core"
+description = "Bit-exact Rust port of the Erica Synths LXR-02 sound engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]

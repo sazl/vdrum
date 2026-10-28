@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/lxr-emu"]
+members = ["crates/lxr-core", "crates/lxr-emu"]
 
 [workspace.package]
 version = "0.1.0"
