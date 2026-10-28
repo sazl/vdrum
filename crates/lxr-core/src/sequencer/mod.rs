@@ -266,7 +266,8 @@ impl Lxr {
     /// Source: `Core/Src/Soundengine/Sequencer/sequencer.c:444`. Reference build: out-of-line in flash. Group P3.
     /// Globals: `seq_tempo`.
     pub fn seq_getBpm(&mut self) -> u16 {
-        todo!("port: Core/Src/Soundengine/Sequencer/sequencer.c:444")
+            // Ported by P1 (needed by lfo_calcPhaseInc; difftested in p1_lfo.rs)
+        self.seq_tempo
     }
 
     /// C: `void seq_sync()`

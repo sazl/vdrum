@@ -113,29 +113,29 @@ Functions marked `gc`/`absent` cannot be checked against the reference binary.
 | `Core/Src/Soundengine/DSPAudio/TiltEq.c:40` | `TiltEq_process` | `dsp::tilt_eq::TiltEq_process` | P1 | absent | stub |
 | `Core/Src/Soundengine/DSPAudio/TiltEq.c:51` | `TiltEq_setFreq` | `dsp::tilt_eq::TiltEq_setFreq` | P1 | absent | stub |
 | `Core/Src/Soundengine/DSPAudio/TiltEq.c:60` | `TiltEq_setParameter` | `dsp::tilt_eq::TiltEq_setParameter` | P1 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/automationNode.c:17` | `autoNode_init` | `dsp::automation_node::autoNode_init` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/automationNode.c:22` | `autoNode_setDestination` | `Lxr::autoNode_setDestination` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/automationNode.c:44` | `autoNode_updateValue` | `Lxr::autoNode_updateValue` | P1 | flash | stub |
+| `Core/Src/Soundengine/DSPAudio/automationNode.c:17` | `autoNode_init` | `dsp::automation_node::autoNode_init` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/automationNode.c:22` | `autoNode_setDestination` | `Lxr::autoNode_setDestination` | P1 | flash | ported+difftested (midiParser_ccHandler intercepted: messages and values compared; callee is P3) |
+| `Core/Src/Soundengine/DSPAudio/automationNode.c:44` | `autoNode_updateValue` | `Lxr::autoNode_updateValue` | P1 | flash | ported+difftested (midiParser_ccHandler intercepted: messages and values compared; callee is P3) |
 | `Core/Src/Soundengine/DSPAudio/distortion.c:18` | `setDistortionShape` | `dsp::distortion::setDistortionShape` | P1 | itcm | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/distortion.c:24` | `calcDistBlock` | `dsp::distortion::calcDistBlock` | P1 | itcm | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/distortion.c:36` | `calcDistBlockFiltered` | `dsp::distortion::calcDistBlockFiltered` | P1 | flash | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/distortion.c:54` | `distortion_calcSampleFloat` | `dsp::distortion::distortion_calcSampleFloat` | P1 | gc | ported (not in firmware build, untestable) |
 | `Core/Src/Soundengine/DSPAudio/dither.c:26` | `dither_process` | `Lxr::dither_process` | P1 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/lfo.c:25` | `lfo_init` | `Lxr::lfo_init` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/lfo.c:39` | `lfo_calc` | `Lxr::lfo_calc` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/lfo.c:108` | `lfo_dispatchNextValue` | `Lxr::lfo_dispatchNextValue` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/lfo.c:114` | `lfo_calcPhaseInc` | `Lxr::lfo_calcPhaseInc` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/lfo.c:185` | `lfo_setFreq` | `Lxr::lfo_setFreq` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/lfo.c:195` | `lfo_setSync` | `Lxr::lfo_setSync` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/lfo.c:201` | `lfo_recalcSync` | `Lxr::lfo_recalcSync` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/lfo.c:222` | `lfo_retrigger` | `Lxr::lfo_retrigger` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/modulationNode.c:30` | `modNode_init` | `Lxr::modNode_init` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/modulationNode.c:37` | `modNode_setOriginalValueChanged` | `Lxr::modNode_setOriginalValueChanged` | P1 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/modulationNode.c:74` | `modNode_originalValueChanged` | `Lxr::modNode_originalValueChanged` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/modulationNode.c:90` | `modNode_resetTargets` | `Lxr::modNode_resetTargets` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/modulationNode.c:108` | `modNode_reassignVeloMod` | `Lxr::modNode_reassignVeloMod` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/modulationNode.c:120` | `modNode_setDestination` | `Lxr::modNode_setDestination` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/modulationNode.c:164` | `modNode_updateValue` | `Lxr::modNode_updateValue` | P1 | flash | stub |
+| `Core/Src/Soundengine/DSPAudio/lfo.c:25` | `lfo_init` | `Lxr::lfo_init` | P1 | flash | ported (not difftested yet: depends on P3 paramArray_setParameter / cptr_read_*) |
+| `Core/Src/Soundengine/DSPAudio/lfo.c:39` | `lfo_calc` | `Lxr::lfo_calc` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/lfo.c:108` | `lfo_dispatchNextValue` | `Lxr::lfo_dispatchNextValue` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/lfo.c:114` | `lfo_calcPhaseInc` | `Lxr::lfo_calcPhaseInc` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/lfo.c:185` | `lfo_setFreq` | `Lxr::lfo_setFreq` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/lfo.c:195` | `lfo_setSync` | `Lxr::lfo_setSync` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/lfo.c:201` | `lfo_recalcSync` | `Lxr::lfo_recalcSync` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/lfo.c:222` | `lfo_retrigger` | `Lxr::lfo_retrigger` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/modulationNode.c:30` | `modNode_init` | `Lxr::modNode_init` | P1 | flash | ported (not difftested yet: depends on P3 paramArray_setParameter / cptr_read_*) |
+| `Core/Src/Soundengine/DSPAudio/modulationNode.c:37` | `modNode_setOriginalValueChanged` | `Lxr::modNode_setOriginalValueChanged` | P1 | inlined | ported (not difftested yet: depends on P3 paramArray_setParameter / cptr_read_*) |
+| `Core/Src/Soundengine/DSPAudio/modulationNode.c:74` | `modNode_originalValueChanged` | `Lxr::modNode_originalValueChanged` | P1 | flash | ported (not difftested yet: depends on P3 paramArray_setParameter / cptr_read_*) |
+| `Core/Src/Soundengine/DSPAudio/modulationNode.c:90` | `modNode_resetTargets` | `Lxr::modNode_resetTargets` | P1 | itcm | ported (not difftested yet: depends on P3 paramArray_setParameter / cptr_read_*) |
+| `Core/Src/Soundengine/DSPAudio/modulationNode.c:108` | `modNode_reassignVeloMod` | `Lxr::modNode_reassignVeloMod` | P1 | itcm | ported+difftested (midiParser_ccHandler intercepted: messages and values compared; callee is P3) |
+| `Core/Src/Soundengine/DSPAudio/modulationNode.c:120` | `modNode_setDestination` | `Lxr::modNode_setDestination` | P1 | flash | ported (not difftested yet: depends on P3 paramArray_setParameter / cptr_read_*) |
+| `Core/Src/Soundengine/DSPAudio/modulationNode.c:164` | `modNode_updateValue` | `Lxr::modNode_updateValue` | P1 | flash | ported+difftested (midiParser_ccHandler intercepted: messages and values compared; callee is P3) |
 | `Core/Src/Soundengine/DSPAudio/random.c:18` | `initRng` | `dsp::random::initRng` | P1 | gc | stub |
 | `Core/Src/Soundengine/DSPAudio/random.c:27` | `GetRngValue` | `Lxr::GetRngValue` | P1 | flash | ported (`src/rng.rs`) |
 | `Core/Src/Soundengine/DSPAudio/snapEg.c:19` | `SnapEg_init` | `dsp::snap_eg::SnapEg_init` | P1 | flash | ported+difftested |
