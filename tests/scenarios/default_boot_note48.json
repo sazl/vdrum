@@ -1,0 +1,1 @@
+{"name":"default_boot_note48","description":"boot defaults: one note 48 on ch1 triggers all 7 voices; then other notes","ticks":450,"events":[{"tick":2,"events":[{"midi":[144,48,100]}]},{"tick":150,"events":[{"midi":[144,48,30]}]},{"tick":300,"events":[{"midi":[144,60,127]},{"midi":[145,48,127]}]}]}
