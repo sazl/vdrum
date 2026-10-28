@@ -1,0 +1,9 @@
+[package]
+name = "lxr-params"
+description = "Parameter metadata of the LXR-02 sound engine (names, ranges, display, MIDI mapping, kit files), derived from the GPL firmware source"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
