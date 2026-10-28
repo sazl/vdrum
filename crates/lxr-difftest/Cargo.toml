@@ -9,3 +9,6 @@ publish = false
 lxr-core = { path = "../lxr-core" }
 lxr-emu = { path = "../lxr-emu" }
 anyhow = "1"
+
+[dev-dependencies]
+unicorn-engine = "2"

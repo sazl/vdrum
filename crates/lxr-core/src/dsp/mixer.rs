@@ -200,7 +200,7 @@ impl Lxr {
     pub fn mixer_addDataToOutputFilteredPan(&mut self, dest: u8, pan: f32, data: &[i16], output: &mut [i16], output2: &mut [i16], fxBuffer: &mut [i16], filter: &mut OnePoleFilter) {
         let dest = self.mixer_checkOutJackAvailable(dest);
         let n = OUTPUT_DMA_SIZE as usize;
-        let mut pans = |filter: &mut OnePoleFilter| {
+        let pans = |filter: &mut OnePoleFilter| {
             let mixPan = calcOnePole(filter, pan as f64);
             let panL = ((127.0 - mixPan) * RECIP_127).sqrt();
             let panR = (mixPan * RECIP_127).sqrt();
