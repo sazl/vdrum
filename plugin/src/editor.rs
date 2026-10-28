@@ -7,7 +7,7 @@
 //! that differ from their default are marked with an amber stripe.
 
 use crate::engine::track_trigger_note;
-use crate::params::{fader_text, is_list, plugin_default, value_text, Command, Shared, VDrumParams, FADER_MAX, N};
+use crate::params::{fader_text, is_list, plugin_default, value_text, Command, Shared, VDrumParams, FADER_MAX};
 use lxr_params::kit::Kit;
 use lxr_params::{fx_param_text, par, Dtype, ParamInfo, Section, Voice, MOD_TARGET_VOICE_OFFSETS, VOICE_PAGES};
 use nih_plug::prelude::*;
@@ -29,8 +29,9 @@ const ROW_H: f32 = 18.0;
 const ROW_GAP: f32 = 1.0;
 const CARD_PAD: f32 = 6.0;
 const CARD_GAP: f32 = 6.0;
-/// Default window size: everything fits at 100 % (about 1850 × 960 logical pixels).
-pub const DEFAULT_SIZE: (u32, u32) = (1856, 952);
+/// Default window size: everything fits at 100 %, which leaves room for window decorations and a
+/// task bar on a 1920 × 1080 display.
+pub const DEFAULT_SIZE: (u32, u32) = (1812, 960);
 
 pub const TRACK_NAMES: [&str; 7] = ["Drum 1", "Drum 2", "Drum 3", "Snare", "Cymbal", "Closed hi-hat", "Open hi-hat"];
 pub const PAD_LABELS: [&str; 7] = ["D1", "D2", "D3", "SN", "CY", "CH", "OH"];
@@ -404,7 +405,8 @@ fn voice_card(ui: &mut Ui, setter: &ParamSetter, data: &mut Data, params: &VDrum
                             let n = get(MIDI_NOTE[t]);
                             let what = if n == 0 { "any note".to_string() } else { format!("{} ({note})", note_text(note)) };
                             if tracks.len() > 1 {
-                                format!("{}: {what} ch {}", PAD_LABELS[t], ch + 1)
+                                let what = if n == 0 { "any".to_string() } else { note_text(note) };
+                                format!("{} {what} ch{}", PAD_LABELS[t], ch + 1)
                             } else {
                                 format!("{what}, channel {}", ch + 1)
                             }
@@ -430,8 +432,8 @@ fn voice_card(ui: &mut Ui, setter: &ParamSetter, data: &mut Data, params: &VDrum
 }
 
 fn section_header(ui: &mut Ui, title: &str, width: f32) {
-    ui.add_space(3.0);
-    let (rect, _) = ui.allocate_exact_size(vec2(width, 15.0), Sense::hover());
+    ui.add_space(2.0);
+    let (rect, _) = ui.allocate_exact_size(vec2(width, 14.0), Sense::hover());
     let p = ui.painter();
     let g = p.layout_no_wrap(title.to_uppercase(), FontId::proportional(10.5), ACCENT);
     let y = rect.center().y;

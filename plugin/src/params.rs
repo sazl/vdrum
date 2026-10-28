@@ -75,7 +75,12 @@ pub fn fader_text(step: i32) -> String {
     if g <= 0.0 {
         "-inf dB".to_string()
     } else {
-        format!("{:.1} dB", 20.0 * g.log10())
+        let db = 20.0 * g.log10();
+        if db > -10.0 {
+            format!("{db:.2} dB")
+        } else {
+            format!("{db:.1} dB")
+        }
     }
 }
 
