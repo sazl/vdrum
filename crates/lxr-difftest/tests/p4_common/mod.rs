@@ -35,8 +35,37 @@ prim!(u16, 2);
 prim!(i16, 2);
 prim!(u32, 4);
 prim!(i32, 4);
-prim!(f32, 4);
-prim!(f64, 8);
+
+thread_local! {
+    /// Set while serialising for a comparison: every NaN is written as the canonical quiet NaN.
+    static CANON_NAN: Cell<bool> = const { Cell::new(false) };
+}
+
+/// NaN representation is the one documented host difference (`lxr_core::fpu` module docs): a NaN generated
+/// by an operation is 0x7fc00000 on the Cortex-M7 (FPSCR.DN=0 still generates the default NaN for invalid
+/// operations) and 0xffc00000 on x86. A NaN is unobservable in the engine's output (all comparisons false,
+/// `vcvt` to integer gives 0 on both), so state comparisons treat all NaNs as equal; every non-NaN value is
+/// compared bit for bit.
+impl CMem for f32 {
+    const SIZE: usize = 4;
+    fn rd(b: &[u8], o: usize) -> Self {
+        f32::from_le_bytes(b[o..o + 4].try_into().unwrap())
+    }
+    fn wr(&self, b: &mut [u8], o: usize) {
+        let v = if self.is_nan() && CANON_NAN.with(|c| c.get()) { f32::from_bits(0x7fc0_0000) } else { *self };
+        b[o..o + 4].copy_from_slice(&v.to_le_bytes());
+    }
+}
+impl CMem for f64 {
+    const SIZE: usize = 8;
+    fn rd(b: &[u8], o: usize) -> Self {
+        f64::from_le_bytes(b[o..o + 8].try_into().unwrap())
+    }
+    fn wr(&self, b: &mut [u8], o: usize) {
+        let v = if self.is_nan() && CANON_NAN.with(|c| c.get()) { f64::from_bits(0x7ff8_0000_0000_0000) } else { *self };
+        b[o..o + 8].copy_from_slice(&v.to_le_bytes());
+    }
+}
 
 impl CMem for ptrValue {
     const SIZE: usize = 4;
@@ -63,10 +92,12 @@ impl<T: CMem, const N: usize> CMem for [T; N] {
 // Generated from the lxr-core struct definitions (field order) and `offset_of_c` (DWARF offsets).
 include!("layout_gen.rs");
 
-/// Bytes of `x` in C layout (padding zero): bitwise comparison of whole structs.
+/// Bytes of `x` in C layout (padding zero, NaNs canonical): bitwise comparison of whole structs.
 pub fn bytes<T: CMem>(x: &T) -> Vec<u8> {
     let mut b = vec![0u8; T::SIZE];
+    CANON_NAN.with(|c| c.set(true));
     x.wr(&mut b, 0);
+    CANON_NAN.with(|c| c.set(false));
     b
 }
 
@@ -114,6 +145,22 @@ pub fn push_state(fw: &mut Firmware, l: &Lxr) {
     put(fw, memmap::ADDR_l2_Available, &l.l2_Available);
     put(fw, memmap::ADDR_r1_Available, &l.r1_Available);
     put(fw, memmap::ADDR_r2_Available, &l.r2_Available);
+}
+
+/// Read the firmware globals that P4 code reads or writes into `Lxr` (inverse of `push_state`).
+pub fn pull_state(fw: &Firmware, l: &mut Lxr) {
+    l.voiceArray = get(fw, memmap::ADDR_voiceArray);
+    l.snareVoice = get(fw, memmap::ADDR_snareVoice);
+    l.hatVoice = get(fw, memmap::ADDR_hatVoice);
+    l.cymbalVoice = get(fw, memmap::ADDR_cymbalVoice);
+    l.velocityModulators = get(fw, memmap::ADDR_velocityModulators);
+    l.mixer_decimation_rate = get(fw, memmap::ADDR_mixer_decimation_rate);
+    l.mixer_decimation_cnt = get(fw, memmap::ADDR_mixer_decimation_cnt);
+    l.mixer_voice_samples = get(fw, memmap::ADDR_mixer_voice_samples);
+    l.mixer_audioRouting = get(fw, memmap::ADDR_mixer_audioRouting);
+    l.adc_faderValues = get(fw, memmap::ADDR_adc_faderValues);
+    let jacks: [u8; 4] = get(fw, memmap::ADDR_l1_Available);
+    [l.l1_Available, l.l2_Available, l.r1_Available, l.r2_Available] = jacks;
 }
 
 /// Compare every P4 global of `Lxr` with the firmware memory, bit for bit.

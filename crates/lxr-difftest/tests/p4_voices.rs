@@ -79,6 +79,16 @@ impl Pair {
         }
     }
 
+    /// Initialise all voices in the firmware only and copy the state to Rust. Used by the tests of the other
+    /// functions so that they do not depend on `paramArray_setParameter` (P3), which the voice inits reach
+    /// through `lfo_init -> modNode_setDestination`; the inits themselves are compared in `p4_init_all_voices`.
+    fn init_all_fw(&mut self) {
+        for f in ["initDrumVoice", "Snare_init", "HiHat_init", "Cymbal_init"] {
+            self.fw.call(f, &[], &[]).unwrap();
+        }
+        pull_state(&self.fw, &mut self.l);
+    }
+
     fn trigger(&mut self, k: Kind, vel: u8, note: u8, isOpen: u8) {
         match k {
             Kind::Drum(v) => {
@@ -367,6 +377,13 @@ fn p4_init_all_voices() {
         if round == 0 {
             p.l.voiceArray = [DrumVoice::ZERO; 3];
         }
+        // modulation node destinations index parameterArray: keep them valid (0 = no parameter)
+        for v in 0..3 {
+            p.l.voiceArray[v].lfo.modTarget.destination = 0;
+        }
+        p.l.snareVoice.lfo.modTarget.destination = 0;
+        p.l.hatVoice.lfo.modTarget.destination = 0;
+        p.l.cymbalVoice.lfo.modTarget.destination = 0;
         p.push();
         for k in [Kind::Drum(0), Kind::Snare, Kind::Hat, Kind::Cym] {
             p.init(k);
@@ -379,9 +396,7 @@ fn p4_init_all_voices() {
 fn p4_trigger_sweep() {
     let fw = fw_or_skip!();
     let mut p = Pair::new(fw);
-    for k in [Kind::Drum(0), Kind::Snare, Kind::Hat, Kind::Cym] {
-        p.init(k);
-    }
+    p.init_all_fw();
     p.check("init");
     let mut s = Sweep(0xC0FFEE);
     for it in 0..4000 {
@@ -407,9 +422,7 @@ fn p4_trigger_sweep() {
 fn block_run(seed: u64, kinds: &[Kind], blocks: usize, size_mode: u8) {
     let fw = fw_or_skip!();
     let mut p = Pair::new(fw);
-    for k in [Kind::Drum(0), Kind::Snare, Kind::Hat, Kind::Cym] {
-        p.init(k);
-    }
+    p.init_all_fw();
     let mut s = Sweep(seed);
     let mut garbage = [0i16; 256];
     let mut nonzero = 0usize;
@@ -430,11 +443,14 @@ fn block_run(seed: u64, kinds: &[Kind], blocks: usize, size_mode: u8) {
             }
             let size = match size_mode {
                 0 => 64,
+                // even sizes only: for an odd size, `transient_calcBlock` in snap/offset mode clears only
+                // `size/2` words, so the firmware reads one uninitialised stack sample (the engine itself
+                // always uses OUTPUT_DMA_SIZE = 64)
                 _ => match s.next_u32() % 8 {
                     0 => 0,
-                    1 => 1,
-                    2 => 3,
-                    3 => s.u8(),
+                    1 => 2,
+                    2 => 6,
+                    3 => s.u8() & 0xfe,
                     _ => 64,
                 },
             };
@@ -476,6 +492,6 @@ fn p4_cymbal_blocks() {
 }
 
 #[test]
-fn p4_all_voices_odd_block_sizes() {
+fn p4_all_voices_other_block_sizes() {
     block_run(41, &KINDS, 1500, 1);
 }
