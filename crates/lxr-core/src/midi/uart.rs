@@ -5,9 +5,19 @@
 //! reference ELF. Function bodies are `todo!()` until ported.
 
 use crate::prelude::*;
+use crate::fifo::fifo_bufferOut;
 
 // ---- functions that use globals (methods on `Lxr`)
 impl Lxr {
+    /// C: `void initMidiUart()` (`Core/Src/Soundengine/MIDI/Uart.c:164`): `fifo_init(&fifo_midiTx)` and
+    /// `fifo_init(&fifo_midiRx)`; the UART setup is hardware only. `fifo_midiTx` is not modelled (MIDI output
+    /// is not part of the engine). Group P3 (engine init, `docs/ENGINE_CONTRACT.md` section 2).
+    pub fn initMidiUart(&mut self) {
+        self.fifo_midiRx.data = [0; 256];
+        self.fifo_midiRx.read = 0;
+        self.fifo_midiRx.write = 0;
+    }
+
     /// C: `void uart_clearFrontFifo()`
     ///
     /// Source: `Core/Src/Soundengine/MIDI/Uart.c:42`. Reference build: out-of-line in flash. Group P3.
@@ -15,7 +25,7 @@ impl Lxr {
     /// Hardware / UI function outside the engine, called from engine code. Decide its behaviour
     /// (no-op, fixed value, or an emulation of its effect on engine state) when porting the caller.
     pub fn uart_clearFrontFifo(&mut self) {
-        todo!("port: Core/Src/Soundengine/MIDI/Uart.c:42")
+        // Front panel FIFOs are not modelled (front panel bytes are parsed synchronously): no-op.
     }
 
     /// C: `void uart_processMidi()`
@@ -24,7 +34,10 @@ impl Lxr {
     /// Globals: `fifo_midiRx`.
     /// Calls: `fifo::fifo_bufferOut`, `Lxr::midiParser_parseUartData`.
     pub fn uart_processMidi(&mut self) {
-        todo!("port: Core/Src/Soundengine/MIDI/Uart.c:88")
+        let mut data: u8 = 0;
+        while fifo_bufferOut(&mut self.fifo_midiRx, &mut data) != 0 {
+            self.midiParser_parseUartData(data);
+        }
     }
 
     /// C: `void uart_sendMidi(MidiMsg msg)`
@@ -34,7 +47,8 @@ impl Lxr {
     /// Hardware / UI function outside the engine, called from engine code. Decide its behaviour
     /// (no-op, fixed value, or an emulation of its effect on engine state) when porting the caller.
     pub fn uart_sendMidi(&mut self, msg: MidiMsg) {
-        todo!("port: Core/Src/Soundengine/MIDI/Uart.c:97")
+        // MIDI output (fifo_midiTx + USART3) is not modelled: it never feeds back into engine state.
+        let _ = msg;
     }
 
     /// C: `void uart_sendFrontpanelByte(uint8_t data)`
@@ -44,7 +58,7 @@ impl Lxr {
     /// Hardware / UI function outside the engine, called from engine code. Decide its behaviour
     /// (no-op, fixed value, or an emulation of its effect on engine state) when porting the caller.
     pub fn uart_sendFrontpanelByte(&mut self, data: u8) {
-        todo!("port: Core/Src/Soundengine/MIDI/Uart.c:137")
+        self.frontPanel_parseData(data);
     }
 
     /// C: `void uart_sendFrontpanelSysExByte(uint8_t data)`
@@ -54,6 +68,7 @@ impl Lxr {
     /// Hardware / UI function outside the engine, called from engine code. Decide its behaviour
     /// (no-op, fixed value, or an emulation of its effect on engine state) when porting the caller.
     pub fn uart_sendFrontpanelSysExByte(&mut self, data: u8) {
-        todo!("port: Core/Src/Soundengine/MIDI/Uart.c:155")
+        // fifo_frontTx is not modelled (bytes to the AVR front panel never come back): no-op.
+        let _ = data;
     }
 }

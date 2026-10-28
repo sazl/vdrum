@@ -19,5 +19,89 @@ pub const NUM_TOT_TARGETS: u32 = 49;
 /// Source: `Core/Src/menu/Cc2Text.c:439`. Reference build: out-of-line in flash. Group P3.
 /// Tables: `modTargets`.
 pub fn getNumModTargets() -> u8 {
-    todo!("port: Core/Src/menu/Cc2Text.c:439")
+    modTargets.len() as u8
+}
+
+/// `const ModTargetVoiceOffsets modTargetVoiceOffsets[6]` (Cc2Text.c): `{start, end}` per voice.
+pub static modTargetVoiceOffsets: [[u8; 2]; 6] = [[2, 39], [40, 77], [78, 115], [116, 152], [153, 190], [191, 228]];
+
+/// `const uint8_t modTargetGapMap[]` (Cc2Text.c).
+pub static modTargetGapMap: [u8; 49] = [
+    0x3F, 0x3F, 0x04, 0x04, 0x3F, 0x3F, 0x3F, 0x3F, 0x01, 0x06, 0x3F, 0x3C, 0x3C, 0x3C, 0x3F, 0x3F, 0x3F, 0x03,
+    0x03, 0x03, 0x03, 0x38, 0x38, 0x3B, 0x03, 0x38, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F,
+    0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F, 0x3F,
+];
+
+/// C: `uint8_t getModTargetGapIndex(uint8_t modTargetIdx)` (`Core/Src/menu/Cc2Text.c:377`).
+pub fn getModTargetGapIndex(modTargetIdx: u8) -> u8 {
+    let mut voice = voiceFromModTargValue(modTargetIdx);
+    if voice == 0 {
+        return 0xFF;
+    }
+    let modTargetIdx = modTargetIdx.wrapping_sub(modTargetVoiceOffsets[(voice - 1) as usize][0]);
+    voice = 6u8.wrapping_sub(voice);
+    let mut ctr: u8 = 0;
+    for i in 0..NUM_TOT_TARGETS as u8 {
+        let val = modTargetGapMap[i as usize];
+        if (val >> voice) & 0x01 != 0 {
+            if ctr == modTargetIdx {
+                return i;
+            }
+            ctr = ctr.wrapping_add(1);
+        }
+    }
+    0xff
+}
+
+/// C: `uint8_t getModTargetIdxFromGapIdx(uint8_t v, uint8_t gapidx)` (`Core/Src/menu/Cc2Text.c:413`).
+///
+/// `gapidx` is at most 48 or 0xFF in every reachable call (it comes from `getModTargetGapIndex`).
+pub fn getModTargetIdxFromGapIdx(v: u8, gapidx: u8) -> u8 {
+    if gapidx == 0xFF {
+        return 0;
+    }
+    let bitoffset = 5u8.wrapping_sub(v) as u32;
+    let val = modTargetGapMap[gapidx as usize] as u32;
+    if (val.wrapping_shr(bitoffset) & 1) == 0 || bitoffset >= 32 {
+        return 0;
+    }
+    let mut ctr: u8 = 0;
+    for i in 0..gapidx {
+        let val = modTargetGapMap[i as usize] as u32;
+        if (val >> bitoffset) & 1 != 0 {
+            ctr = ctr.wrapping_add(1);
+        }
+    }
+    modTargetVoiceOffsets[v as usize][0].wrapping_add(ctr)
+}
+
+/// C: `void paramToModTargetInit()` (`Core/Src/menu/Cc2Text.c:447`), on the global `paramToModTarget`.
+pub fn paramToModTargetInit(paramToModTarget: &mut [u8; 247]) {
+    for i in 0..modTargets.len() {
+        paramToModTarget[modTargets[i].param as usize] = i as u8;
+    }
+}
+
+/// C: `uint8_t voiceFromModTargValue(uint8_t val)` (`Core/Src/menu/Cc2Text.c:459`).
+pub fn voiceFromModTargValue(val: u8) -> u8 {
+    let o = &modTargetVoiceOffsets;
+    if o[3][0] <= val {
+        if o[4][0] <= val {
+            if o[5][0] <= val {
+                if o[5][1] >= val { 6 } else { 0 }
+            } else {
+                5
+            }
+        } else {
+            4
+        }
+    } else if o[0][0] <= val {
+        if o[1][0] <= val {
+            if o[2][0] <= val { 3 } else { 2 }
+        } else {
+            1
+        }
+    } else {
+        0
+    }
 }

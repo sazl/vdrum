@@ -8,6 +8,9 @@
 
 use crate::prelude::*;
 
+/// `adc_buf[8+i]` for a fader at the top (12 bits, left aligned), `docs/ENGINE_CONTRACT.md` section 2.
+pub const FADER_FULL_ADC: u16 = 0xFFF0;
+
 /// One TIM2 interrupt worth of audio: `OUTPUT_DMA_SIZE` = 64 stereo frames per DAC, int16, L/R interleaved.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Block {
@@ -134,6 +137,12 @@ pub struct Lxr {
     ///
     /// Declared at `Core/Src/Soundengine/DSPAudio/mixer.c:28`; firmware address 0x2002198b (`.bss`), 1 bytes.
     pub r2_Available: u8,
+    // ---------------- Core/Src/IO/adcPots.c
+    /// `float adc_faderValues[6];`
+    ///
+    /// Declared at `Core/Src/IO/adcPots.c:33`; firmware address 0x20021134 (`.bss`), 24 bytes.
+    /// Read by `adc_getFaderVolume` (voice volume faders). Stays 0.0 without ADC input.
+    pub adc_faderValues: [f32; 6],
     // ---------------- Core/Src/Soundengine/DSPAudio/modulationNode.c
     /// `extern ModulationNode velocityModulators[6];`
     ///
@@ -532,9 +541,40 @@ pub struct Lxr {
     ///
     /// Declared at `Core/Inc/Soundengine/globals.h:18`; firmware address 0x2001a378 (`.dtcmz`), 4 bytes.
     pub systick_ticks: u32,
+    // ---------------- P3 additions: globals of UI-side files that engine code reaches
+    // (`uart_sendFrontpanelByte` -> `frontPanel_parseData`, `menu_init`, `HAL_I2S_TxCpltCallback`)
+    /// `uint8_t frontPanel_sysexMode = 0;` (Core/Src/frontPanelParser.c); firmware address 0x2005d594, 1 bytes.
+    pub frontPanel_sysexMode: u8,
+    /// `volatile MidiMsg frontParser_midiMsg;` (Core/Src/frontPanelParser.c); firmware address 0x2005d598, 8 bytes.
+    pub frontParser_midiMsg: MidiMsg,
+    /// `volatile uint8_t frontParser_newSeqDataAvailable = 0;` (Core/Src/frontPanelParser.c); 0x2005d5a0, 1 bytes.
+    pub frontParser_newSeqDataAvailable: u8,
+    /// `static uint16_t frontParser_nrpnNr = 0;` (Core/Src/frontPanelParser.c); firmware address 0x2005d5a2, 2 bytes.
+    pub frontParser_nrpnNr: u16,
+    /// `static uint8_t frontParser_rxCnt=0;` of Core/Src/frontPanelParser.c (a different variable than
+    /// `frontParser_rxCnt` of CortexParser.c); firmware address 0x2005d5a4, 1 bytes.
+    pub frontPanelParser_rxCnt: u8,
+    /// `volatile Step frontParser_stepData;` (Core/Src/frontPanelParser.c); firmware address 0x2005d5a8, 7 bytes.
+    pub frontParser_stepData: Step,
+    /// `volatile static uint8_t frontParser_sysexBuffer[7];` of Core/Src/frontPanelParser.c (a different
+    /// variable than `frontParser_sysexBuffer` of CortexParser.c); firmware address 0x2005d5b0, 7 bytes.
+    pub frontPanelParser_sysexBuffer: [u8; 7],
+    /// `uint8_t paramToModTarget[END_OF_SOUND_PARAMETERS];` (Core/Src/menu/Cc2Text.c); 0x2005dec0, 247 bytes.
+    pub paramToModTarget: [u8; 247],
+    /// `uint8_t menu_activeVoice = 0;` (Core/Src/menu/menu.c); firmware address 0x20061ef8, 1 bytes.
+    pub menu_activeVoice: u8,
+    /// `static uint8_t menu_TargetVoiceGapIndex = 0xFF;` (Core/Src/menu/menu.c); firmware address 0x200202f7, 1 bytes.
+    pub menu_TargetVoiceGapIndex: u8,
+    /// `uint8_t dmaPtr;` (Core/Src/Soundengine/cs4344_cs5343.c); firmware address 0x2005d56c, 1 bytes.
+    pub dmaPtr: u8,
     // ---------------- not C globals
     /// State of the deterministic replacement of the hardware RNG (`GetRngValue`, see `crate::rng`).
     pub rng_state: u32,
+    /// Number of blocks rendered by `tick()` since power-on (drives `systick_ticks`, see `tick`).
+    pub blocks: u64,
+    /// `adc_buf_old[8..14]` of `Core/Src/IO/adcPots.c` (last accepted fader ADC readings, UI side; used by
+    /// `set_fader_adc` for the hysteresis of `adc_checkFaders`).
+    pub fader_adc_old: [u16; 6],
 }
 
 impl Lxr {
@@ -567,6 +607,7 @@ impl Lxr {
             l2_Available: 0,
             r1_Available: 0,
             r2_Available: 0,
+            adc_faderValues: [0.0; 6],
             velocityModulators: [ModulationNode::ZERO; 6],
             fxBus: FxBus::ZERO,
             cortex_midiMsg: MidiMsg::ZERO,
@@ -662,24 +703,181 @@ impl Lxr {
             menu_songMenuPosition: 0,
             morphParameters: None,
             systick_ticks: 0,
+            frontPanel_sysexMode: 0,
+            frontParser_midiMsg: MidiMsg::ZERO,
+            frontParser_newSeqDataAvailable: 0,
+            frontParser_nrpnNr: 0,
+            frontPanelParser_rxCnt: 0,
+            frontParser_stepData: Step::ZERO,
+            frontPanelParser_sysexBuffer: [0; 7],
+            paramToModTarget: [0; 247],
+            menu_activeVoice: 0,
+            menu_TargetVoiceGapIndex: 0xFF,
+            dmaPtr: 0,
             rng_state: crate::rng::RNG_SEED,
+            blocks: 0,
+            fader_adc_old: [0; 6],
         }
     }
 
-    /// Power-on: reproduces the firmware start without SD card (see `docs/ENGINE_CONTRACT.md`), then loads
-    /// the init kit. Group P3.
+    /// Power-on, exactly as the reference emulator (`docs/ENGINE_CONTRACT.md` section 2): the no-SD-card
+    /// path of `main()` (menu_init, soundengine_init (renders one block into buffer half 0),
+    /// copyClear_clearCurrentPattern, preset_init(0), preset_loadDefaultGlobals, initMidiUart), the faders
+    /// at the top, then the pending kit transfer is completed. Everything runs with FZ = 0. Group P3.
     pub fn new() -> Self {
-        todo!("port: Core/Src/main.c main() without SD card, then load the init kit")
+        let mut s = Lxr::new_zeroed();
+        s.menu_init();
+        s.soundengine_init();
+        // no SD card: main() takes the else branch
+        s.copyClear_clearCurrentPattern();
+        s.preset_init(0);
+        s.preset_loadDefaultGlobals();
+        s.initMidiUart();
+        // main loop: faders at the top (adc_buf[8+i] = 0xFFF0, adc_checkFaders)
+        for i in 0..6 {
+            s.set_fader_adc(i, FADER_FULL_ADC);
+        }
+        // preset_init -> preset_sendDrumsetParameters -> preset_morph started a non-blocking transfer
+        s.drain_morph();
+        s
     }
 
-    /// Feeds one byte of DIN MIDI through the firmware parser (main-loop context, FZ = 0). Group P3.
+    /// Runs `preset_morph_tick` until the pending kit/morph transfer is complete (on the hardware this
+    /// happens within the next main-loop iterations).
+    pub fn drain_morph(&mut self) {
+        while self.morph_state != 0 {
+            self.preset_morph_tick();
+        }
+    }
+
+    /// One byte of DIN MIDI input, as `uart_processMidi` handles it (main-loop context, FZ = 0), then the
+    /// morph transfer it may have started is completed. Group P3.
     pub fn midi_byte(&mut self, b: u8) {
-        todo!("port: Core/Src/Soundengine/MIDI/Uart.c uart_processMidi -> midiParser_parseUartData")
+        self.midiParser_parseUartData(b);
+        self.drain_morph();
     }
 
-    /// Runs one TIM2 interrupt: `seq_tick(); soundengine_calcNextSampleBlock();` with FZ = 1 (use
-    /// `crate::fpu::FtzGuard`). Group P3.
+    /// Several bytes of DIN MIDI input (`midi_byte` for each).
+    pub fn midi(&mut self, bytes: &[u8]) {
+        for &b in bytes {
+            self.midi_byte(b);
+        }
+    }
+
+    /// Renders one block (`docs/ENGINE_CONTRACT.md` section 3): advances `systick_ticks` (TIM14 at 4 kHz,
+    /// 16384/2825 ticks per 64-frame block at fs = 44140.625 Hz), runs the SPI3 DMA transfer-complete
+    /// interrupt (`HAL_I2S_TxCpltCallback`: `dmaPtr++`, `bCurrentSampleValid = 1 - (dmaPtr & 1)`), then the
+    /// main loop's `seq_tick(); soundengine_calcNextSampleBlock();` with FZ = 0. `dac1` is `dma_buffer2`
+    /// (the mixer's `output2`, DAC 1 routing), `dac2` is `dma_buffer`. Group P3.
     pub fn tick(&mut self) -> Block {
-        todo!("port: Core/Src/Soundengine/Soundengine.c soundengine_process (interrupt part)")
+        self.blocks += 1;
+        self.systick_ticks = ((self.blocks * 16384) / 2825) as u32;
+        self.HAL_I2S_TxCpltCallback_SPI3();
+        let half = self.bCurrentSampleValid as usize;
+        assert!(half <= 1, "bCurrentSampleValid = {half} after the DMA callback");
+        self.seq_tick();
+        self.soundengine_calcNextSampleBlock();
+        let mut blk = Block::default();
+        blk.dac1.copy_from_slice(&self.dma_buffer2[half * 128..half * 128 + 128]);
+        blk.dac2.copy_from_slice(&self.dma_buffer[half * 128..half * 128 + 128]);
+        blk
+    }
+
+    /// C: `HAL_I2S_TxCpltCallback(&hi2s3)` (`Core/Src/Soundengine/cs4344_cs5343.c:86`, SPI3 branch, SWITCH_FLAG = 1).
+    /// The `error` counter and `HAL_I2S_Transmit_DMA` are hardware only.
+    fn HAL_I2S_TxCpltCallback_SPI3(&mut self) {
+        self.dmaPtr = self.dmaPtr.wrapping_add(1);
+        self.bCurrentSampleValid = 1u8.wrapping_sub(self.dmaPtr & 1);
+    }
+
+    /// Changes a parameter the way the menu does after the encoder chose a new value
+    /// (`menu_encoderChangeParameter`, `docs/ENGINE_CONTRACT.md` section 5), then completes the morph
+    /// transfer. `value` is not range-limited. Group P3.
+    pub fn set_parameter(&mut self, param: u16, value: u8) {
+        use crate::menu::cc2_text::{getModTargetGapIndex, getModTargetIdxFromGapIdx, modTargets};
+        use crate::menu::{parameter_dtypes, DTYPE_TARGET_SELECTION_LFO, DTYPE_TARGET_SELECTION_VELO, DTYPE_VOICE_LFO};
+        use crate::front_panel_parser::{CC_2, CC_LFO_TARGET, CC_VELO_TARGET};
+        assert!(param < NUM_PARAMS, "parameter {param} out of range");
+        self.activeParameters[param as usize] = value;
+        let dtype = (parameter_dtypes[param as usize] & 0xff) as u8;
+        let mod_param = |idx: u8| modTargets[idx as usize].param as u8;
+        match dtype {
+            DTYPE_TARGET_SELECTION_VELO => {
+                let voice = param.wrapping_sub(PAR_VEL_DEST_1) as u8;
+                let v = mod_param(value);
+                let upper = ((v & 0x80) >> 7) | ((voice & 0x3f) << 1);
+                self.frontPanel_sendData(CC_VELO_TARGET as u8, upper, v & 0x7f);
+            }
+            DTYPE_VOICE_LFO => {
+                let lfo = param.wrapping_sub(PAR_VOICE_LFO1) as u8;
+                let t = getModTargetIdxFromGapIdx(value.wrapping_sub(1), self.menu_TargetVoiceGapIndex);
+                self.activeParameters[PAR_TARGET_LFO1 as usize + lfo as usize] = t;
+                let v = mod_param(t);
+                let upper = ((v & 0x80) >> 7) | ((lfo & 0x3f) << 1);
+                self.frontPanel_sendData(CC_LFO_TARGET as u8, upper, v & 0x7f);
+            }
+            DTYPE_TARGET_SELECTION_LFO => {
+                let lfo = param.wrapping_sub(PAR_TARGET_LFO1) as u8;
+                self.menu_TargetVoiceGapIndex = getModTargetGapIndex(value);
+                let v = mod_param(value);
+                let upper = ((v & 0x80) >> 7) | ((lfo & 0x3f) << 1);
+                self.frontPanel_sendData(CC_LFO_TARGET as u8, upper, v & 0x7f);
+            }
+            _ => {}
+        }
+        if param < 128 {
+            self.frontPanel_sendData(MIDI_CC as u8, param as u8, value);
+        } else if param < END_OF_SOUND_PARAMETERS {
+            self.frontPanel_sendData(CC_2 as u8, (param - 128) as u8, value);
+        } else {
+            self.menu_parseGlobalParam(param, value);
+        }
+        self.drain_morph();
+    }
+
+    /// Loads a kit file (8 byte name + up to 247 parameter bytes) into kit slot 0 as
+    /// `preset_loadDrumsetSD` reads it (missing bytes 0, invalid mod targets 0) and applies it as the LOAD
+    /// menu does (`preset_loadDrumsetRam(0, 0, 0)`), then completes the morph transfer
+    /// (`docs/ENGINE_CONTRACT.md` section 6). Group P3.
+    pub fn load_kit(&mut self, kit: &[u8]) {
+        use crate::menu::cc2_text::getNumModTargets;
+        assert!((8..=8 + END_OF_SOUND_PARAMETERS as usize).contains(&kit.len()), "kit must be 8..=255 bytes");
+        let mut name = [0u8; 8];
+        name.copy_from_slice(&kit[..8]);
+        if name.iter().all(|&c| c == b' ' || c == 0) {
+            name = *b"Empty\0\0\0";
+        }
+        self.savefileNames[0][0] = name;
+        let mut params = [0u8; END_OF_SOUND_PARAMETERS as usize];
+        params[..kit.len() - 8].copy_from_slice(&kit[8..]);
+        let nmt = getNumModTargets();
+        for i in 0..6usize {
+            for base in [PAR_VEL_DEST_1, PAR_TARGET_LFO1] {
+                let k = base as usize + i;
+                if params[k] >= nmt {
+                    params[k] = 0;
+                }
+            }
+        }
+        self.mainParameters[0] = params;
+        self.preset_loadDrumsetRam(0, 0, 0);
+        self.drain_morph();
+    }
+
+    /// Sets fader `i` (0..6) to a 16 bit ADC reading (12 bits, left aligned) and runs `adc_checkFaders` over
+    /// all six faders (`Core/Src/IO/adcPots.c:256`, hysteresis 40 on `adc >> 4`), which updates
+    /// `adc_faderValues[i] = v*v` with `v = (adc >> 4) / 4096` (0 below 0.01) when the reading moved.
+    pub fn set_fader_adc(&mut self, i: usize, adc: u16) {
+        assert!(i < 6, "fader index {i}");
+        const HYSTERSIS: i32 = 40;
+        let (new, old) = ((adc >> 4) as i32, (self.fader_adc_old[i] >> 4) as i32);
+        if new > old + HYSTERSIS || old > new + HYSTERSIS {
+            let mut v = new as f32 / 4096.0;
+            self.fader_adc_old[i] = adc;
+            if v < 0.01 {
+                v = 0.0;
+            }
+            self.adc_faderValues[i] = v * v;
+        }
     }
 }
