@@ -37,10 +37,19 @@ pub fn r_u32(fw: &Firmware, a: u32) -> u32 {
 /// Bit-exact float comparison with a readable message.
 #[track_caller]
 pub fn eq32(ctx: &str, fw: f32, rs: f32) {
+    // NaN payload/sign: the Cortex-M7 (DN=0) generates the default NaN 0x7fc00000 for invalid operations,
+    // x86 SSE generates 0xffc00000. The engine never inspects NaN bits (vcvt to integer gives 0 on both),
+    // so any NaN matches any NaN.
+    if fw.is_nan() && rs.is_nan() {
+        return;
+    }
     assert_eq!(fw.to_bits(), rs.to_bits(), "{ctx}: firmware {fw:e} ({:#010x}) vs rust {rs:e} ({:#010x})", fw.to_bits(), rs.to_bits());
 }
 #[track_caller]
 pub fn eq64(ctx: &str, fw: f64, rs: f64) {
+    if fw.is_nan() && rs.is_nan() {
+        return;
+    }
     assert_eq!(fw.to_bits(), rs.to_bits(), "{ctx}: firmware {fw:e} ({:#018x}) vs rust {rs:e} ({:#018x})", fw.to_bits(), rs.to_bits());
 }
 

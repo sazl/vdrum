@@ -7,9 +7,7 @@ use lxr_core::dsp::one_pole_lp::*;
 use lxr_core::dsp::slope_eg2::*;
 use lxr_core::dsp::snap_eg::*;
 use lxr_core::dsp::transient_generator::*;
-use lxr_core::fpu::FtzGuard;
 use lxr_difftest::{fw_or_skip, Firmware, Sweep};
-use lxr_emu::firmware::FPSCR_FZ;
 use p1_common::*;
 
 // ---------------------------------------------------------------- 1PoleLp
@@ -28,7 +26,7 @@ fn eq_onepole(ctx: &str, f: &OnePoleFilter, r: &OnePoleFilter) {
 #[test]
 fn one_pole() {
     let mut fw = fw_or_skip!();
-    fw.fpscr = FPSCR_FZ;
+    fw.fpscr = 0;
     let a = fw.alloc(16).unwrap();
     // init / setCoef
     let mut rs = OnePoleFilter { r: 5.0, b: 7.0 };
@@ -62,7 +60,6 @@ fn one_pole() {
         // calcOnePole returns float in s0
         let out_fw = f32::from_bits(out_fw.to_bits() as u32);
         let out_rs = {
-            let _g = FtzGuard::new();
             calcOnePole(&mut rs, input)
         };
         eq32(&format!("calcOnePole it {it}"), out_fw, out_rs);
@@ -109,7 +106,7 @@ fn decay_eg() {
     DecayEg_init(&mut rs);
     eq_decay("init", &r_decay(&fw, a), &rs);
 
-    fw.fpscr = FPSCR_FZ;
+    fw.fpscr = 0;
     let mut sw = Sweep(0xdeca_1234_5555);
     for it in 0..30000 {
         if it % 700 == 0 {
@@ -120,7 +117,7 @@ fn decay_eg() {
             fw.fpscr = 0;
             fw.call("DecayEg_setDecay", &[a, d as u32], &[]).unwrap();
             fw.call("DecayEg_setSlope", &[a, s as u32], &[]).unwrap();
-            fw.fpscr = FPSCR_FZ;
+            fw.fpscr = 0;
             DecayEg_setDecay(&mut rs, d);
             DecayEg_setSlope(&mut rs, s);
         }
@@ -136,7 +133,6 @@ fn decay_eg() {
         }
         let (_, out_fw) = fw.call("DecayEg_calc", &[a], &[]).unwrap();
         let out_rs = {
-            let _g = FtzGuard::new();
             DecayEg_calc(&mut rs)
         };
         eq32(&format!("DecayEg_calc it {it}"), out_fw, out_rs);
@@ -148,7 +144,7 @@ fn decay_eg() {
 #[test]
 fn snap_eg() {
     let mut fw = fw_or_skip!();
-    fw.fpscr = FPSCR_FZ;
+    fw.fpscr = 0;
     let a = fw.alloc(4).unwrap();
     let mut rs = SnapEg { value: 3.0 };
     w_f32(&mut fw, a, 3.0);
@@ -170,7 +166,6 @@ fn snap_eg() {
         }
         let (_, out_fw) = fw.call("SnapEg_calc", &[a], &[time]).unwrap();
         let out_rs = {
-            let _g = FtzGuard::new();
             SnapEg_calc(&mut rs, time)
         };
         eq32(&format!("SnapEg_calc it {it}"), out_fw, out_rs);
@@ -249,7 +244,7 @@ fn slope_eg2_setters() {
 #[test]
 fn slope_eg2_run() {
     let mut fw = fw_or_skip!();
-    fw.fpscr = FPSCR_FZ;
+    fw.fpscr = 0;
     let a = fw.alloc(56).unwrap();
     let mut rs = SlopeEg2::ZERO;
     w_slope(&mut fw, a, &rs);
@@ -289,7 +284,6 @@ fn slope_eg2_run() {
         }
         let f = call_d(&mut fw, "slopeEg2_calc", &[a], &[]);
         let r = {
-            let _g = FtzGuard::new();
             slopeEg2_calc(&mut rs)
         };
         eq64(&format!("slopeEg2_calc it {it}"), f, r);
@@ -325,7 +319,7 @@ fn eq_tr(ctx: &str, f: &TransientGenerator, r: &TransientGenerator) {
 #[test]
 fn transient() {
     let mut fw = fw_or_skip!();
-    fw.fpscr = FPSCR_FZ;
+    fw.fpscr = 0;
     let a = fw.alloc(24).unwrap();
     let buf = fw.alloc(512).unwrap();
     let mut rs = TransientGenerator { output: 5, phase: 6, pitch: 7.0, waveform: 8, volume: 9.0, midiFreq: 10 };
@@ -367,7 +361,6 @@ fn transient() {
         let mut rbuf = init.clone();
         fw.call("transient_calcBlock", &[a, buf, size as u32], &[]).unwrap();
         {
-            let _g = FtzGuard::new();
             transient_calcBlock(&mut rs, &mut rbuf, size);
         }
         assert_eq!(fw.read_i16s(buf, 256).unwrap(), rbuf, "transient_calcBlock it {it} size {size}");
@@ -393,7 +386,7 @@ fn eq_dist(ctx: &str, f: &Distortion, r: &Distortion) {
 #[test]
 fn distortion() {
     let mut fw = fw_or_skip!();
-    fw.fpscr = FPSCR_FZ;
+    fw.fpscr = 0;
     let a = fw.alloc(24).unwrap();
     let buf = fw.alloc(512).unwrap();
     let mut rs = Distortion::ZERO;
@@ -408,7 +401,6 @@ fn distortion() {
             };
             fw.call("setDistortionShape", &[a], &[shape]).unwrap();
             {
-                let _g = FtzGuard::new();
                 setDistortionShape(&mut rs, shape);
             }
             eq_dist(&format!("setShape {shape}"), &r_dist(&fw, a), &rs);
@@ -433,7 +425,6 @@ fn distortion() {
         let mut rbuf = init.clone();
         fw.call(name, &[a, buf, size as u32], &[]).unwrap();
         {
-            let _g = FtzGuard::new();
             if it % 2 == 0 {
                 calcDistBlock(&rs, &mut rbuf, size);
             } else {

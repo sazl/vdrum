@@ -40,21 +40,21 @@ Functions marked `gc`/`absent` cannot be checked against the reference binary.
 | `Core/Inc/Soundengine/DSPAudio/BufferTools.h:221` | `bufferTool_multiplyWithFloatBufferDithered` | `Lxr::bufferTool_multiplyWithFloatBufferDithered` | P1 | absent | stub |
 | `Core/Inc/Soundengine/DSPAudio/BufferTools.h:231` | `bufferTool_moveBuffer` | `dsp::buffer_tools::bufferTool_moveBuffer` | P1 | absent | stub |
 | `Core/Inc/Soundengine/DSPAudio/medianFilter.h:23` | `medianFilter` | `dsp::median_filter::medianFilter` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:21` | `initOnePole` | `dsp::one_pole_lp::initOnePole` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:27` | `calcOnePole` | `dsp::one_pole_lp::calcOnePole` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:35` | `calcOnePoleAdaptiveVolume` | `dsp::one_pole_lp::calcOnePoleAdaptiveVolume` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:52` | `calcOnePoleBlock` | `dsp::one_pole_lp::calcOnePoleBlock` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:62` | `calcOnePoleBlockFixedInput` | `dsp::one_pole_lp::calcOnePoleBlockFixedInput` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:72` | `setOnePoleCoef` | `dsp::one_pole_lp::setOnePoleCoef` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:77` | `setOnePoleValue` | `dsp::one_pole_lp::setOnePoleValue` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:82` | `setOnePoleFreq` | `dsp::one_pole_lp::setOnePoleFreq` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/Decay.c:21` | `DecayEg_calcSlopeValue` | `dsp::decay::DecayEg_calcSlopeValue` | P1 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/Decay.c:26` | `DecayEg_init` | `dsp::decay::DecayEg_init` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/Decay.c:33` | `DecayEg_calcTime` | `dsp::decay::DecayEg_calcTime` | P1 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/Decay.c:47` | `DecayEg_trigger` | `dsp::decay::DecayEg_trigger` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/Decay.c:52` | `DecayEg_calc` | `dsp::decay::DecayEg_calc` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/Decay.c:69` | `DecayEg_setDecay` | `dsp::decay::DecayEg_setDecay` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/Decay.c:74` | `DecayEg_setSlope` | `dsp::decay::DecayEg_setSlope` | P1 | itcm | stub |
+| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:21` | `initOnePole` | `dsp::one_pole_lp::initOnePole` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:27` | `calcOnePole` | `dsp::one_pole_lp::calcOnePole` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:35` | `calcOnePoleAdaptiveVolume` | `dsp::one_pole_lp::calcOnePoleAdaptiveVolume` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:52` | `calcOnePoleBlock` | `dsp::one_pole_lp::calcOnePoleBlock` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:62` | `calcOnePoleBlockFixedInput` | `dsp::one_pole_lp::calcOnePoleBlockFixedInput` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:72` | `setOnePoleCoef` | `dsp::one_pole_lp::setOnePoleCoef` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:77` | `setOnePoleValue` | `dsp::one_pole_lp::setOnePoleValue` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:82` | `setOnePoleFreq` | `dsp::one_pole_lp::setOnePoleFreq` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/Decay.c:21` | `DecayEg_calcSlopeValue` | `dsp::decay::DecayEg_calcSlopeValue` | P1 | inlined | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Decay.c:26` | `DecayEg_init` | `dsp::decay::DecayEg_init` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Decay.c:33` | `DecayEg_calcTime` | `dsp::decay::DecayEg_calcTime` | P1 | inlined | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Decay.c:47` | `DecayEg_trigger` | `dsp::decay::DecayEg_trigger` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Decay.c:52` | `DecayEg_calc` | `dsp::decay::DecayEg_calc` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Decay.c:69` | `DecayEg_setDecay` | `dsp::decay::DecayEg_setDecay` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Decay.c:74` | `DecayEg_setSlope` | `dsp::decay::DecayEg_setSlope` | P1 | itcm | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/Oscillator.c:22` | `freq2PhaseIncr` | `dsp::oscillator::freq2PhaseIncr` | P1 | inlined | stub |
 | `Core/Src/Soundengine/DSPAudio/Oscillator.c:28` | `fast_log2` | `dsp::oscillator::fast_log2` | P1 | inlined | stub |
 | `Core/Src/Soundengine/DSPAudio/Oscillator.c:33` | `freqToMidiNote` | `dsp::oscillator::freqToMidiNote` | P1 | inlined | stub |
@@ -98,15 +98,15 @@ Functions marked `gc`/`absent` cannot be checked against the reference binary.
 | `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:130` | `removeMaliciousSample` | `dsp::resonant_filter::removeMaliciousSample` | P1 | flash | stub |
 | `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:157` | `SVF_calcBlockZDF` | `dsp::resonant_filter::SVF_calcBlockZDF` | P1 | itcm | stub |
 | `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:378` | `SVF_calcBlockCheapZDF` | `dsp::resonant_filter::SVF_calcBlockCheapZDF` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:22` | `slopeEg2_init` | `dsp::slope_eg2::slopeEg2_init` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:33` | `slopeEg2_trigger` | `dsp::slope_eg2::slopeEg2_trigger` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:51` | `slopeEg2_calcSlopeValue` | `dsp::slope_eg2::slopeEg2_calcSlopeValue` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:56` | `slopeEg2_calc` | `dsp::slope_eg2::slopeEg2_calc` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:137` | `slopeEg2_calcTime` | `dsp::slope_eg2::slopeEg2_calcTime` | P1 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:150` | `slopeEg2_setAttack` | `dsp::slope_eg2::slopeEg2_setAttack` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:157` | `slopeEg2_setDecay` | `dsp::slope_eg2::slopeEg2_setDecay` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:164` | `slopeEg2_calcDecay` | `dsp::slope_eg2::slopeEg2_calcDecay` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:169` | `slopeEg2_setSlope` | `dsp::slope_eg2::slopeEg2_setSlope` | P1 | itcm | stub |
+| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:22` | `slopeEg2_init` | `dsp::slope_eg2::slopeEg2_init` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:33` | `slopeEg2_trigger` | `dsp::slope_eg2::slopeEg2_trigger` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:51` | `slopeEg2_calcSlopeValue` | `dsp::slope_eg2::slopeEg2_calcSlopeValue` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:56` | `slopeEg2_calc` | `dsp::slope_eg2::slopeEg2_calc` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:137` | `slopeEg2_calcTime` | `dsp::slope_eg2::slopeEg2_calcTime` | P1 | inlined | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:150` | `slopeEg2_setAttack` | `dsp::slope_eg2::slopeEg2_setAttack` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:157` | `slopeEg2_setDecay` | `dsp::slope_eg2::slopeEg2_setDecay` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:164` | `slopeEg2_calcDecay` | `dsp::slope_eg2::slopeEg2_calcDecay` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:169` | `slopeEg2_setSlope` | `dsp::slope_eg2::slopeEg2_setSlope` | P1 | itcm | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/TiltEq.c:20` | `fasterpow2` | `dsp::tilt_eq::fasterpow2` | P1 | absent | stub |
 | `Core/Src/Soundengine/DSPAudio/TiltEq.c:28` | `fasterexp` | `dsp::tilt_eq::fasterexp` | P1 | absent | stub |
 | `Core/Src/Soundengine/DSPAudio/TiltEq.c:35` | `TiltEq_init` | `dsp::tilt_eq::TiltEq_init` | P1 | absent | stub |
@@ -116,10 +116,10 @@ Functions marked `gc`/`absent` cannot be checked against the reference binary.
 | `Core/Src/Soundengine/DSPAudio/automationNode.c:17` | `autoNode_init` | `dsp::automation_node::autoNode_init` | P1 | flash | stub |
 | `Core/Src/Soundengine/DSPAudio/automationNode.c:22` | `autoNode_setDestination` | `Lxr::autoNode_setDestination` | P1 | flash | stub |
 | `Core/Src/Soundengine/DSPAudio/automationNode.c:44` | `autoNode_updateValue` | `Lxr::autoNode_updateValue` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/distortion.c:18` | `setDistortionShape` | `dsp::distortion::setDistortionShape` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/distortion.c:24` | `calcDistBlock` | `dsp::distortion::calcDistBlock` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/distortion.c:36` | `calcDistBlockFiltered` | `dsp::distortion::calcDistBlockFiltered` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/distortion.c:54` | `distortion_calcSampleFloat` | `dsp::distortion::distortion_calcSampleFloat` | P1 | gc | stub |
+| `Core/Src/Soundengine/DSPAudio/distortion.c:18` | `setDistortionShape` | `dsp::distortion::setDistortionShape` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/distortion.c:24` | `calcDistBlock` | `dsp::distortion::calcDistBlock` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/distortion.c:36` | `calcDistBlockFiltered` | `dsp::distortion::calcDistBlockFiltered` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/distortion.c:54` | `distortion_calcSampleFloat` | `dsp::distortion::distortion_calcSampleFloat` | P1 | gc | ported (not in firmware build, untestable) |
 | `Core/Src/Soundengine/DSPAudio/dither.c:26` | `dither_process` | `Lxr::dither_process` | P1 | absent | stub |
 | `Core/Src/Soundengine/DSPAudio/lfo.c:25` | `lfo_init` | `Lxr::lfo_init` | P1 | flash | stub |
 | `Core/Src/Soundengine/DSPAudio/lfo.c:39` | `lfo_calc` | `Lxr::lfo_calc` | P1 | itcm | stub |
@@ -138,14 +138,14 @@ Functions marked `gc`/`absent` cannot be checked against the reference binary.
 | `Core/Src/Soundengine/DSPAudio/modulationNode.c:164` | `modNode_updateValue` | `Lxr::modNode_updateValue` | P1 | flash | stub |
 | `Core/Src/Soundengine/DSPAudio/random.c:18` | `initRng` | `dsp::random::initRng` | P1 | gc | stub |
 | `Core/Src/Soundengine/DSPAudio/random.c:27` | `GetRngValue` | `Lxr::GetRngValue` | P1 | flash | ported (`src/rng.rs`) |
-| `Core/Src/Soundengine/DSPAudio/snapEg.c:19` | `SnapEg_init` | `dsp::snap_eg::SnapEg_init` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/snapEg.c:24` | `SnapEg_trigger` | `dsp::snap_eg::SnapEg_trigger` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/snapEg.c:29` | `SnapEg_calc` | `dsp::snap_eg::SnapEg_calc` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/transientGenerator.c:20` | `transient_init` | `dsp::transient_generator::transient_init` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/transientGenerator.c:29` | `transient_setWaveform` | `dsp::transient_generator::transient_setWaveform` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/transientGenerator.c:37` | `transient_trigger` | `dsp::transient_generator::transient_trigger` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/transientGenerator.c:43` | `transient_calcBlock` | `dsp::transient_generator::transient_calcBlock` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/transientGenerator.c:71` | `transient_calc` | `dsp::transient_generator::transient_calc` | P1 | gc | stub |
+| `Core/Src/Soundengine/DSPAudio/snapEg.c:19` | `SnapEg_init` | `dsp::snap_eg::SnapEg_init` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/snapEg.c:24` | `SnapEg_trigger` | `dsp::snap_eg::SnapEg_trigger` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/snapEg.c:29` | `SnapEg_calc` | `dsp::snap_eg::SnapEg_calc` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/transientGenerator.c:20` | `transient_init` | `dsp::transient_generator::transient_init` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/transientGenerator.c:29` | `transient_setWaveform` | `dsp::transient_generator::transient_setWaveform` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/transientGenerator.c:37` | `transient_trigger` | `dsp::transient_generator::transient_trigger` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/transientGenerator.c:43` | `transient_calcBlock` | `dsp::transient_generator::transient_calcBlock` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/transientGenerator.c:71` | `transient_calc` | `dsp::transient_generator::transient_calc` | P1 | gc | ported (not in firmware build, untestable) |
 | `Drivers/CMSIS/Include/cmsis_gcc.h:219` | `__get_APSR` | `cmsis::__get_APSR` | P1 | inlined | stub |
 | `Drivers/CMSIS/Include/cmsis_gcc.h:1644` | `__QADD16` | `cmsis::__QADD16` | P1 | inlined | stub |
 | `Drivers/CMSIS/Include/cmsis_gcc.h:1692` | `__QSUB16` | `cmsis::__QSUB16` | P1 | inlined | stub |
