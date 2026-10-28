@@ -1,7 +1,7 @@
 //! P4 differential tests: `mixer_calcNextSampleBlock` (all six voices, routing to DAC1/DAC2/FX bus,
 //! decimation, triggered pan) over long block runs with triggers and parameter changes.
 //! FPSCR = 0 (docs/ENGINE_CONTRACT.md), no FtzGuard. The FX bus runs with `FX_OFF` (its effects are P2's
-//! tests); its routing is swept.
+//! tests); its routing is swept. `p4_mixer_blocks_with_fx` also switches the effects on.
 #![allow(non_snake_case)]
 
 mod p4_common;
@@ -18,7 +18,7 @@ fn set_fx_routing(fw: &mut lxr_difftest::Firmware, l: &mut Lxr, fxType: u8, rout
     fw.write_u8(memmap::ADDR_fxBus + O::FxBus_audioRouting, routing).unwrap();
 }
 
-fn mixer_run(seed: u64, blocks: usize) {
+fn mixer_run(seed: u64, blocks: usize, with_fx: bool) {
     let fw = fw_or_skip!();
     let (mut fw, rng) = setup(fw);
     let mut l = Box::new(Lxr::new_zeroed());
@@ -49,7 +49,13 @@ fn mixer_run(seed: u64, blocks: usize) {
             }
             l.mixer_decimation_rate[6] = if s.next_u32() % 2 == 0 { 1.0 } else { s.f32_in(0.2, 1.0) };
             let r = (s.next_u32() % 7) as u8;
-            set_fx_routing(&mut fw, &mut l, FX_OFF, r);
+            let fx = if with_fx { (s.next_u32() % 5) as u8 } else { FX_OFF };
+            set_fx_routing(&mut fw, &mut l, fx, r);
+            if with_fx {
+                let dw = s.f32_in(0.0, 1.0);
+                l.fxBus.dryWet = dw;
+                fw.write_f32(memmap::ADDR_fxBus + O::FxBus_dryWet, dw).unwrap();
+            }
             changed = true;
         }
         if blk % 10 == 0 {
@@ -117,6 +123,15 @@ fn mixer_run(seed: u64, blocks: usize) {
 #[test]
 fn p4_mixer_blocks() {
     for seed in 1..=3 {
-        mixer_run(seed, 2000);
+        mixer_run(seed, 2000, false);
+    }
+}
+
+/// The same with the FX bus effects switched on (type, routing and dry/wet swept; effect parameters at
+/// their `FxBus_init` values). Only the outputs and the P4 state are compared; the FX state is P2's.
+#[test]
+fn p4_mixer_blocks_with_fx() {
+    for seed in 7..=8 {
+        mixer_run(seed, 2000, true);
     }
 }

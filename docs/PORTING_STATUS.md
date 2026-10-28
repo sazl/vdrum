@@ -391,36 +391,36 @@ Functions marked `gc`/`absent` cannot be checked against the reference binary.
 | `Core/Src/menu/menu.c:3212` | `menu_getSubPage` | `Lxr::menu_getSubPage` | P3 | flash | stub (external) |
 | `Core/Src/menu/menu.c:4282` | `menu_getActiveVoice` | `Lxr::menu_getActiveVoice` | P3 | flash | stub (external) |
 | `Core/Src/Soundengine/DSPAudio/CymbalVoice.c:26` | `Cymbal_setPan` | `Lxr::Cymbal_setPan` | P4 | flash | ported+difftested |
-| `Core/Src/Soundengine/DSPAudio/CymbalVoice.c:34` | `Cymbal_init` | `Lxr::Cymbal_init` | P4 | flash | ported (difftest pending: needs P3 paramArray_setParameter) |
+| `Core/Src/Soundengine/DSPAudio/CymbalVoice.c:34` | `Cymbal_init` | `Lxr::Cymbal_init` | P4 | flash | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/CymbalVoice.c:85` | `Cymbal_updatePan` | `Lxr::Cymbal_updatePan` | P4 | inlined | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/CymbalVoice.c:91` | `Cymbal_trigger` | `Lxr::Cymbal_trigger` | P4 | flash | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/CymbalVoice.c:126` | `Cymbal_calcAsync` | `Lxr::Cymbal_calcAsync` | P4 | itcm | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/CymbalVoice.c:157` | `Cymbal_calcSyncBlock` | `Lxr::Cymbal_calcSyncBlock` | P4 | flash | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/DrumVoice.c:31` | `setPan` | `Lxr::setPan` | P4 | itcm | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/DrumVoice.c:36` | `drum_setPhase` | `Lxr::drum_setPhase` | P4 | gc | ported (untestable: not linked in the reference build) |
-| `Core/Src/Soundengine/DSPAudio/DrumVoice.c:43` | `initDrumVoice` | `Lxr::initDrumVoice` | P4 | flash | ported (difftest pending: needs P3 paramArray_setParameter) |
+| `Core/Src/Soundengine/DSPAudio/DrumVoice.c:43` | `initDrumVoice` | `Lxr::initDrumVoice` | P4 | flash | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/DrumVoice.c:115` | `Drum_updatePan` | `Lxr::Drum_updatePan` | P4 | inlined | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/DrumVoice.c:121` | `Drum_trigger` | `Lxr::Drum_trigger` | P4 | flash | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/DrumVoice.c:183` | `calcDrumVoiceAsync` | `Lxr::calcDrumVoiceAsync` | P4 | itcm | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/DrumVoice.c:239` | `calcDrumVoiceSyncBlock` | `Lxr::calcDrumVoiceSyncBlock` | P4 | itcm | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/HiHat.c:27` | `HiHat_setPan` | `Lxr::HiHat_setPan` | P4 | flash | ported+difftested |
-| `Core/Src/Soundengine/DSPAudio/HiHat.c:35` | `HiHat_init` | `Lxr::HiHat_init` | P4 | flash | ported (difftest pending: needs P3 paramArray_setParameter) |
+| `Core/Src/Soundengine/DSPAudio/HiHat.c:35` | `HiHat_init` | `Lxr::HiHat_init` | P4 | flash | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/HiHat.c:84` | `HiHat_updatePan` | `Lxr::HiHat_updatePan` | P4 | inlined | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/HiHat.c:90` | `HiHat_trigger` | `Lxr::HiHat_trigger` | P4 | flash | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/HiHat.c:128` | `HiHat_calcAsync` | `Lxr::HiHat_calcAsync` | P4 | itcm | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/HiHat.c:165` | `HiHat_calcSyncBlock` | `Lxr::HiHat_calcSyncBlock` | P4 | flash | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/Snare.c:27` | `Snare_setPan` | `Lxr::Snare_setPan` | P4 | flash | ported+difftested |
-| `Core/Src/Soundengine/DSPAudio/Snare.c:34` | `Snare_init` | `Lxr::Snare_init` | P4 | flash | ported (difftest pending: needs P3 paramArray_setParameter) |
+| `Core/Src/Soundengine/DSPAudio/Snare.c:34` | `Snare_init` | `Lxr::Snare_init` | P4 | flash | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/Snare.c:76` | `Snare_updatePan` | `Lxr::Snare_updatePan` | P4 | inlined | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/Snare.c:82` | `Snare_trigger` | `Lxr::Snare_trigger` | P4 | flash | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/Snare.c:114` | `Snare_calcAsync` | `Lxr::Snare_calcAsync` | P4 | itcm | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/Snare.c:148` | `Snare_calcSyncBlock` | `Lxr::Snare_calcSyncBlock` | P4 | flash | ported+difftested |
-| `Core/Src/Soundengine/DSPAudio/mixer.c:43` | `mixer_init` | `Lxr::mixer_init` | P4 | flash | ported (difftest pending: needs P2 FxBus_init) |
+| `Core/Src/Soundengine/DSPAudio/mixer.c:43` | `mixer_init` | `Lxr::mixer_init` | P4 | flash | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/mixer.c:60` | `mixer_decimateBlock` | `Lxr::mixer_decimateBlock` | P4 | itcm | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/mixer.c:79` | `mixer_checkOutJackAvailable` | `Lxr::mixer_checkOutJackAvailable` | P4 | flash | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/mixer.c:310` | `mixer_addDataToOutputFilteredPan` | `Lxr::mixer_addDataToOutputFilteredPan` | P4 | absent | ported (untestable: not in the reference build) |
-| `Core/Src/Soundengine/DSPAudio/mixer.c:438` | `mixer_addDataToOutput` | `Lxr::mixer_addDataToOutput` | P4 | inlined | ported (difftest pending: needs P2 FxBus_process, P3 paramArray_setParameter; tested inside mixer_calcNextSampleBlock) |
-| `Core/Src/Soundengine/DSPAudio/mixer.c:548` | `mixer_calcNextSampleBlock` | `Lxr::mixer_calcNextSampleBlock` | P4 | itcm | ported (difftest pending: needs P2 FxBus_process, P3 paramArray_setParameter) |
+| `Core/Src/Soundengine/DSPAudio/mixer.c:438` | `mixer_addDataToOutput` | `Lxr::mixer_addDataToOutput` | P4 | inlined | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/mixer.c:548` | `mixer_calcNextSampleBlock` | `Lxr::mixer_calcNextSampleBlock` | P4 | itcm | ported+difftested |
 
 ## Non-C items
 
