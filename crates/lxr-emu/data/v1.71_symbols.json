@@ -1,0 +1,7551 @@
+{
+ "comment": "Addresses of symbols in the shipped LXR-02 v1.71 firmware (payload of LXRV2_update_v1.71.img loaded at 0x08008000), recovered by tools/symbol_map.py from the GCC 11.3 reference build. Runtime addresses; ITCM functions have their load address as lma. size = null: function not byte-identical, address from call sites.",
+ "image_size": 273528,
+ "itcm_lma": "0x80473a0",
+ "stats": {
+  "functions_total_elf": 777,
+  "functions_byte_matched": 568,
+  "functions_recovered": 896,
+  "functions_recovered_by_refs_only": 328,
+  "functions_not_recovered": 19,
+  "data_symbols_recovered": 335,
+  "conflicts": 0,
+  "overlaps": 0
+ },
+ "overlaps": [],
+ "aliases": [
+  [
+   "siprintf",
+   "sprintf"
+  ],
+  [
+   "_svfiprintf_r",
+   "_svfprintf_r"
+  ],
+  [
+   "CSWTCH.114",
+   "CSWTCH.157"
+  ]
+ ],
+ "functions": {
+  "ADC_DMAConvCplt": {
+   "addr": "0x801e434",
+   "size": 108,
+   "match": "bytes",
+   "refs": 1
+  },
+  "ADC_DMAError": {
+   "addr": "0x801e41c",
+   "size": 22,
+   "match": "bytes",
+   "refs": 1
+  },
+  "ADC_DMAHalfConvCplt": {
+   "addr": "0x801e40c",
+   "size": null,
+   "elf_size": 10,
+   "match": "refs",
+   "refs": 1
+  },
+  "ADC_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "BSP_PlatformIsDetected": {
+   "addr": "0x802467c",
+   "size": 24,
+   "match": "bytes",
+   "refs": 1
+  },
+  "BSP_SD_GetCardInfo": {
+   "addr": "0x8024610",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 3
+  },
+  "BSP_SD_GetCardState": {
+   "addr": "0x80245fc",
+   "size": 20,
+   "match": "bytes",
+   "refs": 2
+  },
+  "BSP_SD_Init": {
+   "addr": "0x8024660",
+   "size": 28,
+   "match": "bytes",
+   "refs": 1
+  },
+  "BSP_SD_IsDetected": {
+   "addr": "0x8024640",
+   "size": 30,
+   "match": "bytes",
+   "refs": 1
+  },
+  "BSP_SD_ReadBlocks": {
+   "addr": "0x80245b4",
+   "size": null,
+   "elf_size": 36,
+   "match": "refs",
+   "refs": 1
+  },
+  "BSP_SD_WriteBlocks": {
+   "addr": "0x80245d8",
+   "size": null,
+   "elf_size": 36,
+   "match": "refs",
+   "refs": 1
+  },
+  "BusFault_Handler": {
+   "addr": "0x800d628",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "CAN1_RX0_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "CAN1_RX1_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "CAN1_SCE_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "CAN1_TX_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "CAN2_RX0_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "CAN2_RX1_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "CAN2_SCE_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "CAN2_TX_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "CAN3_RX0_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "CAN3_RX1_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "CAN3_SCE_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "CAN3_TX_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "CDC_Control_FS": {
+   "addr": "0x8028708",
+   "size": null,
+   "elf_size": 4,
+   "match": "refs",
+   "refs": 1
+  },
+  "CDC_DeInit_FS": {
+   "addr": "0x8028704",
+   "size": null,
+   "elf_size": 4,
+   "match": "refs",
+   "refs": 1
+  },
+  "CDC_Init_FS": {
+   "addr": "0x8028728",
+   "size": 40,
+   "match": "bytes",
+   "refs": 1
+  },
+  "CDC_Receive_FS": {
+   "addr": "0x802870c",
+   "size": 28,
+   "match": "bytes",
+   "refs": 1
+  },
+  "CDC_Transmit_FS": {
+   "addr": "0x8028750",
+   "size": 44,
+   "match": "bytes",
+   "refs": 1
+  },
+  "CEC_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "CodecInit": {
+   "addr": "0x800fcb4",
+   "size": 32,
+   "match": "bytes",
+   "refs": 1
+  },
+  "Compressor_init": {
+   "addr": "0x8012238",
+   "size": 52,
+   "match": "bytes",
+   "refs": 1
+  },
+  "Compressor_process": {
+   "addr": "0x8012380",
+   "size": 828,
+   "match": "bytes",
+   "refs": 1
+  },
+  "Compressor_setAttack": {
+   "addr": "0x8012270",
+   "size": 76,
+   "match": "bytes",
+   "refs": 2
+  },
+  "Compressor_setGain": {
+   "addr": "0x80122d8",
+   "size": 18,
+   "match": "bytes",
+   "refs": 2
+  },
+  "Compressor_setRatio": {
+   "addr": "0x8012338",
+   "size": 68,
+   "match": "bytes",
+   "refs": 2
+  },
+  "Compressor_setRelease": {
+   "addr": "0x80122f0",
+   "size": 72,
+   "match": "bytes",
+   "refs": 2
+  },
+  "Compressor_setTreshold": {
+   "addr": "0x80122bc",
+   "size": 28,
+   "match": "bytes",
+   "refs": 2
+  },
+  "Cymbal_calcAsync": {
+   "addr": "0x460",
+   "size": 92,
+   "match": "bytes",
+   "lma": "0x8047800",
+   "refs": 1
+  },
+  "Cymbal_calcSyncBlock": {
+   "addr": "0x8010310",
+   "size": 568,
+   "match": "bytes",
+   "refs": 1
+  },
+  "Cymbal_init": {
+   "addr": "0x8010130",
+   "size": 208,
+   "match": "bytes",
+   "refs": 1
+  },
+  "Cymbal_setPan": {
+   "addr": "0x8010120",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 1
+  },
+  "Cymbal_trigger": {
+   "addr": "0x8010200",
+   "size": 272,
+   "match": "bytes",
+   "refs": 0
+  },
+  "DCMI_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "DFSDM1_FLT0_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "DFSDM1_FLT1_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "DFSDM1_FLT2_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "DFSDM1_FLT3_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "DMA1_Stream0_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "DMA1_Stream1_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "DMA1_Stream2_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "DMA1_Stream3_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "DMA1_Stream4_IRQHandler": {
+   "addr": "0x800d658",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 1
+  },
+  "DMA1_Stream5_IRQHandler": {
+   "addr": "0x800d664",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 1
+  },
+  "DMA1_Stream6_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "DMA1_Stream7_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "DMA2D_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "DMA2_Stream0_IRQHandler": {
+   "addr": "0x800d700",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 1
+  },
+  "DMA2_Stream1_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "DMA2_Stream2_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "DMA2_Stream3_IRQHandler": {
+   "addr": "0x800d70c",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 1
+  },
+  "DMA2_Stream4_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "DMA2_Stream5_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "DMA2_Stream6_IRQHandler": {
+   "addr": "0x800d724",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 1
+  },
+  "DMA2_Stream7_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "DWT_Delay_Init": {
+   "addr": "0x8009a30",
+   "size": 88,
+   "match": "bytes",
+   "refs": 0
+  },
+  "DebugMon_Handler": {
+   "addr": "0x800d634",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "DecayEg_calc": {
+   "addr": "0x4bc",
+   "size": 76,
+   "match": "bytes",
+   "lma": "0x804785c",
+   "refs": 2
+  },
+  "DecayEg_init": {
+   "addr": "0x8010548",
+   "size": 16,
+   "match": "bytes",
+   "refs": 2
+  },
+  "DecayEg_setDecay": {
+   "addr": "0x8010560",
+   "size": 76,
+   "match": "bytes",
+   "refs": 4
+  },
+  "DecayEg_setSlope": {
+   "addr": "0x508",
+   "size": 52,
+   "match": "bytes",
+   "lma": "0x80478a8",
+   "refs": 4
+  },
+  "DecayEg_trigger": {
+   "addr": "0x8010558",
+   "size": 8,
+   "match": "bytes",
+   "refs": 2
+  },
+  "Delay_init": {
+   "addr": "0x8012788",
+   "size": 76,
+   "match": "bytes",
+   "refs": 1
+  },
+  "Delay_process": {
+   "addr": "0x8012bcc",
+   "size": 664,
+   "match": "bytes",
+   "refs": 1
+  },
+  "Delay_processPingPong": {
+   "addr": "0x80127d4",
+   "size": 1014,
+   "match": "bytes",
+   "refs": 1
+  },
+  "Delay_setDelayTime": {
+   "addr": "0x8012e64",
+   "size": 228,
+   "match": "bytes",
+   "refs": 2
+  },
+  "Delay_setDelayTime.part.0": {
+   "addr": "0x80126bc",
+   "size": 204,
+   "match": "bytes",
+   "refs": 2
+  },
+  "Delay_setFeedback": {
+   "addr": "0x8012f48",
+   "size": null,
+   "elf_size": 6,
+   "match": "refs",
+   "refs": 2
+  },
+  "Delay_setFilter": {
+   "addr": "0x8013034",
+   "size": 46,
+   "match": "bytes",
+   "refs": 2
+  },
+  "Delay_setRange": {
+   "addr": "0x8012f50",
+   "size": 228,
+   "match": "bytes",
+   "refs": 2
+  },
+  "Distortion_init": {
+   "addr": "0x8013064",
+   "size": 100,
+   "match": "bytes",
+   "refs": 1
+  },
+  "Distortion_process": {
+   "addr": "0x80130c8",
+   "size": 3378,
+   "match": "bytes",
+   "refs": 1
+  },
+  "Distortion_setDrive": {
+   "addr": "0x3028",
+   "size": null,
+   "elf_size": 6,
+   "match": "refs",
+   "lma": "0x804a3c8",
+   "refs": 2
+  },
+  "Distortion_setParam1": {
+   "addr": "0x3030",
+   "size": null,
+   "elf_size": 6,
+   "match": "refs",
+   "lma": "0x804a3d0",
+   "refs": 2
+  },
+  "Distortion_setParam2": {
+   "addr": "0x3038",
+   "size": null,
+   "elf_size": 6,
+   "match": "refs",
+   "lma": "0x804a3d8",
+   "refs": 2
+  },
+  "Distortion_setParam3": {
+   "addr": "0x3040",
+   "size": null,
+   "elf_size": 6,
+   "match": "refs",
+   "lma": "0x804a3e0",
+   "refs": 2
+  },
+  "Drum_trigger": {
+   "addr": "0x80106e8",
+   "size": 348,
+   "match": "bytes",
+   "refs": 0
+  },
+  "ETH_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "ETH_WKUP_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "EXTI0_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "EXTI15_10_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "EXTI1_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "EXTI2_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "EXTI3_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "EXTI4_IRQHandler": {
+   "addr": "0x800fec8",
+   "size": 300,
+   "match": "bytes",
+   "refs": 1
+  },
+  "EXTI9_5_IRQHandler": {
+   "addr": "0x800fff4",
+   "size": 84,
+   "match": "bytes",
+   "refs": 1
+  },
+  "Error_Handler": {
+   "addr": "0x800cf44",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 10
+  },
+  "FATFS_LinkDriver": {
+   "addr": "0x802860c",
+   "size": 76,
+   "match": "bytes",
+   "refs": 2
+  },
+  "FATFS_UnLinkDriver": {
+   "addr": "0x8028658",
+   "size": 56,
+   "match": "bytes",
+   "refs": 1
+  },
+  "FLASH_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "FMC_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "FPU_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "FxBus_init": {
+   "addr": "0x800fd60",
+   "size": 56,
+   "match": "bytes",
+   "refs": 1
+  },
+  "FxBus_prepareFxChange": {
+   "addr": "0x800fd98",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "FxBus_process": {
+   "addr": "0xe4",
+   "size": 308,
+   "match": "bytes",
+   "lma": "0x8047484",
+   "refs": 1
+  },
+  "FxBus_setParameter": {
+   "addr": "0x2d4",
+   "size": 196,
+   "match": "bytes",
+   "lma": "0x8047674",
+   "refs": 5
+  },
+  "FxBus_updateParameter": {
+   "addr": "0x218",
+   "size": 188,
+   "match": "bytes",
+   "lma": "0x80475b8",
+   "refs": 1
+  },
+  "GetRngValue": {
+   "addr": "0x8012108",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 6
+  },
+  "HAL_ADC_ConfigChannel": {
+   "addr": "0x801e4a0",
+   "size": null,
+   "elf_size": 400,
+   "match": "refs",
+   "refs": 1
+  },
+  "HAL_ADC_ConvCpltCallback": {
+   "addr": "0x801e404",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "HAL_ADC_ErrorCallback": {
+   "addr": "0x801e418",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 2
+  },
+  "HAL_ADC_Init": {
+   "addr": "0x801e148",
+   "size": 348,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_ADC_MspInit": {
+   "addr": "0x800cfc0",
+   "size": 244,
+   "match": "bytes",
+   "refs": 1
+  },
+  "HAL_ADC_Start_DMA": {
+   "addr": "0x801e2a4",
+   "size": 352,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_DMA_Abort_IT": {
+   "addr": "0x801e8d8",
+   "size": 38,
+   "match": "bytes",
+   "refs": 2
+  },
+  "HAL_DMA_Init": {
+   "addr": "0x801e710",
+   "size": null,
+   "elf_size": 312,
+   "match": "refs",
+   "refs": 5
+  },
+  "HAL_DMA_Start_IT": {
+   "addr": "0x801e848",
+   "size": 144,
+   "match": "bytes",
+   "refs": 2
+  },
+  "HAL_Delay": {
+   "addr": "0x801e124",
+   "size": 36,
+   "match": "bytes",
+   "refs": 16
+  },
+  "HAL_GPIO_Init": {
+   "addr": "0x801eaa8",
+   "size": null,
+   "elf_size": 612,
+   "match": "refs",
+   "refs": 14
+  },
+  "HAL_GPIO_ReadPin": {
+   "addr": "0x801ed34",
+   "size": 12,
+   "match": "bytes",
+   "refs": 1
+  },
+  "HAL_GPIO_WritePin": {
+   "addr": "0x801ed40",
+   "size": 8,
+   "match": "bytes",
+   "refs": 2
+  },
+  "HAL_GetTick": {
+   "addr": "0x801e118",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 68
+  },
+  "HAL_I2S_ErrorCallback": {
+   "addr": "0x801ef7c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "HAL_I2S_Init": {
+   "addr": "0x801ed48",
+   "size": 308,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_I2S_MspInit": {
+   "addr": "0x800d0b4",
+   "size": 452,
+   "match": "bytes",
+   "refs": 1
+  },
+  "HAL_I2S_Transmit_DMA": {
+   "addr": "0x801ee7c",
+   "size": 204,
+   "match": "bytes",
+   "refs": 4
+  },
+  "HAL_I2S_TxCpltCallback": {
+   "addr": "0x398",
+   "size": 160,
+   "match": "bytes",
+   "lma": "0x8047738",
+   "refs": 1
+  },
+  "HAL_IncTick": {
+   "addr": "0x801e100",
+   "size": 24,
+   "match": "bytes",
+   "refs": 1
+  },
+  "HAL_Init": {
+   "addr": "0x801e0e8",
+   "size": 22,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_InitTick": {
+   "addr": "0x801e0a0",
+   "size": 72,
+   "match": "bytes",
+   "refs": 2
+  },
+  "HAL_MspInit": {
+   "addr": "0x800cf48",
+   "size": 120,
+   "match": "bytes",
+   "refs": 1
+  },
+  "HAL_NVIC_EnableIRQ": {
+   "addr": "0x801e6c8",
+   "size": 28,
+   "match": "bytes",
+   "refs": 5
+  },
+  "HAL_NVIC_SetPriority": {
+   "addr": "0x801e64c",
+   "size": 124,
+   "match": "bytes",
+   "refs": 11
+  },
+  "HAL_NVIC_SetPriorityGrouping": {
+   "addr": "0x801e628",
+   "size": 36,
+   "match": "bytes",
+   "refs": 2
+  },
+  "HAL_PCDEx_ActivateLPM": {
+   "addr": "0x801fa74",
+   "size": 48,
+   "match": "bytes",
+   "refs": 1
+  },
+  "HAL_PCDEx_SetRxFiFo": {
+   "addr": "0x801fa68",
+   "size": 10,
+   "match": "bytes",
+   "refs": 1
+  },
+  "HAL_PCDEx_SetTxFiFo": {
+   "addr": "0x801fa1c",
+   "size": 76,
+   "match": "bytes",
+   "refs": 2
+  },
+  "HAL_PCD_DataInStageCallback": {
+   "addr": "0x8028948",
+   "size": 18,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_PCD_DataOutStageCallback": {
+   "addr": "0x8028934",
+   "size": 20,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_PCD_EP_Close": {
+   "addr": "0x801f7fc",
+   "size": 106,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_PCD_EP_ClrStall": {
+   "addr": "0x801f9a4",
+   "size": 118,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_PCD_EP_GetRxCount": {
+   "addr": "0x801f8b8",
+   "size": 18,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_PCD_EP_Open": {
+   "addr": "0x801f780",
+   "size": 124,
+   "match": "bytes",
+   "refs": 1
+  },
+  "HAL_PCD_EP_Receive": {
+   "addr": "0x801f868",
+   "size": 78,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_PCD_EP_SetStall": {
+   "addr": "0x801f91c",
+   "size": 136,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_PCD_EP_Transmit": {
+   "addr": "0x801f8cc",
+   "size": 78,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_PCD_Init": {
+   "addr": "0x801efac",
+   "size": 298,
+   "match": "bytes",
+   "refs": 1
+  },
+  "HAL_PCD_MspInit": {
+   "addr": "0x800d590",
+   "size": 140,
+   "match": "bytes",
+   "refs": 1
+  },
+  "HAL_PCD_ResetCallback": {
+   "addr": "0x8028964",
+   "size": 42,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_PCD_SetAddress": {
+   "addr": "0x801f754",
+   "size": 42,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_PCD_SetupStageCallback": {
+   "addr": "0x8028928",
+   "size": 12,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_PCD_Start": {
+   "addr": "0x801f0d8",
+   "size": 44,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_PCD_SuspendCallback": {
+   "addr": "0x8028990",
+   "size": 48,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_PWREx_EnableOverDrive": {
+   "addr": "0x801faa8",
+   "size": 116,
+   "match": "bytes",
+   "refs": 1
+  },
+  "HAL_RCCEx_PeriphCLKConfig": {
+   "addr": "0x8020120",
+   "size": 1328,
+   "match": "bytes",
+   "refs": 1
+  },
+  "HAL_RCC_ClockConfig": {
+   "addr": "0x801ff08",
+   "size": 384,
+   "match": "bytes",
+   "refs": 1
+  },
+  "HAL_RCC_GetHCLKFreq": {
+   "addr": "0x80200d4",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 40
+  },
+  "HAL_RCC_GetPCLK1Freq": {
+   "addr": "0x80200e0",
+   "size": 32,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_RCC_GetPCLK2Freq": {
+   "addr": "0x8020100",
+   "size": 32,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_RCC_GetSysClockFreq": {
+   "addr": "0x8020088",
+   "size": 76,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_RCC_OscConfig": {
+   "addr": "0x801fb1c",
+   "size": 1004,
+   "match": "bytes",
+   "refs": 1
+  },
+  "HAL_RNG_Init": {
+   "addr": "0x8020650",
+   "size": 56,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_RNG_MspInit": {
+   "addr": "0x800d278",
+   "size": 44,
+   "match": "bytes",
+   "refs": 1
+  },
+  "HAL_SD_AbortCallback": {
+   "addr": "0x8024620",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 1
+  },
+  "HAL_SD_ErrorCallback": {
+   "addr": "0x8020ac0",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 3
+  },
+  "HAL_SD_GetCardCSD": {
+   "addr": "0x8020dc8",
+   "size": 376,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_SD_GetCardInfo": {
+   "addr": "0x80211ac",
+   "size": 38,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_SD_GetCardState": {
+   "addr": "0x80211d4",
+   "size": 40,
+   "match": "bytes",
+   "refs": 1
+  },
+  "HAL_SD_IRQHandler": {
+   "addr": "0x8020b28",
+   "size": 572,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_SD_Init": {
+   "addr": "0x8021170",
+   "size": 58,
+   "match": "bytes",
+   "refs": 1
+  },
+  "HAL_SD_InitCard": {
+   "addr": "0x8020f40",
+   "size": null,
+   "elf_size": 568,
+   "match": "refs",
+   "refs": 1
+  },
+  "HAL_SD_MspInit": {
+   "addr": "0x800d2a4",
+   "size": 360,
+   "match": "bytes",
+   "refs": 1
+  },
+  "HAL_SD_ReadBlocks": {
+   "addr": "0x80206ec",
+   "size": 528,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_SD_RxCpltCallback": {
+   "addr": "0x8024638",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 1
+  },
+  "HAL_SD_TxCpltCallback": {
+   "addr": "0x802462c",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 1
+  },
+  "HAL_SD_WriteBlocks": {
+   "addr": "0x80208fc",
+   "size": 452,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_SPI_Init": {
+   "addr": "0x8021408",
+   "size": 236,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_SPI_MspInit": {
+   "addr": "0x800d40c",
+   "size": 148,
+   "match": "bytes",
+   "refs": 1
+  },
+  "HAL_SPI_Receive": {
+   "addr": "0x8021930",
+   "size": null,
+   "elf_size": 380,
+   "match": "refs",
+   "refs": 1
+  },
+  "HAL_SPI_Transmit": {
+   "addr": "0x80214f4",
+   "size": 454,
+   "match": "bytes",
+   "refs": 1
+  },
+  "HAL_SPI_TransmitReceive": {
+   "addr": "0x80216bc",
+   "size": 628,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_SYSTICK_Config": {
+   "addr": "0x801e6e4",
+   "size": 44,
+   "match": "bytes",
+   "refs": 1
+  },
+  "HAL_TIMEx_Break2Callback": {
+   "addr": "0x8022594",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "HAL_TIMEx_BreakCallback": {
+   "addr": "0x8022590",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "HAL_TIMEx_CommutCallback": {
+   "addr": "0x802258c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "HAL_TIMEx_MasterConfigSynchronization": {
+   "addr": "0x80224d8",
+   "size": 180,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_TIM_Base_Init": {
+   "addr": "0x8021b8c",
+   "size": null,
+   "elf_size": 364,
+   "match": "refs",
+   "refs": 1
+  },
+  "HAL_TIM_Base_MspInit": {
+   "addr": "0x800d4a0",
+   "size": 116,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HAL_TIM_Base_Start_IT": {
+   "addr": "0x8021d24",
+   "size": 184,
+   "match": "bytes",
+   "refs": 11
+  },
+  "HAL_TIM_Base_Stop": {
+   "addr": "0x8021cf8",
+   "size": 42,
+   "match": "bytes",
+   "refs": 1
+  },
+  "HAL_TIM_Base_Stop_IT": {
+   "addr": "0x8021ddc",
+   "size": 52,
+   "match": "bytes",
+   "refs": 19
+  },
+  "HAL_TIM_ConfigClockSource": {
+   "addr": "0x8022208",
+   "size": null,
+   "elf_size": 352,
+   "match": "refs",
+   "refs": 1
+  },
+  "HAL_TIM_IC_CaptureCallback": {
+   "addr": "0x802235c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 4
+  },
+  "HAL_TIM_IRQHandler": {
+   "addr": "0x8022368",
+   "size": 366,
+   "match": "bytes",
+   "refs": 1
+  },
+  "HAL_TIM_OC_ConfigChannel": {
+   "addr": "0x8021f80",
+   "size": null,
+   "elf_size": 660,
+   "match": "refs",
+   "refs": 1
+  },
+  "HAL_TIM_OC_DelayElapsedCallback": {
+   "addr": "0x8022358",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 4
+  },
+  "HAL_TIM_OC_Init": {
+   "addr": "0x8021e14",
+   "size": null,
+   "elf_size": 364,
+   "match": "refs",
+   "refs": 1
+  },
+  "HAL_TIM_OC_MspInit": {
+   "addr": "0x8021e10",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "HAL_TIM_PWM_PulseFinishedCallback": {
+   "addr": "0x8022360",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 4
+  },
+  "HAL_TIM_PeriodElapsedCallback": {
+   "addr": "0x8022354",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "HAL_TIM_TriggerCallback": {
+   "addr": "0x8022364",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "HAL_UART_Init": {
+   "addr": "0x80229d8",
+   "size": null,
+   "elf_size": 206,
+   "match": "refs",
+   "refs": 1
+  },
+  "HAL_UART_MspInit": {
+   "addr": "0x800d514",
+   "size": 124,
+   "match": "bytes",
+   "refs": 0
+  },
+  "HardFault_Handler": {
+   "addr": "0x800d620",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "HiHat_calcAsync": {
+   "addr": "0x8d4",
+   "size": 92,
+   "match": "bytes",
+   "lma": "0x8047c74",
+   "refs": 1
+  },
+  "HiHat_calcSyncBlock": {
+   "addr": "0x8010a48",
+   "size": 568,
+   "match": "bytes",
+   "refs": 1
+  },
+  "HiHat_init": {
+   "addr": "0x8010850",
+   "size": 208,
+   "match": "bytes",
+   "refs": 1
+  },
+  "HiHat_setPan": {
+   "addr": "0x8010844",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 1
+  },
+  "HiHat_trigger": {
+   "addr": "0x8010920",
+   "size": 296,
+   "match": "bytes",
+   "refs": 0
+  },
+  "I2C1_ER_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "I2C1_EV_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "I2C2_ER_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "I2C2_EV_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "I2C3_ER_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "I2C3_EV_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "I2C4_ER_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "I2C4_EV_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "I2S_DMAError": {
+   "addr": "0x801ef80",
+   "size": 42,
+   "match": "bytes",
+   "refs": 1
+  },
+  "I2S_DMATxCplt": {
+   "addr": "0x801ef58",
+   "size": 34,
+   "match": "bytes",
+   "refs": 1
+  },
+  "I2S_DMATxHalfCplt": {
+   "addr": "0x801ef4c",
+   "size": null,
+   "elf_size": 10,
+   "match": "refs",
+   "refs": 1
+  },
+  "LPTIM1_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "MDIOS_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "MX_FATFS_Init": {
+   "addr": "0x8024570",
+   "size": 28,
+   "match": "bytes",
+   "refs": 0
+  },
+  "MX_FATFS_ReInit": {
+   "addr": "0x8024590",
+   "size": 36,
+   "match": "bytes",
+   "refs": 0
+  },
+  "MX_USB_DEVICE_Init": {
+   "addr": "0x8028690",
+   "size": 116,
+   "match": "bytes",
+   "refs": 0
+  },
+  "MemManage_Handler": {
+   "addr": "0x800d624",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "NMI_Handler": {
+   "addr": "0x800d61c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "OTG_FS_IRQHandler": {
+   "addr": "0x800d718",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 1
+  },
+  "OTG_FS_WKUP_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "OTG_HS_EP1_IN_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "OTG_HS_EP1_OUT_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "OTG_HS_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "OTG_HS_WKUP_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "PVD_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "PendSV_Handler": {
+   "addr": "0x800d638",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "QUADSPI_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "RCC_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "RNG_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "RTC_Alarm_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "RTC_WKUP_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "Reset_Handler": {
+   "addr": "0x801e014",
+   "size": 92,
+   "match": "bytes",
+   "refs": 1
+  },
+  "Ringmod_init": {
+   "addr": "0x8013dfc",
+   "size": 56,
+   "match": "bytes",
+   "refs": 1
+  },
+  "Ringmod_process": {
+   "addr": "0x8013e34",
+   "size": 300,
+   "match": "bytes",
+   "refs": 1
+  },
+  "Ringmod_setFreq": {
+   "addr": "0x8013f60",
+   "size": 24,
+   "match": "bytes",
+   "refs": 2
+  },
+  "Ringmod_setWave": {
+   "addr": "0x8013f78",
+   "size": null,
+   "elf_size": 4,
+   "match": "refs",
+   "refs": 2
+  },
+  "SAI1_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "SAI2_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "SDMMC1_IRQHandler": {
+   "addr": "0x800d6f4",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 1
+  },
+  "SDMMC2_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "SDMMC_CmdAppCommand": {
+   "addr": "0x80234dc",
+   "size": 340,
+   "match": "bytes",
+   "refs": 0
+  },
+  "SDMMC_CmdAppOperCommand": {
+   "addr": "0x8023630",
+   "size": 132,
+   "match": "bytes",
+   "refs": 0
+  },
+  "SDMMC_CmdBlockLength": {
+   "addr": "0x8022adc",
+   "size": 340,
+   "match": "bytes",
+   "refs": 0
+  },
+  "SDMMC_CmdGoIdleState": {
+   "addr": "0x802340c",
+   "size": 84,
+   "match": "bytes",
+   "refs": 0
+  },
+  "SDMMC_CmdOperCond": {
+   "addr": "0x8023460",
+   "size": 124,
+   "match": "bytes",
+   "refs": 0
+  },
+  "SDMMC_CmdReadMultiBlock": {
+   "addr": "0x8022d84",
+   "size": 340,
+   "match": "bytes",
+   "refs": 1
+  },
+  "SDMMC_CmdReadSingleBlock": {
+   "addr": "0x8022c30",
+   "size": 340,
+   "match": "bytes",
+   "refs": 1
+  },
+  "SDMMC_CmdSelDesel": {
+   "addr": "0x80232c8",
+   "size": 324,
+   "match": "bytes",
+   "refs": 0
+  },
+  "SDMMC_CmdSendCID": {
+   "addr": "0x80236b4",
+   "size": 120,
+   "match": "bytes",
+   "refs": 0
+  },
+  "SDMMC_CmdSendCSD": {
+   "addr": "0x802372c",
+   "size": 124,
+   "match": "bytes",
+   "refs": 0
+  },
+  "SDMMC_CmdSendStatus": {
+   "addr": "0x8023864",
+   "size": 340,
+   "match": "bytes",
+   "refs": 1
+  },
+  "SDMMC_CmdSetRelAdd": {
+   "addr": "0x80237a8",
+   "size": 188,
+   "match": "bytes",
+   "refs": 0
+  },
+  "SDMMC_CmdStopTransfer": {
+   "addr": "0x8023180",
+   "size": 328,
+   "match": "bytes",
+   "refs": 5
+  },
+  "SDMMC_CmdWriteMultiBlock": {
+   "addr": "0x802302c",
+   "size": 340,
+   "match": "bytes",
+   "refs": 1
+  },
+  "SDMMC_CmdWriteSingleBlock": {
+   "addr": "0x8022ed8",
+   "size": 340,
+   "match": "bytes",
+   "refs": 1
+  },
+  "SDMMC_ConfigData": {
+   "addr": "0x8022ab0",
+   "size": 42,
+   "match": "bytes",
+   "refs": 2
+  },
+  "SDMMC_GetPowerState": {
+   "addr": "0x8022aa0",
+   "size": 8,
+   "match": "bytes",
+   "refs": 0
+  },
+  "SDMMC_GetResponse": {
+   "addr": "0x8022aa8",
+   "size": null,
+   "elf_size": 6,
+   "match": "refs",
+   "refs": 1
+  },
+  "SDMMC_Init": {
+   "addr": "0x8022a3c",
+   "size": 60,
+   "match": "bytes",
+   "refs": 0
+  },
+  "SDMMC_ReadFIFO": {
+   "addr": "0x8022a78",
+   "size": null,
+   "elf_size": 6,
+   "match": "refs",
+   "refs": 3
+  },
+  "SDMMC_WriteFIFO": {
+   "addr": "0x8022a80",
+   "size": 12,
+   "match": "bytes",
+   "refs": 2
+  },
+  "SD_DMARxAbort": {
+   "addr": "0x8020d64",
+   "size": null,
+   "elf_size": 98,
+   "match": "refs",
+   "refs": 1
+  },
+  "SD_DMATxAbort": {
+   "addr": "0x8020ac4",
+   "size": null,
+   "elf_size": 98,
+   "match": "refs",
+   "refs": 2
+  },
+  "SD_initialize": {
+   "addr": "0x8024694",
+   "size": 48,
+   "match": "bytes",
+   "refs": 1
+  },
+  "SD_ioctl": {
+   "addr": "0x802470c",
+   "size": 104,
+   "match": "bytes",
+   "refs": 1
+  },
+  "SD_read": {
+   "addr": "0x80246e4",
+   "size": null,
+   "elf_size": 40,
+   "match": "refs",
+   "refs": 1
+  },
+  "SD_status": {
+   "addr": "0x80246c4",
+   "size": 32,
+   "match": "bytes",
+   "refs": 1
+  },
+  "SD_write": {
+   "addr": "0x8024774",
+   "size": null,
+   "elf_size": 40,
+   "match": "refs",
+   "refs": 1
+  },
+  "SPDIF_RX_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "SPI1_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "SPI2_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "SPI3_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "SPI4_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "SPI5_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "SPI6_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "SPI_EndRxTxTransaction": {
+   "addr": "0x80212cc",
+   "size": null,
+   "elf_size": 380,
+   "match": "refs",
+   "refs": 2
+  },
+  "SVC_Handler": {
+   "addr": "0x800d630",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "SVF_calcBlockCheapZDF": {
+   "addr": "0x1380",
+   "size": 928,
+   "match": "bytes",
+   "lma": "0x8048720",
+   "refs": 0
+  },
+  "SVF_calcBlockZDF": {
+   "addr": "0x18d4",
+   "size": 950,
+   "match": "bytes",
+   "lma": "0x8048c74",
+   "refs": 7
+  },
+  "SVF_directSetFilterValue": {
+   "addr": "0x17f0",
+   "size": 96,
+   "match": "bytes",
+   "lma": "0x8048b90",
+   "refs": 4
+  },
+  "SVF_init": {
+   "addr": "0x8010ec4",
+   "size": 56,
+   "match": "bytes",
+   "refs": 4
+  },
+  "SVF_recalcFreq": {
+   "addr": "0x1720",
+   "size": 84,
+   "match": "bytes",
+   "lma": "0x8048ac0",
+   "refs": 6
+  },
+  "SVF_reset": {
+   "addr": "0x8010efc",
+   "size": 12,
+   "match": "bytes",
+   "refs": 1
+  },
+  "SVF_setDrive": {
+   "addr": "0x17d4",
+   "size": 28,
+   "match": "bytes",
+   "lma": "0x8048b74",
+   "refs": 5
+  },
+  "SVF_setReso": {
+   "addr": "0x1774",
+   "size": 48,
+   "match": "bytes",
+   "lma": "0x8048b14",
+   "refs": 4
+  },
+  "SnapEg_calc": {
+   "addr": "0x8012124",
+   "size": 56,
+   "match": "bytes",
+   "refs": 4
+  },
+  "SnapEg_init": {
+   "addr": "0x8012114",
+   "size": null,
+   "elf_size": 6,
+   "match": "refs",
+   "refs": 4
+  },
+  "SnapEg_trigger": {
+   "addr": "0x801211c",
+   "size": 8,
+   "match": "bytes",
+   "refs": 4
+  },
+  "Snare_calcAsync": {
+   "addr": "0x1ee0",
+   "size": 104,
+   "match": "bytes",
+   "lma": "0x8049280",
+   "refs": 1
+  },
+  "Snare_calcSyncBlock": {
+   "addr": "0x801119c",
+   "size": 440,
+   "match": "bytes",
+   "refs": 1
+  },
+  "Snare_init": {
+   "addr": "0x8010ff8",
+   "size": 176,
+   "match": "bytes",
+   "refs": 1
+  },
+  "Snare_setPan": {
+   "addr": "0x8010fe8",
+   "size": 12,
+   "match": "bytes",
+   "refs": 1
+  },
+  "Snare_trigger": {
+   "addr": "0x80110a8",
+   "size": 244,
+   "match": "bytes",
+   "refs": 0
+  },
+  "SysTick_Handler": {
+   "addr": "0x800d63c",
+   "size": 28,
+   "match": "bytes",
+   "refs": 1
+  },
+  "SystemClock_Config": {
+   "addr": "0x800c45c",
+   "size": 200,
+   "match": "bytes",
+   "refs": 0
+  },
+  "SystemInit": {
+   "addr": "0x800d730",
+   "size": 28,
+   "match": "bytes",
+   "refs": 1
+  },
+  "TAMP_STAMP_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "TIM1_BRK_TIM9_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "TIM1_CC_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "TIM1_TRG_COM_TIM11_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "TIM1_UP_TIM10_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "TIM2_IRQHandler": {
+   "addr": "0x800d670",
+   "size": 56,
+   "match": "bytes",
+   "refs": 1
+  },
+  "TIM3_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "TIM4_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "TIM5_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "TIM6_DAC_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "TIM7_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "TIM8_BRK_TIM12_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "TIM8_CC_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "TIM8_TRG_COM_TIM14_IRQHandler": {
+   "addr": "0x800d6a8",
+   "size": 76,
+   "match": "bytes",
+   "refs": 1
+  },
+  "TIM8_UP_TIM13_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "UART4_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "UART5_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "UART7_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "UART8_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "UART_AdvFeatureConfig": {
+   "addr": "0x8022870",
+   "size": 176,
+   "match": "bytes",
+   "refs": 0
+  },
+  "USART1_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "USART2_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "USART3_IRQHandler": {
+   "addr": "0x8017a74",
+   "size": 108,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USART6_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "USBD_CDC_DataIn": {
+   "addr": "0x80248d8",
+   "size": 72,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USBD_CDC_DataOut": {
+   "addr": "0x8024808",
+   "size": 208,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USBD_CDC_DeInit": {
+   "addr": "0x80249ec",
+   "size": 66,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USBD_CDC_EP0_RxReady": {
+   "addr": "0x802479c",
+   "size": 44,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USBD_CDC_GetDeviceQualifierDescriptor": {
+   "addr": "0x80247f8",
+   "size": 16,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USBD_CDC_GetFSCfgDesc": {
+   "addr": "0x80247c8",
+   "size": null,
+   "elf_size": 16,
+   "match": "refs",
+   "refs": 1
+  },
+  "USBD_CDC_GetHSCfgDesc": {
+   "addr": "0x80247d8",
+   "size": null,
+   "elf_size": 16,
+   "match": "refs",
+   "refs": 1
+  },
+  "USBD_CDC_GetOtherSpeedCfgDesc": {
+   "addr": "0x80247e8",
+   "size": 16,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USBD_CDC_Init": {
+   "addr": "0x8024a30",
+   "size": 172,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USBD_CDC_ReceivePacket": {
+   "addr": "0x8024b44",
+   "size": 54,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USBD_CDC_RegisterInterface": {
+   "addr": "0x8024adc",
+   "size": 16,
+   "match": "bytes",
+   "refs": 2
+  },
+  "USBD_CDC_SetRxBuffer": {
+   "addr": "0x8024b00",
+   "size": 14,
+   "match": "bytes",
+   "refs": 2
+  },
+  "USBD_CDC_SetTxBuffer": {
+   "addr": "0x8024aec",
+   "size": 18,
+   "match": "bytes",
+   "refs": 2
+  },
+  "USBD_CDC_Setup": {
+   "addr": "0x8024920",
+   "size": 204,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USBD_CDC_TransmitPacket": {
+   "addr": "0x8024b10",
+   "size": 50,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USBD_ClrClassConfig": {
+   "addr": "0x8024be0",
+   "size": 14,
+   "match": "bytes",
+   "refs": 3
+  },
+  "USBD_CtlContinueRx": {
+   "addr": "0x80253c0",
+   "size": null,
+   "elf_size": 18,
+   "match": "refs",
+   "refs": 1
+  },
+  "USBD_CtlContinueSendData": {
+   "addr": "0x8025390",
+   "size": null,
+   "elf_size": 18,
+   "match": "refs",
+   "refs": 2
+  },
+  "USBD_CtlError": {
+   "addr": "0x8025308",
+   "size": 22,
+   "match": "bytes",
+   "refs": 2
+  },
+  "USBD_CtlPrepareRx": {
+   "addr": "0x80253a4",
+   "size": 26,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USBD_CtlReceiveStatus": {
+   "addr": "0x80253ec",
+   "size": 22,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USBD_CtlSendData": {
+   "addr": "0x8025374",
+   "size": 26,
+   "match": "bytes",
+   "refs": 9
+  },
+  "USBD_CtlSendStatus": {
+   "addr": "0x80253d4",
+   "size": 22,
+   "match": "bytes",
+   "refs": 6
+  },
+  "USBD_FS_ConfigStrDescriptor": {
+   "addr": "0x80287cc",
+   "size": null,
+   "elf_size": 28,
+   "match": "refs",
+   "refs": 1
+  },
+  "USBD_FS_DeviceDescriptor": {
+   "addr": "0x802877c",
+   "size": 12,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USBD_FS_InterfaceStrDescriptor": {
+   "addr": "0x80287e8",
+   "size": null,
+   "elf_size": 28,
+   "match": "refs",
+   "refs": 1
+  },
+  "USBD_FS_LangIDStrDescriptor": {
+   "addr": "0x8028788",
+   "size": 12,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USBD_FS_ManufacturerStrDescriptor": {
+   "addr": "0x8028794",
+   "size": null,
+   "elf_size": 28,
+   "match": "refs",
+   "refs": 1
+  },
+  "USBD_FS_ProductStrDescriptor": {
+   "addr": "0x80287b0",
+   "size": null,
+   "elf_size": 28,
+   "match": "refs",
+   "refs": 1
+  },
+  "USBD_FS_SerialStrDescriptor": {
+   "addr": "0x8028804",
+   "size": 292,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USBD_GetString": {
+   "addr": "0x8025320",
+   "size": 82,
+   "match": "bytes",
+   "refs": 0
+  },
+  "USBD_Init": {
+   "addr": "0x8024b7c",
+   "size": 42,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USBD_LL_ClearStallEP": {
+   "addr": "0x8028ac4",
+   "size": null,
+   "elf_size": 28,
+   "match": "refs",
+   "refs": 1
+  },
+  "USBD_LL_CloseEP": {
+   "addr": "0x8028a8c",
+   "size": null,
+   "elf_size": 28,
+   "match": "refs",
+   "refs": 3
+  },
+  "USBD_LL_DataInStage": {
+   "addr": "0x8024cc8",
+   "size": 204,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USBD_LL_DataOutStage": {
+   "addr": "0x8024c4c",
+   "size": 124,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USBD_LL_DevDisconnected": {
+   "addr": "0x8024e38",
+   "size": 22,
+   "match": "bytes",
+   "refs": 0
+  },
+  "USBD_LL_GetRxDataSize": {
+   "addr": "0x8028b5c",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 1
+  },
+  "USBD_LL_Init": {
+   "addr": "0x80289e8",
+   "size": 100,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USBD_LL_IsStallEP": {
+   "addr": "0x8028ae0",
+   "size": 40,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USBD_LL_OpenEP": {
+   "addr": "0x8028a68",
+   "size": 36,
+   "match": "bytes",
+   "refs": 7
+  },
+  "USBD_LL_PrepareReceive": {
+   "addr": "0x8028b40",
+   "size": null,
+   "elf_size": 28,
+   "match": "refs",
+   "refs": 8
+  },
+  "USBD_LL_Reset": {
+   "addr": "0x8024d94",
+   "size": 78,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USBD_LL_Resume": {
+   "addr": "0x8024e00",
+   "size": 14,
+   "match": "bytes",
+   "refs": 0
+  },
+  "USBD_LL_SOF": {
+   "addr": "0x8024e10",
+   "size": 28,
+   "match": "bytes",
+   "refs": 0
+  },
+  "USBD_LL_SetSpeed": {
+   "addr": "0x8024de4",
+   "size": 8,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USBD_LL_SetUSBAddress": {
+   "addr": "0x8028b08",
+   "size": null,
+   "elf_size": 28,
+   "match": "refs",
+   "refs": 1
+  },
+  "USBD_LL_SetupStage": {
+   "addr": "0x8024bf0",
+   "size": 92,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USBD_LL_StallEP": {
+   "addr": "0x8028aa8",
+   "size": null,
+   "elf_size": 28,
+   "match": "refs",
+   "refs": 19
+  },
+  "USBD_LL_Start": {
+   "addr": "0x8028a4c",
+   "size": null,
+   "elf_size": 28,
+   "match": "refs",
+   "refs": 1
+  },
+  "USBD_LL_Suspend": {
+   "addr": "0x8024dec",
+   "size": 20,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USBD_LL_Transmit": {
+   "addr": "0x8028b24",
+   "size": null,
+   "elf_size": 28,
+   "match": "refs",
+   "refs": 4
+  },
+  "USBD_ParseSetupRequest": {
+   "addr": "0x80252e0",
+   "size": 40,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USBD_RegisterClass": {
+   "addr": "0x8024ba8",
+   "size": 16,
+   "match": "bytes",
+   "refs": 2
+  },
+  "USBD_SetClassConfig": {
+   "addr": "0x8024bc4",
+   "size": 26,
+   "match": "bytes",
+   "refs": 2
+  },
+  "USBD_Start": {
+   "addr": "0x8024bb8",
+   "size": 10,
+   "match": "bytes",
+   "refs": 2
+  },
+  "USBD_StdDevReq": {
+   "addr": "0x8024e50",
+   "size": 752,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USBD_StdEPReq": {
+   "addr": "0x80251a8",
+   "size": 310,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USBD_StdItfReq": {
+   "addr": "0x8025140",
+   "size": 104,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USB_ActivateEndpoint": {
+   "addr": "0x8023e28",
+   "size": 144,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USB_ActivateSetup": {
+   "addr": "0x80244ec",
+   "size": 44,
+   "match": "bytes",
+   "refs": 0
+  },
+  "USB_CoreInit": {
+   "addr": "0x80239b8",
+   "size": null,
+   "elf_size": 272,
+   "match": "refs",
+   "refs": 1
+  },
+  "USB_DeactivateEndpoint": {
+   "addr": "0x8023eb8",
+   "size": 188,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USB_DevConnect": {
+   "addr": "0x8024448",
+   "size": 32,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USB_DevDisconnect": {
+   "addr": "0x8024468",
+   "size": 32,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USB_DevInit": {
+   "addr": "0x8023be4",
+   "size": null,
+   "elf_size": 572,
+   "match": "refs",
+   "refs": 1
+  },
+  "USB_DisableGlobalInt": {
+   "addr": "0x8023ba4",
+   "size": 14,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USB_EP0StartXfer": {
+   "addr": "0x80241a4",
+   "size": 372,
+   "match": "bytes",
+   "refs": 2
+  },
+  "USB_EP0_OutStart": {
+   "addr": "0x8024518",
+   "size": 88,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USB_EPClearStall": {
+   "addr": "0x80243cc",
+   "size": 88,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USB_EPSetStall": {
+   "addr": "0x8024364",
+   "size": 104,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USB_EPStartXfer": {
+   "addr": "0x8023f74",
+   "size": 560,
+   "match": "bytes",
+   "refs": 2
+  },
+  "USB_EnableGlobalInt": {
+   "addr": "0x8023b94",
+   "size": 14,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USB_GetDevSpeed": {
+   "addr": "0x8023e10",
+   "size": 22,
+   "match": "bytes",
+   "refs": 0
+  },
+  "USB_GetMode": {
+   "addr": "0x80244e4",
+   "size": 8,
+   "match": "bytes",
+   "refs": 0
+  },
+  "USB_ReadDevAllInEpInterrupt": {
+   "addr": "0x80244a0",
+   "size": 14,
+   "match": "bytes",
+   "refs": 0
+  },
+  "USB_ReadDevAllOutEpInterrupt": {
+   "addr": "0x8024490",
+   "size": 14,
+   "match": "bytes",
+   "refs": 0
+  },
+  "USB_ReadDevInEPInterrupt": {
+   "addr": "0x80244c4",
+   "size": 32,
+   "match": "bytes",
+   "refs": 0
+  },
+  "USB_ReadDevOutEPInterrupt": {
+   "addr": "0x80244b0",
+   "size": 18,
+   "match": "bytes",
+   "refs": 0
+  },
+  "USB_ReadInterrupts": {
+   "addr": "0x8024488",
+   "size": 8,
+   "match": "bytes",
+   "refs": 0
+  },
+  "USB_SetCurrentMode": {
+   "addr": "0x8023bb4",
+   "size": null,
+   "elf_size": 106,
+   "match": "refs",
+   "refs": 1
+  },
+  "USB_SetDevAddress": {
+   "addr": "0x8024424",
+   "size": 34,
+   "match": "bytes",
+   "refs": 1
+  },
+  "USB_SetTurnaroundTime": {
+   "addr": "0x8023aa0",
+   "size": 244,
+   "match": "bytes",
+   "refs": 0
+  },
+  "USB_WritePacket": {
+   "addr": "0x8024318",
+   "size": 42,
+   "match": "bytes",
+   "refs": 0
+  },
+  "UsageFault_Handler": {
+   "addr": "0x800d62c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "WWDG_IRQHandler": {
+   "addr": "0x801e09c",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "__Compressor_process_veneer": {
+   "addr": "0x3810",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804abb0",
+   "refs": 1
+  },
+  "__Compressor_setAttack_veneer": {
+   "addr": "0x3820",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804abc0",
+   "refs": 2
+  },
+  "__Compressor_setGain_veneer": {
+   "addr": "0x3868",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ac08",
+   "refs": 2
+  },
+  "__Compressor_setRelease_veneer": {
+   "addr": "0x37b8",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ab58",
+   "refs": 2
+  },
+  "__Compressor_setTreshold_veneer": {
+   "addr": "0x3898",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ac38",
+   "refs": 2
+  },
+  "__Cymbal_calcSyncBlock_veneer": {
+   "addr": "0x38a0",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ac40",
+   "refs": 1
+  },
+  "__DecayEg_setSlope_veneer": {
+   "addr": "0x8029d80",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 4
+  },
+  "__Delay_processPingPong_veneer": {
+   "addr": "0x38a8",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ac48",
+   "refs": 1
+  },
+  "__Delay_process_veneer": {
+   "addr": "0x37b0",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ab50",
+   "refs": 1
+  },
+  "__Delay_setDelayTime_veneer": {
+   "addr": "0x3780",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ab20",
+   "refs": 2
+  },
+  "__Delay_setFeedback_veneer": {
+   "addr": "0x3700",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804aaa0",
+   "refs": 2
+  },
+  "__Delay_setFilter_veneer": {
+   "addr": "0x3710",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804aab0",
+   "refs": 2
+  },
+  "__Delay_setRange_veneer": {
+   "addr": "0x38b8",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ac58",
+   "refs": 2
+  },
+  "__Distortion_process_veneer": {
+   "addr": "0x3838",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804abd8",
+   "refs": 1
+  },
+  "__FxBus_setParameter_veneer": {
+   "addr": "0x8029df0",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 5
+  },
+  "__FxBus_updateParameter_veneer": {
+   "addr": "0x8029df8",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 1
+  },
+  "__GetRngValue_veneer": {
+   "addr": "0x3858",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804abf8",
+   "refs": 5
+  },
+  "__HAL_I2S_Transmit_DMA_veneer": {
+   "addr": "0x3788",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ab28",
+   "refs": 2
+  },
+  "__HAL_I2S_TxCpltCallback_veneer": {
+   "addr": "0x8029d88",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 1
+  },
+  "__HiHat_calcSyncBlock_veneer": {
+   "addr": "0x3708",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804aaa8",
+   "refs": 1
+  },
+  "__Ringmod_process_veneer": {
+   "addr": "0x36f8",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804aa98",
+   "refs": 1
+  },
+  "__Ringmod_setFreq_veneer": {
+   "addr": "0x37e0",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ab80",
+   "refs": 2
+  },
+  "__SVF_calcBlockZDF_veneer": {
+   "addr": "0x8029d70",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 5
+  },
+  "__SVF_directSetFilterValue_veneer": {
+   "addr": "0x8029d58",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 4
+  },
+  "__SVF_setDrive_veneer": {
+   "addr": "0x8029d28",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 5
+  },
+  "__SVF_setReso_veneer": {
+   "addr": "0x8029d98",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 4
+  },
+  "__SnapEg_calc_veneer": {
+   "addr": "0x37f8",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ab98",
+   "refs": 4
+  },
+  "__Snare_calcSyncBlock_veneer": {
+   "addr": "0x3890",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ac30",
+   "refs": 1
+  },
+  "__adc_getFaderVolume_veneer": {
+   "addr": "0x37c0",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ab60",
+   "refs": 1
+  },
+  "__aeabi_uldivmod": {
+   "addr": "0x80082e0",
+   "size": null,
+   "elf_size": 0,
+   "match": "refs",
+   "refs": 2
+  },
+  "__buttonHandler_getMode_veneer": {
+   "addr": "0x3738",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804aad8",
+   "refs": 2
+  },
+  "__calcDistBlockFiltered_veneer": {
+   "addr": "0x37c8",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ab68",
+   "refs": 3
+  },
+  "__calcDistBlock_veneer": {
+   "addr": "0x8029d60",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 3
+  },
+  "__calcNextOscSampleBlock_veneer": {
+   "addr": "0x8029da0",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 6
+  },
+  "__calcNextOscSampleFmBlock_veneer": {
+   "addr": "0x8029d20",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 4
+  },
+  "__calcNoiseBlock_veneer": {
+   "addr": "0x8029de8",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 1
+  },
+  "__calcOnePole_veneer": {
+   "addr": "0x8029d30",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 10
+  },
+  "__calcPwmFmBlock_veneer": {
+   "addr": "0x3800",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804aba0",
+   "refs": 1
+  },
+  "__errno": {
+   "addr": "0x8028e6c",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 1
+  },
+  "__frontPanel_sendData_veneer": {
+   "addr": "0x3768",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ab08",
+   "refs": 2
+  },
+  "__ieee754_fmod": {
+   "addr": "0x8029ad0",
+   "size": null,
+   "elf_size": 664,
+   "match": "refs",
+   "refs": 1
+  },
+  "__led_blinkHandler_veneer": {
+   "addr": "0x3740",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804aae0",
+   "refs": 1
+  },
+  "__led_clearActive_step_veneer": {
+   "addr": "0x3870",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ac10",
+   "refs": 1
+  },
+  "__led_clearAllBlinkLeds_veneer": {
+   "addr": "0x38c8",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ac68",
+   "refs": 1
+  },
+  "__led_clearSequencerLeds_veneer": {
+   "addr": "0x3888",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ac28",
+   "refs": 3
+  },
+  "__led_idx2StepLed_veneer": {
+   "addr": "0x37a0",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ab40",
+   "refs": 2
+  },
+  "__led_initPatternSelectLeds_veneer": {
+   "addr": "0x38b0",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ac50",
+   "refs": 1
+  },
+  "__led_setActive_step_veneer": {
+   "addr": "0x3880",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ac20",
+   "refs": 1
+  },
+  "__led_setBlinkLed_veneer": {
+   "addr": "0x3878",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ac18",
+   "refs": 1
+  },
+  "__led_setValue_veneer": {
+   "addr": "0x3840",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804abe0",
+   "refs": 3
+  },
+  "__led_updateSeqLeds_veneer": {
+   "addr": "0x3758",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804aaf8",
+   "refs": 2
+  },
+  "__lfo_dispatchNextValue_veneer": {
+   "addr": "0x3818",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804abb8",
+   "refs": 6
+  },
+  "__lfo_setFreq_veneer": {
+   "addr": "0x8029d50",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 4
+  },
+  "__lfo_setSync_veneer": {
+   "addr": "0x8029d78",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 5
+  },
+  "__libc_init_array": {
+   "addr": "0x8028e78",
+   "size": 72,
+   "match": "bytes",
+   "refs": 1
+  },
+  "__malloc_lock": {
+   "addr": "0x8028ccc",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 1
+  },
+  "__malloc_unlock": {
+   "addr": "0x8028cd8",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 1
+  },
+  "__math_divzerof": {
+   "addr": "0x8029a8c",
+   "size": 36,
+   "match": "bytes",
+   "refs": 0
+  },
+  "__math_may_uflowf": {
+   "addr": "0x8029a74",
+   "size": 12,
+   "match": "bytes",
+   "refs": 0
+  },
+  "__math_oflow": {
+   "addr": "0x8029838",
+   "size": 16,
+   "match": "bytes",
+   "refs": 0
+  },
+  "__math_oflowf": {
+   "addr": "0x8029a80",
+   "size": 12,
+   "match": "bytes",
+   "refs": 0
+  },
+  "__math_uflow": {
+   "addr": "0x8029828",
+   "size": 16,
+   "match": "bytes",
+   "refs": 0
+  },
+  "__math_uflowf": {
+   "addr": "0x8029a68",
+   "size": 12,
+   "match": "bytes",
+   "refs": 0
+  },
+  "__memset_veneer": {
+   "addr": "0x38d0",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ac70",
+   "refs": 3
+  },
+  "__menu_getActiveVoice_veneer": {
+   "addr": "0x37a8",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ab48",
+   "refs": 3
+  },
+  "__menu_getViewedPattern_veneer": {
+   "addr": "0x37e8",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ab88",
+   "refs": 1
+  },
+  "__menu_repaintAll_veneer": {
+   "addr": "0x3828",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804abc8",
+   "refs": 1
+  },
+  "__menu_repaint_veneer": {
+   "addr": "0x3760",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ab00",
+   "refs": 2
+  },
+  "__menu_setShownPattern_veneer": {
+   "addr": "0x3728",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804aac8",
+   "refs": 2
+  },
+  "__midiParser_calcDetune_veneer": {
+   "addr": "0x3720",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804aac0",
+   "refs": 1
+  },
+  "__midiParser_ccHandler_veneer": {
+   "addr": "0x3750",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804aaf0",
+   "refs": 6
+  },
+  "__midiParser_checkMtc_veneer": {
+   "addr": "0x3718",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804aab8",
+   "refs": 2
+  },
+  "__mixer_calcNextSampleBlock_veneer": {
+   "addr": "0x8029da8",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 3
+  },
+  "__mixer_checkOutJackAvailable_veneer": {
+   "addr": "0x3778",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ab18",
+   "refs": 6
+  },
+  "__modNode_resetTargets_veneer": {
+   "addr": "0x8029d90",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 2
+  },
+  "__osc_recalcFreq_veneer": {
+   "addr": "0x8029de0",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 16
+  },
+  "__osc_setFreq_veneer": {
+   "addr": "0x3730",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804aad0",
+   "refs": 10
+  },
+  "__preset_loadDrumsetRam_veneer": {
+   "addr": "0x3770",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ab10",
+   "refs": 1
+  },
+  "__preset_sendDrumsetParametersImmediate_veneer": {
+   "addr": "0x8029dd8",
+   "size": 8,
+   "match": "bytes",
+   "refs": 3
+  },
+  "__preset_touchTimer_veneer": {
+   "addr": "0x3830",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804abd0",
+   "refs": 2
+  },
+  "__removeMaliciousSample_veneer": {
+   "addr": "0x3850",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804abf0",
+   "refs": 2
+  },
+  "__seq_addNote.part.0_veneer": {
+   "addr": "0x38c0",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ac60",
+   "refs": 1
+  },
+  "__seq_copyBackupBufferToPattern_veneer": {
+   "addr": "0x3808",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804aba8",
+   "refs": 1
+  },
+  "__seq_copyPatternToBackupBuffer_veneer": {
+   "addr": "0x3860",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ac00",
+   "refs": 1
+  },
+  "__seq_getBpm_veneer": {
+   "addr": "0x3748",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804aae8",
+   "refs": 3
+  },
+  "__seq_nextStep_veneer": {
+   "addr": "0x8029db8",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 5
+  },
+  "__seq_setMute_veneer": {
+   "addr": "0x8029dc0",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 3
+  },
+  "__seq_setPendingPatternActive_veneer": {
+   "addr": "0x8029dc8",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 1
+  },
+  "__seq_triggerVoice.part.0_veneer": {
+   "addr": "0x3798",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ab38",
+   "refs": 1
+  },
+  "__setDistortionShape_veneer": {
+   "addr": "0x8029db0",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 10
+  },
+  "__setPan_veneer": {
+   "addr": "0x8029d38",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 3
+  },
+  "__slopeEg2_setAttack_veneer": {
+   "addr": "0x8029d40",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 6
+  },
+  "__slopeEg2_setDecay_veneer": {
+   "addr": "0x8029dd0",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 5
+  },
+  "__slopeEg2_setSlope_veneer": {
+   "addr": "0x8029d68",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 6
+  },
+  "__soundengine_process_veneer": {
+   "addr": "0x37d8",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ab78",
+   "refs": 2
+  },
+  "__ssputs_r": {
+   "addr": "0x8028f88",
+   "size": 180,
+   "match": "bytes",
+   "refs": 4
+  },
+  "__transient_calcBlock_veneer": {
+   "addr": "0x37f0",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ab90",
+   "refs": 3
+  },
+  "__transient_setWaveform_veneer": {
+   "addr": "0x8029d48",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "refs": 7
+  },
+  "__uart_sendMidi_veneer": {
+   "addr": "0x37d0",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ab70",
+   "refs": 1
+  },
+  "__udivmoddi4": {
+   "addr": "0x8008310",
+   "size": 712,
+   "match": "bytes",
+   "refs": 0
+  },
+  "__usb_sendMidi_veneer": {
+   "addr": "0x3790",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804ab30",
+   "refs": 1
+  },
+  "__voiceControl_noteOff_veneer": {
+   "addr": "0x3848",
+   "size": null,
+   "elf_size": 8,
+   "match": "refs",
+   "lma": "0x804abe8",
+   "refs": 2
+  },
+  "_free_r": {
+   "addr": "0x8028ef0",
+   "size": 152,
+   "match": "bytes",
+   "refs": 3
+  },
+  "_init": {
+   "addr": "0x8029d08",
+   "size": null,
+   "elf_size": 0,
+   "match": "refs",
+   "refs": 1
+  },
+  "_malloc_r": {
+   "addr": "0x8028bcc",
+   "size": null,
+   "elf_size": 236,
+   "match": "refs",
+   "refs": 5
+  },
+  "_malloc_usable_size_r": {
+   "addr": "0x80295ea",
+   "size": 16,
+   "match": "bytes",
+   "refs": 1
+  },
+  "_printf_common": {
+   "addr": "0x8029238",
+   "size": 218,
+   "match": "bytes",
+   "refs": 1
+  },
+  "_printf_i": {
+   "addr": "0x8029314",
+   "size": 580,
+   "match": "bytes",
+   "refs": 2
+  },
+  "_realloc_r": {
+   "addr": "0x802958c",
+   "size": 94,
+   "match": "bytes",
+   "refs": 1
+  },
+  "_sbrk": {
+   "addr": "0x8029cec",
+   "size": null,
+   "elf_size": 28,
+   "match": "refs",
+   "refs": 1
+  },
+  "_sbrk_r": {
+   "addr": "0x8028e4c",
+   "size": 32,
+   "match": "bytes",
+   "refs": 3
+  },
+  "_strtol_l.constprop.0": {
+   "addr": "0x8028ce4",
+   "size": 260,
+   "match": "bytes",
+   "refs": 1
+  },
+  "_svfiprintf_r": {
+   "addr": "0x802903c",
+   "size": 508,
+   "match": "bytes",
+   "refs": 2
+  },
+  "_svfprintf_r": {
+   "addr": "0x802903c",
+   "size": 508,
+   "match": "bytes",
+   "refs": 2
+  },
+  "adc_checkFaders": {
+   "addr": "0x800d988",
+   "size": 144,
+   "match": "bytes",
+   "refs": 0
+  },
+  "adc_checkPots": {
+   "addr": "0x800d840",
+   "size": null,
+   "elf_size": 328,
+   "match": "refs",
+   "refs": 1
+  },
+  "adc_getFaderVolume": {
+   "addr": "0x800da18",
+   "size": 16,
+   "match": "bytes",
+   "refs": 7
+  },
+  "atoi": {
+   "addr": "0x8028b64",
+   "size": 8,
+   "match": "bytes",
+   "refs": 1
+  },
+  "autoNode_init": {
+   "addr": "0x8011354",
+   "size": null,
+   "elf_size": 6,
+   "match": "refs",
+   "refs": 2
+  },
+  "autoNode_setDestination": {
+   "addr": "0x801135c",
+   "size": 80,
+   "match": "bytes",
+   "refs": 2
+  },
+  "autoNode_updateValue": {
+   "addr": "0x80113ac",
+   "size": 64,
+   "match": "bytes",
+   "refs": 2
+  },
+  "buttonHandler_buttonPressed": {
+   "addr": "0x8009118",
+   "size": 1700,
+   "match": "bytes",
+   "refs": 2
+  },
+  "buttonHandler_buttonReleased": {
+   "addr": "0x80097bc",
+   "size": 524,
+   "match": "bytes",
+   "refs": 2
+  },
+  "buttonHandler_disarmTimerActionStep": {
+   "addr": "0x8008af0",
+   "size": 360,
+   "match": "bytes",
+   "refs": 3
+  },
+  "buttonHandler_getArmedAutomationStep": {
+   "addr": "0x8008fbc",
+   "size": 12,
+   "match": "bytes",
+   "refs": 2
+  },
+  "buttonHandler_getMode": {
+   "addr": "0x80099c8",
+   "size": 16,
+   "match": "bytes",
+   "refs": 6
+  },
+  "buttonHandler_handleModeButtons": {
+   "addr": "0x8008d74",
+   "size": 324,
+   "match": "bytes",
+   "refs": 2
+  },
+  "buttonHandler_init": {
+   "addr": "0x8009a04",
+   "size": 44,
+   "match": "bytes",
+   "refs": 0
+  },
+  "buttonHandler_muteVoice": {
+   "addr": "0x80090b8",
+   "size": 64,
+   "match": "bytes",
+   "refs": 1
+  },
+  "buttonHandler_partButtonReleased": {
+   "addr": "0x8008eb8",
+   "size": 68,
+   "match": "bytes",
+   "refs": 8
+  },
+  "buttonHandler_selectButtonPressed": {
+   "addr": "0x8008efc",
+   "size": 192,
+   "match": "bytes",
+   "refs": 1
+  },
+  "buttonHandler_seqButtonPressed": {
+   "addr": "0x80085dc",
+   "size": 1300,
+   "match": "bytes",
+   "refs": 1
+  },
+  "buttonHandler_seqButtonReleased": {
+   "addr": "0x8008c58",
+   "size": 284,
+   "match": "bytes",
+   "refs": 16
+  },
+  "buttonHandler_setMode": {
+   "addr": "0x80099d8",
+   "size": 16,
+   "match": "bytes",
+   "refs": 1
+  },
+  "buttonHandler_setRunStopState": {
+   "addr": "0x80099e8",
+   "size": 28,
+   "match": "bytes",
+   "refs": 1
+  },
+  "buttonHandler_showMuteLEDs": {
+   "addr": "0x80090f8",
+   "size": 32,
+   "match": "bytes",
+   "refs": 1
+  },
+  "buttonHandler_tick": {
+   "addr": "0x8008fc8",
+   "size": 240,
+   "match": "bytes",
+   "refs": 0
+  },
+  "calcDistBlock": {
+   "addr": "0x1f70",
+   "size": 96,
+   "match": "bytes",
+   "lma": "0x8049310",
+   "refs": 3
+  },
+  "calcDistBlockFiltered": {
+   "addr": "0x80113ec",
+   "size": 124,
+   "match": "bytes",
+   "refs": 3
+  },
+  "calcDrumVoiceAsync": {
+   "addr": "0x550",
+   "size": 220,
+   "match": "bytes",
+   "lma": "0x80478f0",
+   "refs": 3
+  },
+  "calcDrumVoiceSyncBlock": {
+   "addr": "0x62c",
+   "size": 680,
+   "match": "bytes",
+   "lma": "0x80479cc",
+   "refs": 3
+  },
+  "calcFmBlock": {
+   "addr": "0xa68",
+   "size": 192,
+   "match": "bytes",
+   "lma": "0x8047e08",
+   "refs": 0
+  },
+  "calcFmSineBlock": {
+   "addr": "0x9b4",
+   "size": 180,
+   "match": "bytes",
+   "lma": "0x8047d54",
+   "refs": 0
+  },
+  "calcNextOscSampleBlock": {
+   "addr": "0x1098",
+   "size": 688,
+   "match": "bytes",
+   "lma": "0x8048438",
+   "refs": 8
+  },
+  "calcNextOscSampleFmBlock": {
+   "addr": "0xb28",
+   "size": 888,
+   "match": "bytes",
+   "lma": "0x8047ec8",
+   "refs": 5
+  },
+  "calcNoiseBlock": {
+   "addr": "0xea0",
+   "size": 110,
+   "match": "bytes",
+   "lma": "0x8048240",
+   "refs": 1
+  },
+  "calcOnePole": {
+   "addr": "0x438",
+   "size": 38,
+   "match": "bytes",
+   "lma": "0x80477d8",
+   "refs": 12
+  },
+  "calcPwmBlock": {
+   "addr": "0xfa0",
+   "size": 248,
+   "match": "bytes",
+   "lma": "0x8048340",
+   "refs": 1
+  },
+  "calcPwmFmBlock": {
+   "addr": "0x8010c80",
+   "size": 292,
+   "match": "bytes",
+   "refs": 1
+  },
+  "calcSineBlock": {
+   "addr": "0x930",
+   "size": 132,
+   "match": "bytes",
+   "lma": "0x8047cd0",
+   "refs": 0
+  },
+  "calcWavetableOscBlock": {
+   "addr": "0xf10",
+   "size": 142,
+   "match": "bytes",
+   "lma": "0x80482b0",
+   "refs": 0
+  },
+  "check_fs": {
+   "addr": "0x80256dc",
+   "size": 132,
+   "match": "bytes",
+   "refs": 5
+  },
+  "codec_initCsCodec": {
+   "addr": "0x80100c8",
+   "size": 40,
+   "match": "bytes",
+   "refs": 1
+  },
+  "copyClear_armClearMenu": {
+   "addr": "0x801a144",
+   "size": 52,
+   "match": "bytes",
+   "refs": 2
+  },
+  "copyClear_clearCurrentPattern": {
+   "addr": "0x8019f88",
+   "size": 26,
+   "match": "bytes",
+   "refs": 0
+  },
+  "copyClear_copyTrack": {
+   "addr": "0x801a0a4",
+   "size": 72,
+   "match": "bytes",
+   "refs": 1
+  },
+  "copyClear_executeClear": {
+   "addr": "0x8019fa4",
+   "size": 160,
+   "match": "bytes",
+   "refs": 2
+  },
+  "copyClear_getClearTarget": {
+   "addr": "0x801a100",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 1
+  },
+  "copyClear_isClearModeActive": {
+   "addr": "0x801a0ec",
+   "size": 20,
+   "match": "bytes",
+   "refs": 1
+  },
+  "copyClear_reset": {
+   "addr": "0x801a044",
+   "size": 36,
+   "match": "bytes",
+   "refs": 1
+  },
+  "copyClear_setClearTarget": {
+   "addr": "0x801a10c",
+   "size": 56,
+   "match": "bytes",
+   "refs": 1
+  },
+  "copyClear_setDst": {
+   "addr": "0x801a07c",
+   "size": null,
+   "elf_size": 20,
+   "match": "refs",
+   "refs": 1
+  },
+  "copyClear_setSrc": {
+   "addr": "0x801a068",
+   "size": null,
+   "elf_size": 20,
+   "match": "refs",
+   "refs": 1
+  },
+  "copyClear_srcSet": {
+   "addr": "0x801a090",
+   "size": null,
+   "elf_size": 20,
+   "match": "refs",
+   "refs": 1
+  },
+  "create_chain": {
+   "addr": "0x8025e58",
+   "size": 390,
+   "match": "bytes",
+   "refs": 6
+  },
+  "delete_node": {
+   "addr": "0x800e03c",
+   "size": 218,
+   "match": "bytes",
+   "refs": 4
+  },
+  "dio_init": {
+   "addr": "0x800d74c",
+   "size": 20,
+   "match": "bytes",
+   "refs": 0
+  },
+  "dio_process": {
+   "addr": "0x800d760",
+   "size": 224,
+   "match": "bytes",
+   "refs": 0
+  },
+  "dir_read.constprop.0": {
+   "addr": "0x8025c60",
+   "size": 316,
+   "match": "bytes",
+   "refs": 3
+  },
+  "dir_register": {
+   "addr": "0x8026674",
+   "size": 842,
+   "match": "bytes",
+   "refs": 2
+  },
+  "dir_sdi.constprop.0": {
+   "addr": "0x8025fe0",
+   "size": 264,
+   "match": "bytes",
+   "refs": 9
+  },
+  "disk_initialize": {
+   "addr": "0x8025418",
+   "size": 36,
+   "match": "bytes",
+   "refs": 2
+  },
+  "disk_ioctl": {
+   "addr": "0x802547c",
+   "size": 24,
+   "match": "bytes",
+   "refs": 4
+  },
+  "disk_read": {
+   "addr": "0x802543c",
+   "size": 32,
+   "match": "bytes",
+   "refs": 11
+  },
+  "disk_status": {
+   "addr": "0x8025404",
+   "size": 20,
+   "match": "bytes",
+   "refs": 9
+  },
+  "disk_write": {
+   "addr": "0x802545c",
+   "size": 32,
+   "match": "bytes",
+   "refs": 33
+  },
+  "empty_directory": {
+   "addr": "0x800e1e0",
+   "size": 272,
+   "match": "bytes",
+   "refs": 2
+  },
+  "encode_read4": {
+   "addr": "0x8009b50",
+   "size": null,
+   "elf_size": 68,
+   "match": "refs",
+   "refs": 1
+  },
+  "encode_readButton": {
+   "addr": "0x8009b90",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 3
+  },
+  "encoder_callback": {
+   "addr": "0x8009a88",
+   "size": null,
+   "elf_size": 284,
+   "match": "refs",
+   "refs": 1
+  },
+  "euklid_calcRecursive": {
+   "addr": "0x8017be8",
+   "size": 412,
+   "match": "bytes",
+   "refs": 2
+  },
+  "euklid_generate": {
+   "addr": "0x8017ec0",
+   "size": 112,
+   "match": "bytes",
+   "refs": 2
+  },
+  "euklid_getLength": {
+   "addr": "0x8017d84",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 1
+  },
+  "euklid_getRotation": {
+   "addr": "0x8017dac",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 1
+  },
+  "euklid_getSteps": {
+   "addr": "0x8017d90",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 1
+  },
+  "euklid_init": {
+   "addr": "0x8017ba4",
+   "size": 68,
+   "match": "bytes",
+   "refs": 1
+  },
+  "euklid_rotatePattern": {
+   "addr": "0x8017db8",
+   "size": 148,
+   "match": "bytes",
+   "refs": 1
+  },
+  "euklid_setLength": {
+   "addr": "0x8017d9c",
+   "size": 16,
+   "match": "bytes",
+   "refs": 2
+  },
+  "euklid_setRotation": {
+   "addr": "0x8017f5c",
+   "size": 36,
+   "match": "bytes",
+   "refs": 2
+  },
+  "euklid_setSteps": {
+   "addr": "0x8017f30",
+   "size": 44,
+   "match": "bytes",
+   "refs": 3
+  },
+  "euklid_transferPattern": {
+   "addr": "0x8017e4c",
+   "size": 116,
+   "match": "bytes",
+   "refs": 1
+  },
+  "exp": {
+   "addr": "0x8029648",
+   "size": null,
+   "elf_size": 436,
+   "match": "refs",
+   "refs": 2
+  },
+  "expf": {
+   "addr": "0x8029888",
+   "size": null,
+   "elf_size": 228,
+   "match": "refs",
+   "refs": 2
+  },
+  "f_chdir": {
+   "addr": "0x8027334",
+   "size": 94,
+   "match": "bytes",
+   "refs": 23
+  },
+  "f_close": {
+   "addr": "0x8027238",
+   "size": 252,
+   "match": "bytes",
+   "refs": 40
+  },
+  "f_closedir": {
+   "addr": "0x80277f4",
+   "size": 92,
+   "match": "bytes",
+   "refs": 7
+  },
+  "f_findfirst": {
+   "addr": "0x8027aa8",
+   "size": 188,
+   "match": "bytes",
+   "refs": 3
+  },
+  "f_findnext": {
+   "addr": "0x8027928",
+   "size": 384,
+   "match": "bytes",
+   "refs": 1
+  },
+  "f_lseek": {
+   "addr": "0x8027394",
+   "size": 944,
+   "match": "bytes",
+   "refs": 1
+  },
+  "f_mkdir": {
+   "addr": "0x8027c80",
+   "size": 698,
+   "match": "bytes",
+   "refs": 18
+  },
+  "f_mkfs": {
+   "addr": "0x8027f3c",
+   "size": 1744,
+   "match": "bytes",
+   "refs": 1
+  },
+  "f_mount": {
+   "addr": "0x80269c0",
+   "size": 132,
+   "match": "bytes",
+   "refs": 1
+  },
+  "f_open": {
+   "addr": "0x8026a44",
+   "size": 720,
+   "match": "bytes",
+   "refs": 24
+  },
+  "f_opendir": {
+   "addr": "0x8027744",
+   "size": 176,
+   "match": "bytes",
+   "refs": 2
+  },
+  "f_read": {
+   "addr": "0x8026d14",
+   "size": 628,
+   "match": "bytes",
+   "refs": 29
+  },
+  "f_readdir": {
+   "addr": "0x8027850",
+   "size": 216,
+   "match": "bytes",
+   "refs": 2
+  },
+  "f_stat": {
+   "addr": "0x8027b64",
+   "size": 76,
+   "match": "bytes",
+   "refs": 20
+  },
+  "f_unlink": {
+   "addr": "0x8027bb0",
+   "size": 208,
+   "match": "bytes",
+   "refs": 3
+  },
+  "f_write": {
+   "addr": "0x8026f88",
+   "size": 688,
+   "match": "bytes",
+   "refs": 30
+  },
+  "fastTan": {
+   "addr": "0x17a4",
+   "size": 48,
+   "match": "bytes",
+   "lma": "0x8048b44",
+   "refs": 0
+  },
+  "fifoBig_clear": {
+   "addr": "0x800fd54",
+   "size": 12,
+   "match": "bytes",
+   "refs": 0
+  },
+  "fifo_bufferIn": {
+   "addr": "0x800fcf0",
+   "size": 42,
+   "match": "bytes",
+   "refs": 4
+  },
+  "fifo_bufferOut": {
+   "addr": "0x800fd1c",
+   "size": 44,
+   "match": "bytes",
+   "refs": 2
+  },
+  "fifo_clear": {
+   "addr": "0x800fd48",
+   "size": 12,
+   "match": "bytes",
+   "refs": 0
+  },
+  "fifo_init": {
+   "addr": "0x800fcd4",
+   "size": 26,
+   "match": "bytes",
+   "refs": 0
+  },
+  "find_volume": {
+   "addr": "0x80257dc",
+   "size": 716,
+   "match": "bytes",
+   "refs": 8
+  },
+  "fmod": {
+   "addr": "0x8029600",
+   "size": null,
+   "elf_size": 80,
+   "match": "refs",
+   "refs": 3
+  },
+  "follow_path": {
+   "addr": "0x80260e8",
+   "size": 904,
+   "match": "bytes",
+   "refs": 7
+  },
+  "free": {
+   "addr": "0x8028b7c",
+   "size": null,
+   "elf_size": 16,
+   "match": "refs",
+   "refs": 1
+  },
+  "frontPanel_ccHandler": {
+   "addr": "0x8009c40",
+   "size": 128,
+   "match": "bytes",
+   "refs": 1
+  },
+  "frontPanel_parseData": {
+   "addr": "0x8009cc0",
+   "size": 900,
+   "match": "bytes",
+   "refs": 0
+  },
+  "frontPanel_sendData": {
+   "addr": "0x800a044",
+   "size": 26,
+   "match": "bytes",
+   "refs": 86
+  },
+  "frontParser_parseNrpn": {
+   "addr": "0x8009ba0",
+   "size": 160,
+   "match": "bytes",
+   "refs": 1
+  },
+  "frontParser_parseUartData": {
+   "addr": "0x8013f7c",
+   "size": 2640,
+   "match": "bytes",
+   "refs": 6
+  },
+  "getMaxEntriesForMenu": {
+   "addr": "0x801a178",
+   "size": 104,
+   "match": "bytes",
+   "refs": 3
+  },
+  "getMenuIndx": {
+   "addr": "0x801d7c8",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 1
+  },
+  "getMenuItemNameForValue": {
+   "addr": "0x801a1e0",
+   "size": 560,
+   "match": "bytes",
+   "refs": 2
+  },
+  "getModTargetGapIndex": {
+   "addr": "0x8019e5c",
+   "size": 116,
+   "match": "bytes",
+   "refs": 6
+  },
+  "getModTargetIdxFromGapIdx": {
+   "addr": "0x8019ed0",
+   "size": 92,
+   "match": "bytes",
+   "refs": 2
+  },
+  "getNumModTargets": {
+   "addr": "0x8019f2c",
+   "size": null,
+   "elf_size": 4,
+   "match": "refs",
+   "refs": 8
+  },
+  "get_fat.isra.0": {
+   "addr": "0x8025bb4",
+   "size": 170,
+   "match": "bytes",
+   "refs": 9
+  },
+  "get_fattime": {
+   "addr": "0x802458c",
+   "size": null,
+   "elf_size": 4,
+   "match": "refs",
+   "refs": 8
+  },
+  "get_fileinfo.part.0.constprop.0.isra.0": {
+   "addr": "0x8025580",
+   "size": 348,
+   "match": "bytes",
+   "refs": 3
+  },
+  "get_seq_patternSet_p": {
+   "addr": "0x8019330",
+   "size": 8,
+   "match": "bytes",
+   "refs": 1
+  },
+  "initDrumVoice": {
+   "addr": "0x80105b0",
+   "size": 312,
+   "match": "bytes",
+   "refs": 1
+  },
+  "initMidiUart": {
+   "addr": "0x8017b88",
+   "size": null,
+   "elf_size": 28,
+   "match": "refs",
+   "refs": 1
+  },
+  "initOnePole": {
+   "addr": "0x80100f0",
+   "size": 40,
+   "match": "bytes",
+   "refs": 9
+  },
+  "lcd_clear": {
+   "addr": "0x800a888",
+   "size": 216,
+   "match": "bytes",
+   "refs": 9
+  },
+  "lcd_clear_nonblock": {
+   "addr": "0x800a960",
+   "size": 384,
+   "match": "bytes",
+   "refs": 1
+  },
+  "lcd_command": {
+   "addr": "0x800a208",
+   "size": 300,
+   "match": "bytes",
+   "refs": 11
+  },
+  "lcd_data_nonBlock": {
+   "addr": "0x800a064",
+   "size": 420,
+   "match": "bytes",
+   "refs": 6
+  },
+  "lcd_home": {
+   "addr": "0x800aae0",
+   "size": 216,
+   "match": "bytes",
+   "refs": 8
+  },
+  "lcd_init": {
+   "addr": "0x800a334",
+   "size": 934,
+   "match": "bytes",
+   "refs": 0
+  },
+  "lcd_setcursor": {
+   "addr": "0x800abb8",
+   "size": 344,
+   "match": "bytes",
+   "refs": 10
+  },
+  "lcd_setcursor_nonBlock": {
+   "addr": "0x800ad10",
+   "size": 456,
+   "match": "bytes",
+   "refs": 12
+  },
+  "lcd_showSplash": {
+   "addr": "0x800a060",
+   "size": null,
+   "elf_size": 2,
+   "match": "refs",
+   "refs": 1
+  },
+  "lcd_string": {
+   "addr": "0x800aed8",
+   "size": 356,
+   "match": "bytes",
+   "refs": 22
+  },
+  "lcd_turnOn_nonblock": {
+   "addr": "0x800a6dc",
+   "size": 428,
+   "match": "bytes",
+   "refs": 6
+  },
+  "led_blinkHandler": {
+   "addr": "0x800bf94",
+   "size": 300,
+   "match": "bytes",
+   "refs": 1
+  },
+  "led_clearActive_step": {
+   "addr": "0x800b550",
+   "size": 48,
+   "match": "bytes",
+   "refs": 1
+  },
+  "led_clearAllBlinkLeds": {
+   "addr": "0x800bd44",
+   "size": 224,
+   "match": "bytes",
+   "refs": 29
+  },
+  "led_clearSelectLeds": {
+   "addr": "0x800b03c",
+   "size": 52,
+   "match": "bytes",
+   "refs": 5
+  },
+  "led_clearSequencerLeds": {
+   "addr": "0x800b6f0",
+   "size": 180,
+   "match": "bytes",
+   "refs": 14
+  },
+  "led_clearVoiceLeds": {
+   "addr": "0x800b344",
+   "size": 32,
+   "match": "bytes",
+   "refs": 1
+  },
+  "led_idx2StepLed": {
+   "addr": "0x800b4ac",
+   "size": 28,
+   "match": "bytes",
+   "refs": 12
+  },
+  "led_initPatternSelectLeds": {
+   "addr": "0x800b070",
+   "size": 724,
+   "match": "bytes",
+   "refs": 4
+  },
+  "led_pulseLed": {
+   "addr": "0x800bc90",
+   "size": 180,
+   "match": "bytes",
+   "refs": 1
+  },
+  "led_resetBlinkTimer": {
+   "addr": "0x800bf80",
+   "size": null,
+   "elf_size": 20,
+   "match": "refs",
+   "refs": 1
+  },
+  "led_setActiveSelectButton": {
+   "addr": "0x800b364",
+   "size": 112,
+   "match": "bytes",
+   "refs": 7
+  },
+  "led_setActiveVoice": {
+   "addr": "0x800b404",
+   "size": 68,
+   "match": "bytes",
+   "refs": 3
+  },
+  "led_setActiveVoiceLeds": {
+   "addr": "0x800b3d4",
+   "size": 48,
+   "match": "bytes",
+   "refs": 9
+  },
+  "led_setActive_step": {
+   "addr": "0x800b4c8",
+   "size": 136,
+   "match": "bytes",
+   "refs": 1
+  },
+  "led_setBlinkLed": {
+   "addr": "0x800be24",
+   "size": 348,
+   "match": "bytes",
+   "refs": 18
+  },
+  "led_setMode2": {
+   "addr": "0x800b7a4",
+   "size": 1260,
+   "match": "bytes",
+   "refs": 19
+  },
+  "led_setValue": {
+   "addr": "0x800b448",
+   "size": 100,
+   "match": "bytes",
+   "refs": 24
+  },
+  "led_tickHandler": {
+   "addr": "0x800c0c0",
+   "size": 628,
+   "match": "bytes",
+   "refs": 0
+  },
+  "led_updateBarLeds": {
+   "addr": "0x800b580",
+   "size": 136,
+   "match": "bytes",
+   "refs": 3
+  },
+  "led_updateSeqLeds": {
+   "addr": "0x800b608",
+   "size": 232,
+   "match": "bytes",
+   "refs": 16
+  },
+  "lfo_calc": {
+   "addr": "0x1fd0",
+   "size": 300,
+   "match": "bytes",
+   "lma": "0x8049370",
+   "refs": 0
+  },
+  "lfo_calcPhaseInc": {
+   "addr": "0x20fc",
+   "size": 132,
+   "match": "bytes",
+   "lma": "0x804949c",
+   "refs": 0
+  },
+  "lfo_dispatchNextValue": {
+   "addr": "0x801148c",
+   "size": 372,
+   "match": "bytes",
+   "refs": 6
+  },
+  "lfo_init": {
+   "addr": "0x8011468",
+   "size": 36,
+   "match": "bytes",
+   "refs": 4
+  },
+  "lfo_recalcSync": {
+   "addr": "0x8011600",
+   "size": 684,
+   "match": "bytes",
+   "refs": 1
+  },
+  "lfo_retrigger": {
+   "addr": "0x80118ac",
+   "size": 124,
+   "match": "bytes",
+   "refs": 4
+  },
+  "lfo_setFreq": {
+   "addr": "0x2180",
+   "size": 176,
+   "match": "bytes",
+   "lma": "0x8049520",
+   "refs": 4
+  },
+  "lfo_setSync": {
+   "addr": "0x2230",
+   "size": 136,
+   "match": "bytes",
+   "lma": "0x80495d0",
+   "refs": 5
+  },
+  "loadTmpFolderFiles": {
+   "addr": "0x800f2ac",
+   "size": 288,
+   "match": "bytes",
+   "refs": 0
+  },
+  "logf": {
+   "addr": "0x8029970",
+   "size": null,
+   "elf_size": 200,
+   "match": "refs",
+   "refs": 2
+  },
+  "main": {
+   "addr": "0x800c528",
+   "size": null,
+   "elf_size": 2588,
+   "match": "refs",
+   "refs": 1
+  },
+  "malloc": {
+   "addr": "0x8028b6c",
+   "size": null,
+   "elf_size": 16,
+   "match": "refs",
+   "refs": 1
+  },
+  "memchr": {
+   "addr": "0x8008240",
+   "size": null,
+   "elf_size": 0,
+   "match": "refs",
+   "refs": 7
+  },
+  "memcpy": {
+   "addr": "0x8028ed4",
+   "size": 28,
+   "match": "bytes",
+   "refs": 13
+  },
+  "memmove": {
+   "addr": "0x8029558",
+   "size": 52,
+   "match": "bytes",
+   "refs": 1
+  },
+  "memset": {
+   "addr": "0x8028e3c",
+   "size": 16,
+   "match": "bytes",
+   "refs": 26
+  },
+  "menu_getActivePage": {
+   "addr": "0x801dd24",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 1
+  },
+  "menu_getActiveVoice": {
+   "addr": "0x801dd30",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 24
+  },
+  "menu_getDisplayParameterType": {
+   "addr": "0x801d780",
+   "size": 72,
+   "match": "bytes",
+   "refs": 0
+  },
+  "menu_getSubPage": {
+   "addr": "0x801c610",
+   "size": 12,
+   "match": "bytes",
+   "refs": 9
+  },
+  "menu_getViewedPattern": {
+   "addr": "0x801a93c",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 7
+  },
+  "menu_handleLoadSaveMenu": {
+   "addr": "0x801bdd4",
+   "size": 1604,
+   "match": "bytes",
+   "refs": 1
+  },
+  "menu_handleSaveScreenKnobValue": {
+   "addr": "0x801ba84",
+   "size": 216,
+   "match": "bytes",
+   "refs": 1
+  },
+  "menu_handleSongMenu": {
+   "addr": "0x801c418",
+   "size": 112,
+   "match": "bytes",
+   "refs": 1
+  },
+  "menu_init": {
+   "addr": "0x801a948",
+   "size": 232,
+   "match": "bytes",
+   "refs": 0
+  },
+  "menu_parseEncoder": {
+   "addr": "0x801cf48",
+   "size": 2068,
+   "match": "bytes",
+   "refs": 0
+  },
+  "menu_parseGlobalParam": {
+   "addr": "0x801cb2c",
+   "size": 1052,
+   "match": "bytes",
+   "refs": 7
+  },
+  "menu_parseKnobValue": {
+   "addr": "0x801d7d4",
+   "size": 1360,
+   "match": "bytes",
+   "refs": 0
+  },
+  "menu_repaint": {
+   "addr": "0x801b838",
+   "size": 588,
+   "match": "bytes",
+   "refs": 10
+  },
+  "menu_repaint.part.0": {
+   "addr": "0x801b5f0",
+   "size": 584,
+   "match": "bytes",
+   "refs": 5
+  },
+  "menu_repaintAll": {
+   "addr": "0x801abcc",
+   "size": 12,
+   "match": "bytes",
+   "refs": 26
+  },
+  "menu_repaintGeneric": {
+   "addr": "0x801abe4",
+   "size": 2572,
+   "match": "bytes",
+   "refs": 2
+  },
+  "menu_repaintSimplePage": {
+   "addr": "0x801a410",
+   "size": 1304,
+   "match": "bytes",
+   "refs": 2
+  },
+  "menu_resetActiveParameter": {
+   "addr": "0x801c5d4",
+   "size": 60,
+   "match": "bytes",
+   "refs": 5
+  },
+  "menu_sendAllGlobals": {
+   "addr": "0x801d75c",
+   "size": 36,
+   "match": "bytes",
+   "refs": 2
+  },
+  "menu_setActiveVoice": {
+   "addr": "0x801dd3c",
+   "size": 40,
+   "match": "bytes",
+   "refs": 1
+  },
+  "menu_setLoadSaveCategory": {
+   "addr": "0x801c488",
+   "size": 104,
+   "match": "bytes",
+   "refs": 9
+  },
+  "menu_setNumSamples": {
+   "addr": "0x801abd8",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 1
+  },
+  "menu_setShownPattern": {
+   "addr": "0x801a928",
+   "size": 20,
+   "match": "bytes",
+   "refs": 4
+  },
+  "menu_showSdError": {
+   "addr": "0x801bb5c",
+   "size": 632,
+   "match": "bytes",
+   "refs": 2
+  },
+  "menu_switchPage": {
+   "addr": "0x801c61c",
+   "size": 652,
+   "match": "bytes",
+   "refs": 15
+  },
+  "menu_switchSubPage": {
+   "addr": "0x801c4f0",
+   "size": 228,
+   "match": "bytes",
+   "refs": 14
+  },
+  "menu_tick": {
+   "addr": "0x801c8a8",
+   "size": 644,
+   "match": "bytes",
+   "refs": 4
+  },
+  "midiParser_calcDetune": {
+   "addr": "0x8014a68",
+   "size": 44,
+   "match": "bytes",
+   "refs": 2
+  },
+  "midiParser_ccHandler": {
+   "addr": "0x8014a94",
+   "size": 7848,
+   "match": "bytes",
+   "refs": 16
+  },
+  "midiParser_checkMtc": {
+   "addr": "0x801693c",
+   "size": 80,
+   "match": "bytes",
+   "refs": 3
+  },
+  "midiParser_noteOn.constprop.0": {
+   "addr": "0x80149cc",
+   "size": 156,
+   "match": "bytes",
+   "refs": 8
+  },
+  "midiParser_parseMidiMessage": {
+   "addr": "0x801698c",
+   "size": 996,
+   "match": "bytes",
+   "refs": 1
+  },
+  "midiParser_parseUartData": {
+   "addr": "0x8016d70",
+   "size": 348,
+   "match": "bytes",
+   "refs": 1
+  },
+  "midiParser_setFilter": {
+   "addr": "0x8016f20",
+   "size": 40,
+   "match": "bytes",
+   "refs": 1
+  },
+  "midiParser_setRouting": {
+   "addr": "0x8016ecc",
+   "size": 84,
+   "match": "bytes",
+   "refs": 1
+  },
+  "mixer_calcNextSampleBlock": {
+   "addr": "0x2318",
+   "size": 2994,
+   "match": "bytes",
+   "lma": "0x80496b8",
+   "refs": 3
+  },
+  "mixer_checkOutJackAvailable": {
+   "addr": "0x8011960",
+   "size": 340,
+   "match": "bytes",
+   "refs": 6
+  },
+  "mixer_decimateBlock": {
+   "addr": "0x22b8",
+   "size": 96,
+   "match": "bytes",
+   "lma": "0x8049658",
+   "refs": 0
+  },
+  "mixer_init": {
+   "addr": "0x8011928",
+   "size": 56,
+   "match": "bytes",
+   "refs": 1
+  },
+  "modNode_init": {
+   "addr": "0x8011fd8",
+   "size": 72,
+   "match": "bytes",
+   "refs": 2
+  },
+  "modNode_originalValueChanged": {
+   "addr": "0x8011ab4",
+   "size": 1316,
+   "match": "bytes",
+   "refs": 1
+  },
+  "modNode_reassignVeloMod": {
+   "addr": "0x2f50",
+   "size": 204,
+   "match": "bytes",
+   "lma": "0x804a2f0",
+   "refs": 1
+  },
+  "modNode_resetTargets": {
+   "addr": "0x2ecc",
+   "size": 132,
+   "match": "bytes",
+   "lma": "0x804a26c",
+   "refs": 3
+  },
+  "modNode_setDestination": {
+   "addr": "0x8012020",
+   "size": 72,
+   "match": "bytes",
+   "refs": 6
+  },
+  "modNode_updateValue": {
+   "addr": "0x8012068",
+   "size": 160,
+   "match": "bytes",
+   "refs": 11
+  },
+  "move_window": {
+   "addr": "0x8025760",
+   "size": 122,
+   "match": "bytes",
+   "refs": 35
+  },
+  "numtostrpu": {
+   "addr": "0x801dd9c",
+   "size": 100,
+   "match": "bytes",
+   "refs": 3
+  },
+  "numtostrpu_2Bytes": {
+   "addr": "0x801dd64",
+   "size": 56,
+   "match": "bytes",
+   "refs": 4
+  },
+  "osc_recalcFreq": {
+   "addr": "0x1348",
+   "size": 52,
+   "match": "bytes",
+   "lma": "0x80486e8",
+   "refs": 16
+  },
+  "osc_setBaseNote": {
+   "addr": "0x8010e54",
+   "size": 56,
+   "match": "bytes",
+   "refs": 9
+  },
+  "osc_setFreq": {
+   "addr": "0x8010da4",
+   "size": 176,
+   "match": "bytes",
+   "refs": 12
+  },
+  "paramArray_setParameter": {
+   "addr": "0x3048",
+   "size": 112,
+   "match": "bytes",
+   "lma": "0x804a3e8",
+   "refs": 7
+  },
+  "paramToModTargetInit": {
+   "addr": "0x8019f30",
+   "size": 32,
+   "match": "bytes",
+   "refs": 1
+  },
+  "parameterArray_init": {
+   "addr": "0x8016fec",
+   "size": 2668,
+   "match": "bytes",
+   "refs": 1
+  },
+  "pattern_matching": {
+   "addr": "0x8025494",
+   "size": 236,
+   "match": "bytes",
+   "refs": 1
+  },
+  "preset_LoadTmpKit": {
+   "addr": "0x800e738",
+   "size": 324,
+   "match": "bytes",
+   "refs": 0
+  },
+  "preset_LoadTmpPat": {
+   "addr": "0x800de44",
+   "size": 504,
+   "match": "bytes",
+   "refs": 0
+  },
+  "preset_clearTmpFolder": {
+   "addr": "0x800e118",
+   "size": 96,
+   "match": "bytes",
+   "refs": 1
+  },
+  "preset_createGlobals": {
+   "addr": "0x800e600",
+   "size": 148,
+   "match": "bytes",
+   "refs": 1
+  },
+  "preset_createProject": {
+   "addr": "0x800f110",
+   "size": 172,
+   "match": "bytes",
+   "refs": 1
+  },
+  "preset_getMorphValue": {
+   "addr": "0x800f0e4",
+   "size": 44,
+   "match": "bytes",
+   "refs": 1
+  },
+  "preset_init": {
+   "addr": "0x800e87c",
+   "size": 280,
+   "match": "bytes",
+   "refs": 3
+  },
+  "preset_initTmpFolder": {
+   "addr": "0x800dd44",
+   "size": 60,
+   "match": "bytes",
+   "refs": 0
+  },
+  "preset_isNameEmpty": {
+   "addr": "0x800e2f0",
+   "size": 98,
+   "match": "bytes",
+   "refs": 6
+  },
+  "preset_loadDefaultGlobals": {
+   "addr": "0x800e5a8",
+   "size": 88,
+   "match": "bytes",
+   "refs": 0
+  },
+  "preset_loadDrumsetRam": {
+   "addr": "0x800e994",
+   "size": 88,
+   "match": "bytes",
+   "refs": 5
+  },
+  "preset_loadDrumsetSD": {
+   "addr": "0x800e9ec",
+   "size": 520,
+   "match": "bytes",
+   "refs": 2
+  },
+  "preset_loadGlobals": {
+   "addr": "0x800e554",
+   "size": 84,
+   "match": "bytes",
+   "refs": 1
+  },
+  "preset_loadLastUsedProjectNrFromSD": {
+   "addr": "0x800e694",
+   "size": 56,
+   "match": "bytes",
+   "refs": 0
+  },
+  "preset_loadPatternRAM": {
+   "addr": "0x800f01c",
+   "size": null,
+   "elf_size": 4,
+   "match": "refs",
+   "refs": 1
+  },
+  "preset_loadPatternSD": {
+   "addr": "0x800ed54",
+   "size": 668,
+   "match": "bytes",
+   "refs": 2
+  },
+  "preset_loadProject": {
+   "addr": "0x800f854",
+   "size": 1120,
+   "match": "bytes",
+   "refs": 1
+  },
+  "preset_loadProjectNames": {
+   "addr": "0x800f794",
+   "size": 192,
+   "match": "bytes",
+   "refs": 0
+  },
+  "preset_loadSongSD": {
+   "addr": "0x800f1bc",
+   "size": 240,
+   "match": "bytes",
+   "refs": 2
+  },
+  "preset_makeFileNameSave": {
+   "addr": "0x800db74",
+   "size": 464,
+   "match": "bytes",
+   "refs": 4
+  },
+  "preset_morph": {
+   "addr": "0x800f0cc",
+   "size": 24,
+   "match": "bytes",
+   "refs": 1
+  },
+  "preset_morph_tick": {
+   "addr": "0x800f020",
+   "size": 172,
+   "match": "bytes",
+   "refs": 1
+  },
+  "preset_processTimer": {
+   "addr": "0x800e178",
+   "size": 104,
+   "match": "bytes",
+   "refs": 0
+  },
+  "preset_resetAllSaveTimers": {
+   "addr": "0x800dd80",
+   "size": null,
+   "elf_size": 20,
+   "match": "refs",
+   "refs": 1
+  },
+  "preset_saveDrumsetRam": {
+   "addr": "0x800e354",
+   "size": 148,
+   "match": "bytes",
+   "refs": 2
+  },
+  "preset_saveDrumsetSD": {
+   "addr": "0x800e3e8",
+   "size": 296,
+   "match": "bytes",
+   "refs": 1
+  },
+  "preset_saveGlobals": {
+   "addr": "0x800e510",
+   "size": 68,
+   "match": "bytes",
+   "refs": 1
+  },
+  "preset_savePatternRAM": {
+   "addr": "0x800eff0",
+   "size": 44,
+   "match": "bytes",
+   "refs": 3
+  },
+  "preset_savePatternSD": {
+   "addr": "0x800ebf4",
+   "size": 352,
+   "match": "bytes",
+   "refs": 3
+  },
+  "preset_saveProject": {
+   "addr": "0x800f450",
+   "size": 834,
+   "match": "bytes",
+   "refs": 2
+  },
+  "preset_saveSongSD": {
+   "addr": "0x800f3cc",
+   "size": 132,
+   "match": "bytes",
+   "refs": 1
+  },
+  "preset_saveTmpKit": {
+   "addr": "0x800dddc",
+   "size": 104,
+   "match": "bytes",
+   "refs": 1
+  },
+  "preset_saveTmpPat.part.0": {
+   "addr": "0x800da28",
+   "size": 332,
+   "match": "bytes",
+   "refs": 1
+  },
+  "preset_sendDrumsetParameters": {
+   "addr": "0x800e6cc",
+   "size": 108,
+   "match": "bytes",
+   "refs": 4
+  },
+  "preset_sendDrumsetParametersImmediate": {
+   "addr": "0x0",
+   "size": 228,
+   "match": "bytes",
+   "lma": "0x80473a0",
+   "refs": 3
+  },
+  "preset_touchTimer": {
+   "addr": "0x800dd94",
+   "size": 72,
+   "match": "bytes",
+   "refs": 11
+  },
+  "put_fat.part.0": {
+   "addr": "0x8025aa8",
+   "size": 266,
+   "match": "bytes",
+   "refs": 3
+  },
+  "removeMaliciousSample": {
+   "addr": "0x8010e8c",
+   "size": 54,
+   "match": "bytes",
+   "refs": 2
+  },
+  "remove_chain": {
+   "addr": "0x8026470",
+   "size": 516,
+   "match": "bytes",
+   "refs": 3
+  },
+  "sbrk_aligned": {
+   "addr": "0x8028b8c",
+   "size": 64,
+   "match": "bytes",
+   "refs": 0
+  },
+  "screensaver_check": {
+   "addr": "0x801dfd0",
+   "size": 68,
+   "match": "bytes",
+   "refs": 0
+  },
+  "screensaver_process": {
+   "addr": "0x801de00",
+   "size": 404,
+   "match": "bytes",
+   "refs": 2
+  },
+  "screensaver_touch": {
+   "addr": "0x801df94",
+   "size": 60,
+   "match": "bytes",
+   "refs": 3
+  },
+  "sd_formatRoutine": {
+   "addr": "0x800c334",
+   "size": 296,
+   "match": "bytes",
+   "refs": 0
+  },
+  "sendDisplayBuffer": {
+   "addr": "0x801aa30",
+   "size": 412,
+   "match": "bytes",
+   "refs": 3
+  },
+  "seq_MidiSyncQueue": {
+   "addr": "0x8018958",
+   "size": 144,
+   "match": "bytes",
+   "refs": 1
+  },
+  "seq_addNote": {
+   "addr": "0x8019338",
+   "size": 288,
+   "match": "bytes",
+   "refs": 1
+  },
+  "seq_addNote.part.0": {
+   "addr": "0x80181e4",
+   "size": 276,
+   "match": "bytes",
+   "refs": 2
+  },
+  "seq_addPatternToSong": {
+   "addr": "0x8019004",
+   "size": 32,
+   "match": "bytes",
+   "refs": 1
+  },
+  "seq_armAutomationStep": {
+   "addr": "0x8018a00",
+   "size": 40,
+   "match": "bytes",
+   "refs": 1
+  },
+  "seq_clearAutomation": {
+   "addr": "0x8019648",
+   "size": 88,
+   "match": "bytes",
+   "refs": 3
+  },
+  "seq_clearPattern": {
+   "addr": "0x801954c",
+   "size": 252,
+   "match": "bytes",
+   "refs": 3
+  },
+  "seq_clearTrack": {
+   "addr": "0x8019470",
+   "size": 220,
+   "match": "bytes",
+   "refs": 1
+  },
+  "seq_copyBackupBufferToPattern": {
+   "addr": "0x80184fc",
+   "size": 172,
+   "match": "bytes",
+   "refs": 1
+  },
+  "seq_copyPattern": {
+   "addr": "0x8019798",
+   "size": 280,
+   "match": "bytes",
+   "refs": 2
+  },
+  "seq_copyPatternToBackupBuffer": {
+   "addr": "0x8018454",
+   "size": 168,
+   "match": "bytes",
+   "refs": 6
+  },
+  "seq_copyTrack": {
+   "addr": "0x80196a0",
+   "size": 248,
+   "match": "bytes",
+   "refs": 1
+  },
+  "seq_deleteRow": {
+   "addr": "0x8019024",
+   "size": 36,
+   "match": "bytes",
+   "refs": 1
+  },
+  "seq_getBpm": {
+   "addr": "0x801863c",
+   "size": 12,
+   "match": "bytes",
+   "refs": 10
+  },
+  "seq_getDeltaTShuffleDelay": {
+   "addr": "0x80185fc",
+   "size": 52,
+   "match": "bytes",
+   "refs": 1
+  },
+  "seq_getExtSync": {
+   "addr": "0x80189e8",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 7
+  },
+  "seq_getMasterStepCnt": {
+   "addr": "0x80182f8",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 1
+  },
+  "seq_getShiftFlamPattern": {
+   "addr": "0x8018690",
+   "size": 360,
+   "match": "bytes",
+   "refs": 0
+  },
+  "seq_getStepIndex": {
+   "addr": "0x8019d60",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 1
+  },
+  "seq_getTrackLength": {
+   "addr": "0x80185dc",
+   "size": 32,
+   "match": "bytes",
+   "refs": 7
+  },
+  "seq_init": {
+   "addr": "0x8018304",
+   "size": 336,
+   "match": "bytes",
+   "refs": 1
+  },
+  "seq_insertRow": {
+   "addr": "0x8019048",
+   "size": 48,
+   "match": "bytes",
+   "refs": 1
+  },
+  "seq_isAutomationStepArmed": {
+   "addr": "0x8019224",
+   "size": null,
+   "elf_size": 20,
+   "match": "refs",
+   "refs": 2
+  },
+  "seq_isMainStepActive": {
+   "addr": "0x8019078",
+   "size": 56,
+   "match": "bytes",
+   "refs": 2
+  },
+  "seq_isRunning": {
+   "addr": "0x8018ec8",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 4
+  },
+  "seq_isTrackMuted": {
+   "addr": "0x80190b0",
+   "size": 20,
+   "match": "bytes",
+   "refs": 1
+  },
+  "seq_midiNoteOff": {
+   "addr": "0x80198bc",
+   "size": 1100,
+   "match": "bytes",
+   "refs": 3
+  },
+  "seq_nextStep": {
+   "addr": "0x32b0",
+   "size": 1028,
+   "match": "bytes",
+   "lma": "0x804a650",
+   "refs": 5
+  },
+  "seq_processFlam.part.0": {
+   "addr": "0x80187f8",
+   "size": null,
+   "elf_size": 408,
+   "match": "refs",
+   "refs": 2
+  },
+  "seq_recordAutomation": {
+   "addr": "0x8019238",
+   "size": 248,
+   "match": "bytes",
+   "refs": 3
+  },
+  "seq_resetPosition": {
+   "addr": "0x8018ed4",
+   "size": 140,
+   "match": "bytes",
+   "refs": 3
+  },
+  "seq_sendMidiNoteOn": {
+   "addr": "0x8019d08",
+   "size": 88,
+   "match": "bytes",
+   "refs": 1
+  },
+  "seq_sendStepInfoToFront": {
+   "addr": "0x80190c4",
+   "size": 184,
+   "match": "bytes",
+   "refs": 1
+  },
+  "seq_setActiveAutomationTrack": {
+   "addr": "0x80198b0",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 7
+  },
+  "seq_setBpm": {
+   "addr": "0x8018630",
+   "size": 12,
+   "match": "bytes",
+   "refs": 5
+  },
+  "seq_setErasingMode": {
+   "addr": "0x8019464",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 1
+  },
+  "seq_setExtSync": {
+   "addr": "0x80189f4",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 3
+  },
+  "seq_setMute": {
+   "addr": "0x36b4",
+   "size": 64,
+   "match": "bytes",
+   "lma": "0x804aa54",
+   "refs": 3
+  },
+  "seq_setNextPattern": {
+   "addr": "0x801865c",
+   "size": 52,
+   "match": "bytes",
+   "refs": 4
+  },
+  "seq_setPendingPatternActive": {
+   "addr": "0x30b8",
+   "size": 504,
+   "match": "bytes",
+   "lma": "0x804a458",
+   "refs": 2
+  },
+  "seq_setQuantisation": {
+   "addr": "0x8018e88",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 1
+  },
+  "seq_setRecordingMode": {
+   "addr": "0x8019458",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 1
+  },
+  "seq_setRoll": {
+   "addr": "0x801917c",
+   "size": 104,
+   "match": "bytes",
+   "refs": 1
+  },
+  "seq_setRollRate": {
+   "addr": "0x80191e4",
+   "size": 64,
+   "match": "bytes",
+   "refs": 1
+  },
+  "seq_setRunning": {
+   "addr": "0x8018f60",
+   "size": 140,
+   "match": "bytes",
+   "refs": 7
+  },
+  "seq_setShuffle": {
+   "addr": "0x80185a8",
+   "size": 12,
+   "match": "bytes",
+   "refs": 1
+  },
+  "seq_setSongModeEnabled": {
+   "addr": "0x8018fec",
+   "size": 24,
+   "match": "bytes",
+   "refs": 1
+  },
+  "seq_setTrackLength": {
+   "addr": "0x80185b4",
+   "size": 40,
+   "match": "bytes",
+   "refs": 8
+  },
+  "seq_sync": {
+   "addr": "0x8018648",
+   "size": 20,
+   "match": "bytes",
+   "refs": 1
+  },
+  "seq_tick": {
+   "addr": "0x8018a28",
+   "size": 1120,
+   "match": "bytes",
+   "refs": 2
+  },
+  "seq_toggleMainStep": {
+   "addr": "0x8018e94",
+   "size": 52,
+   "match": "bytes",
+   "refs": 1
+  },
+  "seq_triggerVoice.part.0": {
+   "addr": "0x80180d8",
+   "size": 268,
+   "match": "bytes",
+   "refs": 2
+  },
+  "setDistortionShape": {
+   "addr": "0x1f48",
+   "size": 40,
+   "match": "bytes",
+   "lma": "0x80492e8",
+   "refs": 10
+  },
+  "setOnePoleCoef": {
+   "addr": "0x8010118",
+   "size": null,
+   "elf_size": 6,
+   "match": "refs",
+   "refs": 9
+  },
+  "setPan": {
+   "addr": "0x53c",
+   "size": 20,
+   "match": "bytes",
+   "lma": "0x80478dc",
+   "refs": 3
+  },
+  "siprintf": {
+   "addr": "0x8028dfc",
+   "size": 64,
+   "match": "bytes",
+   "refs": 6
+  },
+  "slopeEg2_calc": {
+   "addr": "0x1ca8",
+   "size": 248,
+   "match": "bytes",
+   "lma": "0x8049048",
+   "refs": 5
+  },
+  "slopeEg2_calcDecay": {
+   "addr": "0x8010f88",
+   "size": 96,
+   "match": "bytes",
+   "refs": 2
+  },
+  "slopeEg2_calcSlopeValue": {
+   "addr": "0x1c90",
+   "size": 22,
+   "match": "bytes",
+   "lma": "0x8049030",
+   "refs": 0
+  },
+  "slopeEg2_init": {
+   "addr": "0x8010f08",
+   "size": 88,
+   "match": "bytes",
+   "refs": 4
+  },
+  "slopeEg2_setAttack": {
+   "addr": "0x1da0",
+   "size": 120,
+   "match": "bytes",
+   "lma": "0x8049140",
+   "refs": 6
+  },
+  "slopeEg2_setDecay": {
+   "addr": "0x1e18",
+   "size": 120,
+   "match": "bytes",
+   "lma": "0x80491b8",
+   "refs": 5
+  },
+  "slopeEg2_setSlope": {
+   "addr": "0x1e90",
+   "size": 80,
+   "match": "bytes",
+   "lma": "0x8049230",
+   "refs": 6
+  },
+  "slopeEg2_trigger": {
+   "addr": "0x8010f60",
+   "size": 38,
+   "match": "bytes",
+   "refs": 4
+  },
+  "softClipTwo": {
+   "addr": "0x188c",
+   "size": 72,
+   "match": "bytes",
+   "lma": "0x8048c2c",
+   "refs": 0
+  },
+  "soundengine_calcNextSampleBlock": {
+   "addr": "0x800fd9c",
+   "size": 56,
+   "match": "bytes",
+   "refs": 1
+  },
+  "soundengine_init": {
+   "addr": "0x800fdd4",
+   "size": 144,
+   "match": "bytes",
+   "refs": 0
+  },
+  "soundengine_process": {
+   "addr": "0x800fe64",
+   "size": 100,
+   "match": "bytes",
+   "refs": 9
+  },
+  "sprintf": {
+   "addr": "0x8028dfc",
+   "size": 64,
+   "match": "bytes",
+   "refs": 6
+  },
+  "strcpy": {
+   "addr": "0x8028ec4",
+   "size": 16,
+   "match": "bytes",
+   "refs": 6
+  },
+  "strtol": {
+   "addr": "0x8028de8",
+   "size": 20,
+   "match": "bytes",
+   "refs": 1
+  },
+  "sync_fs": {
+   "addr": "0x8025d9c",
+   "size": 188,
+   "match": "bytes",
+   "refs": 3
+  },
+  "sync_midiResetPosition": {
+   "addr": "0x80180a0",
+   "size": 16,
+   "match": "bytes",
+   "refs": 1
+  },
+  "sync_midiStartStop": {
+   "addr": "0x80180b0",
+   "size": 40,
+   "match": "bytes",
+   "refs": 1
+  },
+  "sync_tick": {
+   "addr": "0x8017f80",
+   "size": 288,
+   "match": "bytes",
+   "refs": 1
+  },
+  "tanhXdX": {
+   "addr": "0x1850",
+   "size": 60,
+   "match": "bytes",
+   "lma": "0x8048bf0",
+   "refs": 0
+  },
+  "transient_calcBlock": {
+   "addr": "0x8012178",
+   "size": 188,
+   "match": "bytes",
+   "refs": 8
+  },
+  "transient_init": {
+   "addr": "0x801215c",
+   "size": 18,
+   "match": "bytes",
+   "refs": 4
+  },
+  "transient_setWaveform": {
+   "addr": "0x301c",
+   "size": 10,
+   "match": "bytes",
+   "lma": "0x804a3bc",
+   "refs": 7
+  },
+  "transient_trigger": {
+   "addr": "0x8012170",
+   "size": null,
+   "elf_size": 6,
+   "match": "refs",
+   "refs": 4
+  },
+  "trigger_clockTick": {
+   "addr": "0x8010048",
+   "size": 96,
+   "match": "bytes",
+   "refs": 2
+  },
+  "trigger_reset": {
+   "addr": "0x80100a8",
+   "size": 32,
+   "match": "bytes",
+   "refs": 6
+  },
+  "uart_clearFrontFifo": {
+   "addr": "0x8017a58",
+   "size": null,
+   "elf_size": 28,
+   "match": "refs",
+   "refs": 1
+  },
+  "uart_processMidi": {
+   "addr": "0x8017ae0",
+   "size": 40,
+   "match": "bytes",
+   "refs": 2
+  },
+  "uart_sendFrontpanelByte": {
+   "addr": "0x8017b78",
+   "size": null,
+   "elf_size": 4,
+   "match": "refs",
+   "refs": 36
+  },
+  "uart_sendFrontpanelSysExByte": {
+   "addr": "0x8017b7c",
+   "size": null,
+   "elf_size": 12,
+   "match": "refs",
+   "refs": 9
+  },
+  "uart_sendMidi": {
+   "addr": "0x8017b08",
+   "size": 112,
+   "match": "bytes",
+   "refs": 25
+  },
+  "usb_getMidi": {
+   "addr": "0x8019e14",
+   "size": 72,
+   "match": "bytes",
+   "refs": 0
+  },
+  "usb_sendMidi": {
+   "addr": "0x8019da8",
+   "size": 108,
+   "match": "bytes",
+   "refs": 24
+  },
+  "usb_tick": {
+   "addr": "0x8019d6c",
+   "size": 60,
+   "match": "bytes",
+   "refs": 1
+  },
+  "voiceControl_noteOff": {
+   "addr": "0x8016fb0",
+   "size": 60,
+   "match": "bytes",
+   "refs": 5
+  },
+  "voiceControl_noteOn": {
+   "addr": "0x8016f48",
+   "size": null,
+   "elf_size": 128,
+   "match": "refs",
+   "refs": 2
+  },
+  "voiceFromModTargValue": {
+   "addr": "0x8019f50",
+   "size": 56,
+   "match": "bytes",
+   "refs": 2
+  },
+  "with_errno": {
+   "addr": "0x80297ec",
+   "size": null,
+   "elf_size": 24,
+   "match": "refs",
+   "refs": 1
+  },
+  "with_errnof": {
+   "addr": "0x8029a3c",
+   "size": null,
+   "elf_size": 24,
+   "match": "refs",
+   "refs": 1
+  },
+  "xflow": {
+   "addr": "0x8029802",
+   "size": 34,
+   "match": "bytes",
+   "refs": 2
+  },
+  "xflowf": {
+   "addr": "0x8029a52",
+   "size": null,
+   "elf_size": 30,
+   "match": "refs",
+   "refs": 3
+  }
+ },
+ "data": {
+  "AHBPrescTable": {
+   "addr": "0x8029f50",
+   "size": 16,
+   "refs": 1
+  },
+  "APBPrescTable": {
+   "addr": "0x8029f60",
+   "size": 8,
+   "refs": 2
+  },
+  "CSWTCH.114": {
+   "addr": "0x802a118",
+   "size": 20,
+   "refs": 1
+  },
+  "CSWTCH.157": {
+   "addr": "0x802a118",
+   "size": 20,
+   "refs": 1
+  },
+  "CSWTCH.17": {
+   "addr": "0x803d3a4",
+   "size": 4,
+   "refs": 1
+  },
+  "CSWTCH.19": {
+   "addr": "0x803d298",
+   "size": 14,
+   "refs": 1
+  },
+  "CSWTCH.22": {
+   "addr": "0x8029e00",
+   "size": 15,
+   "refs": 1
+  },
+  "CSWTCH.247": {
+   "addr": "0x803abe0",
+   "size": 20,
+   "refs": 1
+  },
+  "CSWTCH.271": {
+   "addr": "0x803b148",
+   "size": 24,
+   "refs": 2
+  },
+  "CSWTCH.278": {
+   "addr": "0x803abf4",
+   "size": 15,
+   "refs": 2
+  },
+  "CSWTCH.34": {
+   "addr": "0x8029e10",
+   "size": 8,
+   "refs": 1
+  },
+  "CSWTCH.40": {
+   "addr": "0x802a12c",
+   "size": 6,
+   "refs": 1
+  },
+  "CSWTCH.45": {
+   "addr": "0x8029e18",
+   "size": 15,
+   "refs": 4
+  },
+  "CSWTCH.5": {
+   "addr": "0x802a334",
+   "size": 44,
+   "refs": 4
+  },
+  "CSWTCH.54@MidiParser.c": {
+   "addr": "0x803ab60",
+   "size": 126,
+   "refs": 1
+  },
+  "ExCvt": {
+   "addr": "0x803d2ec",
+   "size": 128,
+   "refs": 3
+  },
+  "FS_Desc": {
+   "addr": "0x200202a0",
+   "size": 28,
+   "refs": 1
+  },
+  "FX_BUFFER": {
+   "addr": "0x2000a380",
+   "size": 65536,
+   "refs": 2
+  },
+  "FatFs": {
+   "addr": "0x20061898",
+   "size": 4,
+   "refs": 3
+  },
+  "Files": {
+   "addr": "0x2006189c",
+   "size": 16,
+   "refs": 8
+  },
+  "Fsid": {
+   "addr": "0x200618ac",
+   "size": 2,
+   "refs": 1
+  },
+  "MidiNoteFrequencies": {
+   "addr": "0x802a134",
+   "size": 512,
+   "refs": 2
+  },
+  "SDFile": {
+   "addr": "0x200613dc",
+   "size": 560,
+   "refs": 19
+  },
+  "SDPath": {
+   "addr": "0x2006160c",
+   "size": 4,
+   "refs": 2
+  },
+  "SD_Driver": {
+   "addr": "0x803d284",
+   "size": 20,
+   "refs": 2
+  },
+  "Stat": {
+   "addr": "0x2002011c",
+   "size": 1,
+   "refs": 3
+  },
+  "SystemCoreClock": {
+   "addr": "0x200200fc",
+   "size": 4,
+   "refs": 20
+  },
+  "USBD_CDC": {
+   "addr": "0x20020120",
+   "size": 56,
+   "refs": 1
+  },
+  "USBD_CDC_DeviceQualifierDesc": {
+   "addr": "0x20020238",
+   "size": 10,
+   "refs": 1
+  },
+  "USBD_CDC_OtherSpeedCfgDesc": {
+   "addr": "0x20020244",
+   "size": 67,
+   "refs": 1
+  },
+  "USBD_FS_DeviceDesc": {
+   "addr": "0x200202bc",
+   "size": 18,
+   "refs": 1
+  },
+  "USBD_Interface_fops_FS": {
+   "addr": "0x20020290",
+   "size": 16,
+   "refs": 1
+  },
+  "USBD_LangIDDesc": {
+   "addr": "0x200202d0",
+   "size": 4,
+   "refs": 1
+  },
+  "USBD_StringSerial": {
+   "addr": "0x200202d4",
+   "size": 26,
+   "refs": 1
+  },
+  "UserRxBufferFS": {
+   "addr": "0x20061b58",
+   "size": 256,
+   "refs": 1
+  },
+  "UserTxBufferFS": {
+   "addr": "0x20061c58",
+   "size": 256,
+   "refs": 1
+  },
+  "__init_array_end": {
+   "addr": "0x803dfd4",
+   "size": 0,
+   "refs": 1
+  },
+  "__init_array_start": {
+   "addr": "0x803dfd0",
+   "size": 0,
+   "refs": 1
+  },
+  "__malloc_free_list": {
+   "addr": "0x20061f58",
+   "size": 4,
+   "refs": 1
+  },
+  "__malloc_sbrk_start": {
+   "addr": "0x20061f5c",
+   "size": 4,
+   "refs": 1
+  },
+  "__preinit_array_end": {
+   "addr": "0x803dfd0",
+   "size": 0,
+   "refs": 1
+  },
+  "__preinit_array_start": {
+   "addr": "0x803dfd0",
+   "size": 0,
+   "refs": 1
+  },
+  "__sf": {
+   "addr": "0x20061f60",
+   "size": 312,
+   "refs": 3
+  },
+  "_ctype_": {
+   "addr": "0x803d3a8",
+   "size": 257,
+   "refs": 1
+  },
+  "_dtcm_stack": {
+   "addr": "0x20020000",
+   "size": 0,
+   "refs": 1
+  },
+  "_ebss": {
+   "addr": "0x200620a4",
+   "size": 0,
+   "refs": 1
+  },
+  "_eccm": {
+   "addr": "0x20009088",
+   "size": 0,
+   "refs": 1
+  },
+  "_eccmz": {
+   "addr": "0x2001a380",
+   "size": 0,
+   "refs": 1
+  },
+  "_edata": {
+   "addr": "0x20020340",
+   "size": 0,
+   "refs": 1
+  },
+  "_estack": {
+   "addr": "0x20080000",
+   "size": 0,
+   "refs": 1
+  },
+  "_impure_data": {
+   "addr": "0x200202f0",
+   "size": 76,
+   "refs": 1
+  },
+  "_impure_ptr": {
+   "addr": "0x2002033c",
+   "size": 4,
+   "refs": 3
+  },
+  "_printf_float": {
+   "addr": "0x0",
+   "size": 0,
+   "refs": 2
+  },
+  "_sbss": {
+   "addr": "0x20020340",
+   "size": 0,
+   "refs": 1
+  },
+  "_sccm": {
+   "addr": "0x20000000",
+   "size": 0,
+   "refs": 1
+  },
+  "_sccmz": {
+   "addr": "0x20009088",
+   "size": 0,
+   "refs": 1
+  },
+  "_sdata": {
+   "addr": "0x20020000",
+   "size": 0,
+   "refs": 1
+  },
+  "_siccm": {
+   "addr": "0x803e318",
+   "size": 0,
+   "refs": 1
+  },
+  "_sidata": {
+   "addr": "0x803dfd8",
+   "size": 0,
+   "refs": 1
+  },
+  "activeParameters": {
+   "addr": "0x2005d228",
+   "size": 302,
+   "refs": 47
+  },
+  "active_voices": {
+   "addr": "0x200216ac",
+   "size": 1,
+   "refs": 1
+  },
+  "adc2_idx": {
+   "addr": "0x20020cc0",
+   "size": 1,
+   "refs": 1
+  },
+  "adc_buf": {
+   "addr": "0x2000909c",
+   "size": 28,
+   "refs": 1
+  },
+  "adc_buf_old": {
+   "addr": "0x20020cc4",
+   "size": 28,
+   "refs": 1
+  },
+  "adc_faderValues": {
+   "addr": "0x20020ce0",
+   "size": 24,
+   "refs": 2
+  },
+  "bCurrentSampleValid": {
+   "addr": "0x200094b8",
+   "size": 1,
+   "refs": 4
+  },
+  "button43_old": {
+   "addr": "0x20020cb0",
+   "size": 1,
+   "refs": 2
+  },
+  "buttonHandler_armedAutomationStep": {
+   "addr": "0x200200f7",
+   "size": 1,
+   "refs": 3
+  },
+  "buttonHandler_buttonTimer": {
+   "addr": "0x2002035c",
+   "size": 4,
+   "refs": 3
+  },
+  "buttonHandler_buttonTimerStepNr": {
+   "addr": "0x200200f8",
+   "size": 1,
+   "refs": 5
+  },
+  "buttonHandler_copyDst": {
+   "addr": "0x2002010c",
+   "size": 1,
+   "refs": 2
+  },
+  "buttonHandler_copySrc": {
+   "addr": "0x2002010d",
+   "size": 1,
+   "refs": 2
+  },
+  "buttonHandler_mutedVoices": {
+   "addr": "0x20020360",
+   "size": 1,
+   "refs": 5
+  },
+  "buttonHandler_originalParameter": {
+   "addr": "0x20020364",
+   "size": 4,
+   "refs": 4
+  },
+  "buttonHandler_originalValue": {
+   "addr": "0x20020368",
+   "size": 2,
+   "refs": 4
+  },
+  "buttonHandler_resetLock1": {
+   "addr": "0x2002036a",
+   "size": 1,
+   "refs": 4
+  },
+  "buttonHandler_resetLock2": {
+   "addr": "0x2002036b",
+   "size": 1,
+   "refs": 4
+  },
+  "buttonHandler_selectedStep": {
+   "addr": "0x2002036c",
+   "size": 1,
+   "refs": 3
+  },
+  "buttonHandler_stateMemory": {
+   "addr": "0x20020370",
+   "size": 4,
+   "refs": 13
+  },
+  "catNames": {
+   "addr": "0x803b160",
+   "size": 416,
+   "refs": 2
+  },
+  "cfgidx.0": {
+   "addr": "0x20061896",
+   "size": 1,
+   "refs": 1
+  },
+  "characterOrder": {
+   "addr": "0x803b300",
+   "size": 76,
+   "refs": 5
+  },
+  "checkMIDIprocPAR": {
+   "addr": "0x20021588",
+   "size": 1,
+   "refs": 1
+  },
+  "checkMIDIprocPAR_t": {
+   "addr": "0x20021589",
+   "size": 1,
+   "refs": 1
+  },
+  "clk_cycle_start_nonblock": {
+   "addr": "0x200203a4",
+   "size": 4,
+   "refs": 4
+  },
+  "copyClear_Mode": {
+   "addr": "0x2005d223",
+   "size": 1,
+   "refs": 10
+  },
+  "copyClear_clearTarget": {
+   "addr": "0x2005d224",
+   "size": 1,
+   "refs": 3
+  },
+  "copyClear_showClearMenu": {
+   "addr": "0x2005d225",
+   "size": 1,
+   "refs": 6
+  },
+  "cortex_midiMsg": {
+   "addr": "0x2002156c",
+   "size": 8,
+   "refs": 1
+  },
+  "currentDisplayBuffer": {
+   "addr": "0x2005d358",
+   "size": 32,
+   "refs": 3
+  },
+  "currentFolder": {
+   "addr": "0x20020d04",
+   "size": 13,
+   "refs": 3
+  },
+  "cymbalVoice": {
+   "addr": "0x20009620",
+   "size": 384,
+   "refs": 43
+  },
+  "delayNames": {
+   "addr": "0x803b34c",
+   "size": 12,
+   "refs": 1
+  },
+  "din_inputData": {
+   "addr": "0x2000908c",
+   "size": 5,
+   "refs": 9
+  },
+  "disk": {
+   "addr": "0x200618b0",
+   "size": 12,
+   "refs": 7
+  },
+  "display_needs_clear_all": {
+   "addr": "0x2005d378",
+   "size": 1,
+   "refs": 9
+  },
+  "display_needs_refresh": {
+   "addr": "0x2005d379",
+   "size": 1,
+   "refs": 5
+  },
+  "display_refresh_state": {
+   "addr": "0x2005d37a",
+   "size": 1,
+   "refs": 3
+  },
+  "distNames": {
+   "addr": "0x803b358",
+   "size": 16,
+   "refs": 1
+  },
+  "dmaPtr": {
+   "addr": "0x20021560",
+   "size": 1,
+   "refs": 1
+  },
+  "dmaPtr2": {
+   "addr": "0x20021561",
+   "size": 1,
+   "refs": 1
+  },
+  "dma_buffer": {
+   "addr": "0x200090b8",
+   "size": 512,
+   "refs": 5
+  },
+  "dma_buffer2": {
+   "addr": "0x200092b8",
+   "size": 512,
+   "refs": 4
+  },
+  "dout_outputData": {
+   "addr": "0x20020cb4",
+   "size": 5,
+   "refs": 19
+  },
+  "ecc83Table": {
+   "addr": "0x20008c80",
+   "size": 1032,
+   "refs": 2
+  },
+  "editDisplayBuffer": {
+   "addr": "0x2005d37c",
+   "size": 34,
+   "refs": 20
+  },
+  "editModeActive": {
+   "addr": "0x2005d39e",
+   "size": 1,
+   "refs": 13
+  },
+  "errno": {
+   "addr": "0x20062098",
+   "size": 4,
+   "refs": 1
+  },
+  "error": {
+   "addr": "0x20021564",
+   "size": 4,
+   "refs": 1
+  },
+  "euklid_length": {
+   "addr": "0x200221b8",
+   "size": 7,
+   "refs": 6
+  },
+  "euklid_nextCnt1": {
+   "addr": "0x200221c0",
+   "size": 2,
+   "refs": 2
+  },
+  "euklid_originalLength": {
+   "addr": "0x200221c2",
+   "size": 2,
+   "refs": 2
+  },
+  "euklid_patternBuffer": {
+   "addr": "0x200221c8",
+   "size": 8,
+   "refs": 5
+  },
+  "euklid_rotation": {
+   "addr": "0x200221d0",
+   "size": 7,
+   "refs": 2
+  },
+  "euklid_steps": {
+   "addr": "0x200221d8",
+   "size": 7,
+   "refs": 2
+  },
+  "fifo_midiRx": {
+   "addr": "0x20021fb0",
+   "size": 258,
+   "refs": 2
+  },
+  "fifo_midiTx": {
+   "addr": "0x200220b4",
+   "size": 258,
+   "refs": 2
+  },
+  "filterTypes": {
+   "addr": "0x803b368",
+   "size": 72,
+   "refs": 1
+  },
+  "followNames": {
+   "addr": "0x803b3b0",
+   "size": 20,
+   "refs": 1
+  },
+  "frontPanel_sysexMode": {
+   "addr": "0x20020380",
+   "size": 1,
+   "refs": 1
+  },
+  "frontParser_activeStep": {
+   "addr": "0x20021574",
+   "size": 1,
+   "refs": 2
+  },
+  "frontParser_activeTrack": {
+   "addr": "0x20021575",
+   "size": 1,
+   "refs": 8
+  },
+  "frontParser_midiMsg": {
+   "addr": "0x20020384",
+   "size": 8,
+   "refs": 2
+  },
+  "frontParser_newSeqDataAvailable": {
+   "addr": "0x2002038c",
+   "size": 1,
+   "refs": 1
+  },
+  "frontParser_nrpnNr": {
+   "addr": "0x2002038e",
+   "size": 2,
+   "refs": 2
+  },
+  "frontParser_rxCnt@": {
+   "addr": "0x20021576",
+   "size": 1,
+   "refs": 2
+  },
+  "frontParser_rxCnt@frontPanelParser.c": {
+   "addr": "0x20020390",
+   "size": 1,
+   "refs": 1
+  },
+  "frontParser_shownPattern": {
+   "addr": "0x20021577",
+   "size": 1,
+   "refs": 8
+  },
+  "frontParser_stepData": {
+   "addr": "0x20020394",
+   "size": 7,
+   "refs": 1
+  },
+  "frontParser_sysexActive": {
+   "addr": "0x20021578",
+   "size": 1,
+   "refs": 1
+  },
+  "frontParser_sysexBuffer@CortexParser.c": {
+   "addr": "0x2002157c",
+   "size": 7,
+   "refs": 1
+  },
+  "frontParser_sysexBuffer@frontPanelParser.c": {
+   "addr": "0x2002039c",
+   "size": 7,
+   "refs": 1
+  },
+  "frontParser_sysexSeqStepNr": {
+   "addr": "0x20021584",
+   "size": 2,
+   "refs": 2
+  },
+  "frontParser_twoByteData": {
+   "addr": "0x20021586",
+   "size": 2,
+   "refs": 1
+  },
+  "fxBus": {
+   "addr": "0x200094c0",
+   "size": 352,
+   "refs": 27
+  },
+  "fxNames": {
+   "addr": "0x803b3c4",
+   "size": 24,
+   "refs": 1
+  },
+  "hUsbDeviceFS": {
+   "addr": "0x200618bc",
+   "size": 668,
+   "refs": 4
+  },
+  "hatVoice": {
+   "addr": "0x20009fe0",
+   "size": 392,
+   "refs": 43
+  },
+  "hdma_adc1": {
+   "addr": "0x20020438",
+   "size": 96,
+   "refs": 1
+  },
+  "hdma_sdmmc1_rx": {
+   "addr": "0x20020498",
+   "size": 96,
+   "refs": 1
+  },
+  "hdma_sdmmc1_tx": {
+   "addr": "0x200204f8",
+   "size": 96,
+   "refs": 1
+  },
+  "hdma_spi2_tx": {
+   "addr": "0x20020558",
+   "size": 96,
+   "refs": 1
+  },
+  "hdma_spi3_tx": {
+   "addr": "0x200205b8",
+   "size": 96,
+   "refs": 1
+  },
+  "hi2s2": {
+   "addr": "0x20020618",
+   "size": 64,
+   "refs": 2
+  },
+  "hi2s3": {
+   "addr": "0x20020658",
+   "size": 64,
+   "refs": 2
+  },
+  "hpcd_USB_OTG_FS": {
+   "addr": "0x20020698",
+   "size": 1028,
+   "refs": 1
+  },
+  "hsd1": {
+   "addr": "0x20020aac",
+   "size": 132,
+   "refs": 2
+  },
+  "htim14": {
+   "addr": "0x20020b94",
+   "size": 76,
+   "refs": 1
+  },
+  "htim2": {
+   "addr": "0x20020be0",
+   "size": 76,
+   "refs": 13
+  },
+  "huart3": {
+   "addr": "0x20020c2c",
+   "size": 132,
+   "refs": 2
+  },
+  "initKit": {
+   "addr": "0x8029f68",
+   "size": 254,
+   "refs": 2
+  },
+  "isStepShuffled": {
+   "addr": "0x2002220b",
+   "size": 1,
+   "refs": 1
+  },
+  "l1_Available": {
+   "addr": "0x20021568",
+   "size": 1,
+   "refs": 2
+  },
+  "l2_Available": {
+   "addr": "0x20021569",
+   "size": 1,
+   "refs": 2
+  },
+  "lastEncoderButton": {
+   "addr": "0x2005d39f",
+   "size": 1,
+   "refs": 1
+  },
+  "lcd_clear_state": {
+   "addr": "0x200203a8",
+   "size": 1,
+   "refs": 1
+  },
+  "lcd_command_state": {
+   "addr": "0x200203a9",
+   "size": 1,
+   "refs": 3
+  },
+  "lcd_data_state": {
+   "addr": "0x200203aa",
+   "size": 1,
+   "refs": 1
+  },
+  "lcd_process_display_interrupt": {
+   "addr": "0x200203ab",
+   "size": 1,
+   "refs": 6
+  },
+  "led_blinkLedNumber": {
+   "addr": "0x200203b0",
+   "size": 4,
+   "refs": 5
+  },
+  "led_blinkPrescaler": {
+   "addr": "0x200203b4",
+   "size": 1,
+   "refs": 1
+  },
+  "led_blinkToggleState": {
+   "addr": "0x200203b5",
+   "size": 1,
+   "refs": 1
+  },
+  "led_blinkingLeds": {
+   "addr": "0x200203b6",
+   "size": 1,
+   "refs": 6
+  },
+  "led_currentStepLed": {
+   "addr": "0x200203b7",
+   "size": 1,
+   "refs": 2
+  },
+  "led_originalLedState": {
+   "addr": "0x200203b8",
+   "size": 5,
+   "refs": 16
+  },
+  "led_pulseEndTime": {
+   "addr": "0x200203c0",
+   "size": 32,
+   "refs": 2
+  },
+  "led_pulseLedNumber": {
+   "addr": "0x200203e0",
+   "size": 8,
+   "refs": 2
+  },
+  "led_pulsingLeds": {
+   "addr": "0x200203e8",
+   "size": 1,
+   "refs": 2
+  },
+  "lfoWaveNames": {
+   "addr": "0x803b3dc",
+   "size": 36,
+   "refs": 1
+  },
+  "longNames": {
+   "addr": "0x803b400",
+   "size": 1312,
+   "refs": 2
+  },
+  "mainParameters": {
+   "addr": "0x2005d3a0",
+   "size": 15808,
+   "refs": 9
+  },
+  "menuIndex": {
+   "addr": "0x20061160",
+   "size": 1,
+   "refs": 11
+  },
+  "menuPages": {
+   "addr": "0x803b920",
+   "size": 4224,
+   "refs": 13
+  },
+  "menuText_any": {
+   "addr": "0x803c9a0",
+   "size": 4,
+   "refs": 2
+  },
+  "menuText_blank": {
+   "addr": "0x803c9a4",
+   "size": 4,
+   "refs": 1
+  },
+  "menuText_dash": {
+   "addr": "0x803c9a8",
+   "size": 4,
+   "refs": 1
+  },
+  "menuText_off": {
+   "addr": "0x803c9ac",
+   "size": 4,
+   "refs": 2
+  },
+  "menuText_ok": {
+   "addr": "0x803c9b0",
+   "size": 4,
+   "refs": 2
+  },
+  "menuText_on": {
+   "addr": "0x803c9b4",
+   "size": 4,
+   "refs": 2
+  },
+  "menu_TargetVoiceGapIndex": {
+   "addr": "0x2002010e",
+   "size": 1,
+   "refs": 6
+  },
+  "menu_activeBar": {
+   "addr": "0x20061161",
+   "size": 1,
+   "refs": 10
+  },
+  "menu_activePage": {
+   "addr": "0x20061162",
+   "size": 1,
+   "refs": 25
+  },
+  "menu_activePatternBank": {
+   "addr": "0x20061163",
+   "size": 1,
+   "refs": 4
+  },
+  "menu_activeVoice": {
+   "addr": "0x20061164",
+   "size": 1,
+   "refs": 11
+  },
+  "menu_loadedPresetNr": {
+   "addr": "0x20061168",
+   "size": 4,
+   "refs": 5
+  },
+  "menu_muteModeActive": {
+   "addr": "0x2006116c",
+   "size": 1,
+   "refs": 8
+  },
+  "menu_numSamples": {
+   "addr": "0x2006116d",
+   "size": 1,
+   "refs": 1
+  },
+  "menu_playedPattern": {
+   "addr": "0x2006116e",
+   "size": 1,
+   "refs": 8
+  },
+  "menu_saveOptions": {
+   "addr": "0x20061170",
+   "size": 4,
+   "refs": 6
+  },
+  "menu_selectedPresetNr": {
+   "addr": "0x20061174",
+   "size": 6,
+   "refs": 16
+  },
+  "menu_shownPattern": {
+   "addr": "0x2006117a",
+   "size": 1,
+   "refs": 5
+  },
+  "menu_songMenuPosition": {
+   "addr": "0x2006117b",
+   "size": 1,
+   "refs": 6
+  },
+  "microseconds_nonblock": {
+   "addr": "0x200203ac",
+   "size": 4,
+   "refs": 4
+  },
+  "midiFilterNames": {
+   "addr": "0x803c9b8",
+   "size": 272,
+   "refs": 1
+  },
+  "midiModes": {
+   "addr": "0x803cac8",
+   "size": 12,
+   "refs": 1
+  },
+  "midiMsg_tmp": {
+   "addr": "0x2002158c",
+   "size": 8,
+   "refs": 1
+  },
+  "midiParser_activeNrpnNumber": {
+   "addr": "0x20021594",
+   "size": 2,
+   "refs": 2
+  },
+  "midiParser_lastMtcReceived": {
+   "addr": "0x20021598",
+   "size": 4,
+   "refs": 2
+  },
+  "midiParser_mtcIgnore": {
+   "addr": "0x20020103",
+   "size": 1,
+   "refs": 1
+  },
+  "midiParser_mtcIsRunning": {
+   "addr": "0x2002159c",
+   "size": 1,
+   "refs": 2
+  },
+  "midiParser_originalCcValues": {
+   "addr": "0x200215a0",
+   "size": 255,
+   "refs": 3
+  },
+  "midiParser_routing": {
+   "addr": "0x200216a0",
+   "size": 4,
+   "refs": 2
+  },
+  "midiParser_txRxFilter": {
+   "addr": "0x20020104",
+   "size": 1,
+   "refs": 9
+  },
+  "midiRoutingNames": {
+   "addr": "0x803cad4",
+   "size": 42,
+   "refs": 1
+  },
+  "midi_MidiChannels": {
+   "addr": "0x200216a4",
+   "size": 8,
+   "refs": 8
+  },
+  "midi_chan_notes": {
+   "addr": "0x2002220c",
+   "size": 16,
+   "refs": 4
+  },
+  "midi_notes_on": {
+   "addr": "0x2002221c",
+   "size": 2,
+   "refs": 3
+  },
+  "midi_process_block": {
+   "addr": "0x200221b6",
+   "size": 1,
+   "refs": 2
+  },
+  "mixFmNames": {
+   "addr": "0x803cb00",
+   "size": 18,
+   "refs": 1
+  },
+  "mixer_audioRouting": {
+   "addr": "0x2000a318",
+   "size": 6,
+   "refs": 2
+  },
+  "mixer_decimation_rate": {
+   "addr": "0x2000a2d8",
+   "size": 28,
+   "refs": 5
+  },
+  "modTargetGapMap": {
+   "addr": "0x803ac04",
+   "size": 49,
+   "refs": 2
+  },
+  "modTargetVoiceOffsets": {
+   "addr": "0x803ac38",
+   "size": 12,
+   "refs": 3
+  },
+  "modTargets": {
+   "addr": "0x803ac44",
+   "size": 916,
+   "refs": 8
+  },
+  "morphParameters": {
+   "addr": "0x2006117c",
+   "size": 4,
+   "refs": 7
+  },
+  "morph_index": {
+   "addr": "0x20020d11",
+   "size": 1,
+   "refs": 3
+  },
+  "morph_state": {
+   "addr": "0x20020d12",
+   "size": 1,
+   "refs": 3
+  },
+  "msg.0@presetManager.c": {
+   "addr": "0x20020d14",
+   "size": 8,
+   "refs": 1
+  },
+  "msg.0@sequencer.c": {
+   "addr": "0x20022220",
+   "size": 8,
+   "refs": 2
+  },
+  "msg.1@presetManager.c": {
+   "addr": "0x20020d1c",
+   "size": 8,
+   "refs": 1
+  },
+  "msg.1@sequencer.c": {
+   "addr": "0x20022228",
+   "size": 8,
+   "refs": 3
+  },
+  "msg.2": {
+   "addr": "0x20022230",
+   "size": 8,
+   "refs": 1
+  },
+  "nameEditBuffer": {
+   "addr": "0x20061180",
+   "size": 8,
+   "refs": 5
+  },
+  "nextPatternNames": {
+   "addr": "0x803cb14",
+   "size": 64,
+   "refs": 1
+  },
+  "outputNames": {
+   "addr": "0x803cb54",
+   "size": 56,
+   "refs": 1
+  },
+  "outputNamesFx": {
+   "addr": "0x803cb8c",
+   "size": 49,
+   "refs": 1
+  },
+  "overwriteBufNr.0": {
+   "addr": "0x20061188",
+   "size": 1,
+   "refs": 1
+  },
+  "paramToModTarget": {
+   "addr": "0x2005d12c",
+   "size": 247,
+   "refs": 3
+  },
+  "parameterArray": {
+   "addr": "0x200216b0",
+   "size": 1976,
+   "refs": 7
+  },
+  "parameterOrder": {
+   "addr": "0x20020000",
+   "size": 247,
+   "refs": 1
+  },
+  "parameter_dtypes": {
+   "addr": "0x803cbc0",
+   "size": 604,
+   "refs": 5
+  },
+  "parserState": {
+   "addr": "0x20020105",
+   "size": 1,
+   "refs": 1
+  },
+  "patModeNames": {
+   "addr": "0x803ce1c",
+   "size": 12,
+   "refs": 1
+  },
+  "patternBackupBuffer": {
+   "addr": "0x20022238",
+   "size": 3650,
+   "refs": 6
+  },
+  "ppqInNames": {
+   "addr": "0x803ce28",
+   "size": 12,
+   "refs": 1
+  },
+  "ppqOutNames": {
+   "addr": "0x803ce34",
+   "size": 28,
+   "refs": 1
+  },
+  "preset_kitDirty": {
+   "addr": "0x20020d24",
+   "size": 1,
+   "refs": 2
+  },
+  "preset_kitTimer": {
+   "addr": "0x20020d28",
+   "size": 4,
+   "refs": 2
+  },
+  "preset_patDirty": {
+   "addr": "0x20020d2c",
+   "size": 1,
+   "refs": 2
+  },
+  "preset_patTimer": {
+   "addr": "0x20020d30",
+   "size": 4,
+   "refs": 2
+  },
+  "quantisationNames": {
+   "addr": "0x803ce50",
+   "size": 24,
+   "refs": 1
+  },
+  "r1_Available": {
+   "addr": "0x2002156a",
+   "size": 1,
+   "refs": 2
+  },
+  "r2_Available": {
+   "addr": "0x2002156b",
+   "size": 1,
+   "refs": 2
+  },
+  "ratioNames": {
+   "addr": "0x803ce68",
+   "size": 28,
+   "refs": 1
+  },
+  "recTable": {
+   "addr": "0x802a360",
+   "size": 22528,
+   "refs": 2
+  },
+  "refresh_i": {
+   "addr": "0x20061189",
+   "size": 1,
+   "refs": 3
+  },
+  "refresh_j": {
+   "addr": "0x2006118a",
+   "size": 1,
+   "refs": 3
+  },
+  "retSD": {
+   "addr": "0x20061610",
+   "size": 1,
+   "refs": 2
+  },
+  "retriggerNames": {
+   "addr": "0x803ce84",
+   "size": 32,
+   "refs": 1
+  },
+  "reverbNames": {
+   "addr": "0x803cea4",
+   "size": 8,
+   "refs": 1
+  },
+  "rollRateNames": {
+   "addr": "0x803ceac",
+   "size": 60,
+   "refs": 1
+  },
+  "saveScreenPots": {
+   "addr": "0x2006118c",
+   "size": 4,
+   "refs": 2
+  },
+  "savefileNames": {
+   "addr": "0x20020d34",
+   "size": 2048,
+   "refs": 13
+  },
+  "sawTable": {
+   "addr": "0x802fb60",
+   "size": 22528,
+   "refs": 4
+  },
+  "screensaver_Active": {
+   "addr": "0x20061195",
+   "size": 1,
+   "refs": 8
+  },
+  "screensaver_Timeout": {
+   "addr": "0x20020110",
+   "size": 4,
+   "refs": 2
+  },
+  "screensaver_activeCell": {
+   "addr": "0x20061196",
+   "size": 1,
+   "refs": 1
+  },
+  "screensaver_cellState": {
+   "addr": "0x20020114",
+   "size": 1,
+   "refs": 2
+  },
+  "screensaver_processTime": {
+   "addr": "0x20061198",
+   "size": 4,
+   "refs": 1
+  },
+  "screensaver_rng": {
+   "addr": "0x2006119c",
+   "size": 2,
+   "refs": 1
+  },
+  "screensaver_timer": {
+   "addr": "0x200611a0",
+   "size": 4,
+   "refs": 3
+  },
+  "selectedStepLed": {
+   "addr": "0x200200f9",
+   "size": 1,
+   "refs": 4
+  },
+  "seq_activeAutomTrack": {
+   "addr": "0x2002307a",
+   "size": 1,
+   "refs": 1
+  },
+  "seq_activePattern": {
+   "addr": "0x2002307b",
+   "size": 1,
+   "refs": 17
+  },
+  "seq_activeSong": {
+   "addr": "0x2002307c",
+   "size": 4,
+   "refs": 10
+  },
+  "seq_armedArmedAutomationStep": {
+   "addr": "0x20020106",
+   "size": 1,
+   "refs": 2
+  },
+  "seq_armedArmedAutomationTrack": {
+   "addr": "0x20020107",
+   "size": 1,
+   "refs": 2
+  },
+  "seq_automationNodes": {
+   "addr": "0x20023080",
+   "size": 28,
+   "refs": 2
+  },
+  "seq_deltaT": {
+   "addr": "0x2002309c",
+   "size": 4,
+   "refs": 4
+  },
+  "seq_eraseActive": {
+   "addr": "0x200230a0",
+   "size": 1,
+   "refs": 1
+  },
+  "seq_isSyncExternal": {
+   "addr": "0x200230a1",
+   "size": 1,
+   "refs": 2
+  },
+  "seq_lastMasterStep": {
+   "addr": "0x200230a4",
+   "size": 7,
+   "refs": 5
+  },
+  "seq_lastShuffle": {
+   "addr": "0x200230ac",
+   "size": 4,
+   "refs": 4
+  },
+  "seq_lastTick": {
+   "addr": "0x200230b0",
+   "size": 4,
+   "refs": 2
+  },
+  "seq_loadPendigFlag": {
+   "addr": "0x200230b4",
+   "size": 1,
+   "refs": 2
+  },
+  "seq_masterStepCnt": {
+   "addr": "0x200230b5",
+   "size": 1,
+   "refs": 4
+  },
+  "seq_mutedTracks": {
+   "addr": "0x200230b6",
+   "size": 1,
+   "refs": 3
+  },
+  "seq_patternSet": {
+   "addr": "0x200230b8",
+   "size": 233536,
+   "refs": 45
+  },
+  "seq_pendingPattern": {
+   "addr": "0x2005c0f8",
+   "size": 1,
+   "refs": 4
+  },
+  "seq_prescaleCounter": {
+   "addr": "0x2005c0f9",
+   "size": 1,
+   "refs": 7
+  },
+  "seq_recordActive": {
+   "addr": "0x2005c0fa",
+   "size": 1,
+   "refs": 4
+  },
+  "seq_resetBarOnPatternChange": {
+   "addr": "0x2005c0fb",
+   "size": 1,
+   "refs": 1
+  },
+  "seq_rndValue": {
+   "addr": "0x2005c0fc",
+   "size": 21,
+   "refs": 2
+  },
+  "seq_rollRate": {
+   "addr": "0x20020109",
+   "size": 1,
+   "refs": 3
+  },
+  "seq_rollState": {
+   "addr": "0x2005c111",
+   "size": 1,
+   "refs": 2
+  },
+  "seq_running": {
+   "addr": "0x2005c112",
+   "size": 1,
+   "refs": 7
+  },
+  "seq_selectedStep": {
+   "addr": "0x2005c113",
+   "size": 1,
+   "refs": 2
+  },
+  "seq_shuffle": {
+   "addr": "0x2005c114",
+   "size": 4,
+   "refs": 6
+  },
+  "seq_songData": {
+   "addr": "0x2005c118",
+   "size": 4096,
+   "refs": 5
+  },
+  "seq_songModeEnabled": {
+   "addr": "0x2005d118",
+   "size": 1,
+   "refs": 2
+  },
+  "seq_songPositionPointer": {
+   "addr": "0x2005d119",
+   "size": 1,
+   "refs": 6
+  },
+  "seq_stepIndex": {
+   "addr": "0x2005d11c",
+   "size": 7,
+   "refs": 10
+  },
+  "seq_stepToSkip": {
+   "addr": "0x2005d124",
+   "size": 7,
+   "refs": 2
+  },
+  "seq_tempo": {
+   "addr": "0x2002010a",
+   "size": 2,
+   "refs": 5
+  },
+  "shortNames": {
+   "addr": "0x803cee8",
+   "size": 332,
+   "refs": 1
+  },
+  "sine_table": {
+   "addr": "0x20006870",
+   "size": 8194,
+   "refs": 6
+  },
+  "snareVoice": {
+   "addr": "0x2000a168",
+   "size": 368,
+   "refs": 39
+  },
+  "spi1": {
+   "addr": "0x20020cbc",
+   "size": 4,
+   "refs": 2
+  },
+  "stepFlamNames": {
+   "addr": "0x803d034",
+   "size": 28,
+   "refs": 1
+  },
+  "stepShiftNames": {
+   "addr": "0x803d050",
+   "size": 64,
+   "refs": 1
+  },
+  "sucessTimer": {
+   "addr": "0x20061190",
+   "size": 4,
+   "refs": 3
+  },
+  "syncRateNames": {
+   "addr": "0x803d090",
+   "size": 52,
+   "refs": 1
+  },
+  "syncTrigger_writePos": {
+   "addr": "0x20021534",
+   "size": 1,
+   "refs": 1
+  },
+  "sync_clockCnt": {
+   "addr": "0x200221df",
+   "size": 1,
+   "refs": 2
+  },
+  "sync_delayedStepTimer": {
+   "addr": "0x200221e0",
+   "size": 4,
+   "refs": 2
+  },
+  "sync_timeLast": {
+   "addr": "0x200221e4",
+   "size": 4,
+   "refs": 2
+  },
+  "sync_window@TriggerOut.c": {
+   "addr": "0x20021538",
+   "size": 32,
+   "refs": 1
+  },
+  "sync_window@clockSync.c": {
+   "addr": "0x200221e8",
+   "size": 32,
+   "refs": 1
+  },
+  "sync_writePos": {
+   "addr": "0x20022208",
+   "size": 1,
+   "refs": 1
+  },
+  "systick_ticks": {
+   "addr": "0x20009088",
+   "size": 4,
+   "refs": 16
+  },
+  "table_1n914": {
+   "addr": "0x20008878",
+   "size": 1028,
+   "refs": 2
+  },
+  "transientData": {
+   "addr": "0x20000000",
+   "size": 26460,
+   "refs": 1
+  },
+  "transientNames": {
+   "addr": "0x803d0c4",
+   "size": 60,
+   "refs": 1
+  },
+  "triTable": {
+   "addr": "0x8035360",
+   "size": 22528,
+   "refs": 2
+  },
+  "trigger_clockCnt": {
+   "addr": "0x20021558",
+   "size": 1,
+   "refs": 2
+  },
+  "trigger_clockReceived": {
+   "addr": "0x20021559",
+   "size": 1,
+   "refs": 3
+  },
+  "trigger_dividerClockOut1": {
+   "addr": "0x20020100",
+   "size": 1,
+   "refs": 3
+  },
+  "trigger_nextPulseOut1": {
+   "addr": "0x20020101",
+   "size": 1,
+   "refs": 2
+  },
+  "trigger_prescaleCounterClockInput": {
+   "addr": "0x2002155a",
+   "size": 1,
+   "refs": 1
+  },
+  "trigger_prescalerClockInput": {
+   "addr": "0x20020102",
+   "size": 1,
+   "refs": 2
+  },
+  "trigger_timeLast": {
+   "addr": "0x2002155c",
+   "size": 4,
+   "refs": 1
+  },
+  "usb_MidiInBuff": {
+   "addr": "0x20061614",
+   "size": 128,
+   "refs": 4
+  },
+  "usb_MidiInRdPtr": {
+   "addr": "0x20020288",
+   "size": 4,
+   "refs": 1
+  },
+  "usb_MidiInWrPtr": {
+   "addr": "0x2002028c",
+   "size": 4,
+   "refs": 2
+  },
+  "usb_MidiMessages": {
+   "addr": "0x20061694",
+   "size": 512,
+   "refs": 2
+  },
+  "usb_MidiMessagesRead": {
+   "addr": "0x20061894",
+   "size": 1,
+   "refs": 1
+  },
+  "usb_MidiMessagesWrite": {
+   "addr": "0x20061895",
+   "size": 1,
+   "refs": 2
+  },
+  "uwTick": {
+   "addr": "0x200611a4",
+   "size": 4,
+   "refs": 1
+  },
+  "uwTickFreq": {
+   "addr": "0x20020115",
+   "size": 1,
+   "refs": 3
+  },
+  "uwTickPrio": {
+   "addr": "0x20020118",
+   "size": 4,
+   "refs": 2
+  },
+  "valueNames": {
+   "addr": "0x803d100",
+   "size": 330,
+   "refs": 2
+  },
+  "velocityModulators": {
+   "addr": "0x2000a320",
+   "size": 96,
+   "refs": 12
+  },
+  "visibleCursor": {
+   "addr": "0x20061194",
+   "size": 1,
+   "refs": 5
+  },
+  "voiceArray": {
+   "addr": "0x200097a0",
+   "size": 2112,
+   "refs": 49
+  },
+  "waveformNames": {
+   "addr": "0x803d24c",
+   "size": 28,
+   "refs": 1
+  }
+ },
+ "conflicts": {},
+ "not_recovered_functions": [
+  "HAL_DMA_IRQHandler",
+  "HAL_PCD_ConnectCallback",
+  "HAL_PCD_DisconnectCallback",
+  "HAL_PCD_IRQHandler",
+  "HAL_PCD_ISOINIncompleteCallback",
+  "HAL_PCD_ISOOUTIncompleteCallback",
+  "HAL_PCD_ResumeCallback",
+  "HAL_PCD_SOFCallback",
+  "HAL_RNG_GetRandomNumber",
+  "SDMMC_PowerState_ON",
+  "SPI_EndRxTransaction",
+  "SPI_WaitFifoStateUntilTimeout.constprop.0",
+  "UART_SetConfig",
+  "UART_WaitOnFlagUntilTimeout",
+  "USB_FlushTxFifo",
+  "USB_ReadPacket",
+  "__math_check_oflow",
+  "__math_check_uflow",
+  "__math_invalidf"
+ ]
+}
