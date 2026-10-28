@@ -121,6 +121,7 @@ impl Layout {
         for v in 0..6 {
             let mut params: Vec<u16> = Vec::new();
             let pages: &[usize] = if v == 5 { &[5, 6] } else { &[v] };
+            #[allow(clippy::needless_range_loop)]
             for s in 0..Section::VOICE_SECTIONS.len() {
                 for &page in pages {
                     for (_, p) in VOICE_PAGES[page][s] {

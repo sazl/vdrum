@@ -8,6 +8,9 @@
 use lxr_params::kit::{Kit, KIT_PARAMS};
 use lxr_params::{par, GLOBAL_PARAMS, NUM_PARAMS};
 
+/// Kit slots of the firmware (`NUM_KIT_SLOTS`, the size of `mainParameters`).
+pub const KIT_SLOTS: u8 = 64;
+
 /// Frames per engine tick.
 pub const TICK_FRAMES: usize = 64;
 /// The engine's nominal sample rate (pass-through at this host rate).
@@ -50,6 +53,11 @@ pub trait Engine: Send {
     /// Move voice fader `i` (0..6: Drum 1..3, Snare, Cymbal, Hi-hat) to a 16 bit ADC reading (12
     /// bits, left aligned), as the hardware's `adc_checkFaders` reads it. The default ignores it.
     fn set_fader_adc(&mut self, _i: usize, _adc: u16) {}
+    /// Whether the engine stopped after an internal error (it then renders silence and ignores
+    /// input until the plugin replaces it in `initialize()`).
+    fn faulted(&self) -> bool {
+        false
+    }
 }
 
 /// The `lxr-core` port: the LXR-02 sound engine (`docs/ENGINE_CONTRACT.md`), wrapped so that the
@@ -62,26 +70,47 @@ pub trait Engine: Send {
 ///   name (`savefileNames[0][KIT_NAMES]`, set by `load_kit`) and `activeParameters[0..247]`.
 /// * `load_kit` accepts 8..=255 bytes (anything else is ignored).
 /// * Faders start at the top (the contract's power-on state) and move through `set_fader_adc`.
-pub struct LxrEngine(pub lxr_core::Lxr);
+///
+/// Last-resort safety net: a panic inside the engine (a bug: e.g. an index the C code would read
+/// out of bounds) must not unwind into the host, which aborts it. It is caught, the engine is
+/// marked faulted, renders silence and ignores all input from then on; `VDrum::initialize()`
+/// replaces a faulted engine (outside the audio thread). Unwinding allocates, so this is not
+/// real-time safe; it only runs on that bug path.
+pub struct LxrEngine(pub lxr_core::Lxr, bool);
+
+impl LxrEngine {
+    /// Runs an engine call unless the engine is faulted; marks it faulted if the call panics.
+    fn guarded<R>(&mut self, f: impl FnOnce(&mut lxr_core::Lxr) -> R) -> Option<R> {
+        if self.1 {
+            return None;
+        }
+        let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| f(&mut self.0))).ok();
+        self.1 = r.is_none();
+        r
+    }
+}
 
 impl Engine for LxrEngine {
     fn new() -> Box<Self> {
         // `Lxr` itself is about 14 kB; its large buffers are boxed by `Lxr::new_zeroed`.
-        Box::new(LxrEngine(lxr_core::Lxr::new()))
+        Box::new(LxrEngine(lxr_core::Lxr::new(), false))
     }
 
     fn midi_byte(&mut self, b: u8) {
-        self.0.midi_byte(b);
+        self.guarded(|e| e.midi_byte(b));
     }
 
     fn tick(&mut self) -> Block {
-        let b = self.0.tick();
-        Block { dac1: b.dac1, dac2: b.dac2 }
+        self.guarded(|e| {
+            let b = e.tick();
+            Block { dac1: b.dac1, dac2: b.dac2 }
+        })
+        .unwrap_or_default()
     }
 
     fn set_parameter(&mut self, param: u16, value: u16) {
         if param < NUM_PARAMS {
-            self.0.set_parameter(param, value.min(255) as u8);
+            self.guarded(|e| e.set_parameter(param, value.min(255) as u8));
         }
     }
 
@@ -91,7 +120,7 @@ impl Engine for LxrEngine {
 
     fn load_kit(&mut self, kit: &[u8]) {
         if (8..=8 + KIT_PARAMS).contains(&kit.len()) {
-            self.0.load_kit(kit);
+            self.guarded(|e| e.load_kit(kit));
         }
     }
 
@@ -104,8 +133,12 @@ impl Engine for LxrEngine {
 
     fn set_fader_adc(&mut self, i: usize, adc: u16) {
         if i < 6 {
-            self.0.set_fader_adc(i, adc);
+            self.guarded(|e| e.set_fader_adc(i, adc));
         }
+    }
+
+    fn faulted(&self) -> bool {
+        self.1
     }
 }
 

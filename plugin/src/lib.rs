@@ -162,6 +162,12 @@ impl Plugin for VDrum {
             (None, Some(e)) => e,
             (None, None) => new_engine(),
         };
+        if engine.faulted() {
+            // The engine hit an internal error (see `LxrEngine`); start over. The host
+            // parameters below restore the kit and the settings.
+            nih_log!("VDrum: the engine stopped after an internal error and was restarted");
+            engine = new_engine();
+        }
 
         let ieee = fp::IeeeGuard::new();
         // State restored by the host: the kit and the global settings are authoritative.
@@ -363,6 +369,14 @@ fn apply_event<E: Engine>(e: &mut E, shared: &Shared, midi_applied: &Cell<bool>,
     let _ieee = fp::IeeeGuard::new();
     match ev {
         Ev::Midi { bytes, len } => {
+            // TEMPORARY WORKAROUND (remove once lxr-core handles it): CC 0 (bank change) loads
+            // kit slot `value` (`frontPanel_ccHandler` -> `preset_loadDrumsetRam`). The firmware
+            // has 64 slots and reads past `mainParameters` for values 64..=127; lxr-core (as of
+            // c1c8c37) panics there: `Lxr::midi(&[0xB0, 0, 93])`, index out of bounds at
+            // crates/lxr-core/src/preset/mod.rs:174. Such messages are dropped.
+            if len == 3 && bytes[0] & 0xf0 == 0xb0 && bytes[1] == 0 && bytes[2] >= engine::KIT_SLOTS {
+                return;
+            }
             for b in &bytes[..len as usize] {
                 e.midi_byte(*b);
             }

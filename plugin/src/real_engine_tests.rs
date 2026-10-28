@@ -44,10 +44,10 @@ fn load(path: &std::path::Path) -> Option<Scenario> {
                 ScEv::Midi(m.as_array()?.iter().map(|b| b.as_u64().unwrap() as u8).collect())
             } else if let Some(p) = e.get("set_parameter") {
                 ScEv::Param(p["param"].as_u64()? as u16, p["value"].as_u64()? as u16)
-            } else if let Some(f) = e.get("fader") {
-                ScEv::Fader(f["index"].as_u64()? as u8, f["adc"].as_u64()? as u16)
             } else {
-                return None;
+                // Anything else (kit loads) makes the scenario unusable here.
+                let f = e.get("fader")?;
+                ScEv::Fader(f["index"].as_u64()? as u8, f["adc"].as_u64()? as u16)
             };
             events.push((tick, ev));
         }
@@ -248,4 +248,26 @@ fn save_kit_roundtrips_through_load_kit() {
     e2.set_parameter(9999, 1);
     assert_eq!(e2.get_parameter(9999), 0);
     e2.load_kit(&[0; 3]);
+}
+
+#[test]
+fn engine_panic_marks_the_engine_faulted_and_silent() {
+    // Bank change to slot 93 (the plugin filters it out before the engine; see apply_event).
+    let mut e = LxrEngine::new();
+    for b in [0x90, 36, 127] {
+        e.midi_byte(b);
+    }
+    for b in [0xb0, 0, 93] {
+        e.midi_byte(b);
+    }
+    if e.faulted() {
+        let b = e.tick();
+        assert!(b.dac1.iter().chain(b.dac2.iter()).all(|s| *s == 0));
+        e.set_parameter(lxr_params::par::COARSE1, 3); // ignored, no panic
+    }
+    // Through the plugin's event path it is dropped and the engine keeps running.
+    let shared = Shared::new();
+    let mut e = LxrEngine::new();
+    apply_event(&mut *e, &shared, &Cell::new(false), Ev::midi([0xb0, 0, 93]));
+    assert!(!e.faulted());
 }
