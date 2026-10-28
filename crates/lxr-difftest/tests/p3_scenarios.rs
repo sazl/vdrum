@@ -80,13 +80,15 @@ fn scenarios_match_reference_hashes() {
 
 /// Runs `sc` on `Lxr` and the emulator; compares output every block and the state after every event and
 /// every `state_every` blocks. Returns the first difference.
-fn run_pair(sc: &Scenario, mut p: Pair, state_every: u64) -> Result<(), String> {
+/// `Ok(true)`: the state comparison with the reference ELF stopped at a pointer-layout divergence
+/// (`Pair::elf_layout_diverged`); the output was compared to the end.
+fn run_pair(sc: &Scenario, mut p: Pair, state_every: u64) -> Result<bool, String> {
     let sched = sc.schedule();
     let mut i = 0;
     for t in 0..sc.ticks {
         while i < sched.len() && sched[i].0 == t {
             p.event(sched[i].1);
-            let d = state_diff(&p.l, &p.emu, p.ignore);
+            let d = p.diff();
             if !d.is_empty() {
                 return Err(format!("tick {t}, after event {:?}: state differs: {d:?}", sched[i].1));
             }
@@ -98,20 +100,20 @@ fn run_pair(sc: &Scenario, mut p: Pair, state_every: u64) -> Result<(), String> 
             return Err(format!("block {t}: output differs"));
         }
         if state_every != 0 && (t + 1) % state_every == 0 {
-            let d = state_diff(&p.l, &p.emu, p.ignore);
+            let d = p.diff();
             if !d.is_empty() {
                 return Err(format!("after block {t}: state differs: {d:?}"));
             }
         }
     }
-    let d = state_diff(&p.l, &p.emu, p.ignore);
+    let d = p.diff();
     if !d.is_empty() {
         return Err(format!("at the end: state differs: {d:?}"));
     }
     if p.l.rng_state != p.emu.rng_state() {
         return Err("RNG state differs".into());
     }
-    Ok(())
+    Ok(p.elf_layout_diverged())
 }
 
 /// All scenarios side by side with each available firmware build (output and full engine state).
@@ -123,6 +125,7 @@ fn scenarios_match_emulator() {
         let scs = scenarios();
         for (build, make) in builds() {
             let mut bad = Vec::new();
+            let mut output_only = Vec::new();
             let mut blocks = 0;
             let probe = make();
             eprintln!("{build}: comparing {} of {} globals", compared_globals(&probe), lxr_core::cmem::GLOBALS.len());
@@ -133,15 +136,22 @@ fn scenarios_match_emulator() {
                 }
                 let p = Pair::new(make());
                 // power-on state
-                let d = state_diff(&p.l, &p.emu, p.ignore);
+                let d = p.diff();
                 assert!(d.is_empty(), "{build}: state after power-on differs: {d:?}");
-                if let Err(e) = run_pair(sc, p, state_every) {
-                    eprintln!("{build} {}: {e}", sc.name);
-                    bad.push(sc.name.clone());
+                match run_pair(sc, p, state_every) {
+                    Err(e) => {
+                        eprintln!("{build} {}: {e}", sc.name);
+                        bad.push(sc.name.clone());
+                    }
+                    Ok(true) => output_only.push(sc.name.clone()),
+                    Ok(false) => {}
                 }
                 blocks += sc.ticks;
             }
             eprintln!("{build}: {} scenarios, {blocks} blocks, {} differ", scs.len(), bad.len());
+            if !output_only.is_empty() {
+                eprintln!("{build}: state compared until the parameterArray pointer layouts diverged in {output_only:?}");
+            }
             assert!(bad.is_empty(), "{build}: scenarios differing from the emulator: {bad:?}");
         }
     });

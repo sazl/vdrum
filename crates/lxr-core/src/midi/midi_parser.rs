@@ -91,6 +91,10 @@ pub const RECIP_127: f32 = f32::from_bits(0x3c010204);
 /// The GCC 11.3 ELF has the same store at offset 0xe4f0 (0x200319c0 - 0x200234d0).
 pub const CC0_OOB_PATTERNSET_OFFSET: u32 = 0xe4e8;
 
+/// `parameterArray` follows `midiParser_originalCcValues` at this offset in both builds (after
+/// `midiParser_routing`, `midi_MidiChannels`, `active_voices` and padding).
+pub const PARAMETER_ARRAY_CC_OFFSET: u32 = 0x110;
+
 // ---- functions without access to globals
 /// C: `static inline float calcPitchModAmount(uint8_t data2)`
 ///
@@ -167,6 +171,24 @@ impl Lxr {
             self.midiParser_originalCcValues[idx as usize] = v;
         } else if idx == 0x10000 {
             self.seq_patternSet.set_byte(CC0_OOB_PATTERNSET_OFFSET, v);
+        } else if let Some(k) = idx.checked_sub(PARAMETER_ARRAY_CC_OFFSET).filter(|o| o % 8 < 4) {
+            // a byte of `parameterArray[k / 8].ptr`: the firmware changes a byte of the shipped address of the
+            // pointer target, so do the byte arithmetic on that address (the relative layout of the target
+            // objects differs between the shipped image and the reference ELF, whose addresses `CPtr` holds)
+            let e = &mut self.parameterArray[(k / 8) as usize];
+            let sh = (k % 8) * 8;
+            match crate::midi::shipped_layout::to_shipped(e.ptr) {
+                Some(s) => {
+                    let s2 = (s & !(0xff << sh)) | ((v as u32) << sh);
+                    e.ptr = match crate::midi::shipped_layout::from_shipped(s2) {
+                        Some(p) => p,
+                        // outside the modelled objects (e.g. beyond the end of RAM): the pointer keeps the
+                        // shipped address; any access through it panics in `cptr_*` (a bus fault on the device)
+                        None => s2,
+                    };
+                }
+                None => e.ptr = (e.ptr & !(0xff << sh)) | ((v as u32) << sh),
+            }
         } else {
             self.global_set_byte(crate::memmap::ADDR_midiParser_originalCcValues + idx, v);
         }
