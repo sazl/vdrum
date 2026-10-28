@@ -7,7 +7,7 @@
 
 use anyhow::{anyhow, bail, Context, Result};
 use std::collections::HashMap;
-use unicorn_engine::{ArmCpuModel, Arch, Mode, Prot, RegisterARM, Unicorn};
+use unicorn_engine::{Arch, ArmCpuModel, Mode, Prot, RegisterARM, Unicorn};
 
 pub const FLASH_BASE: u64 = 0x0800_0000;
 pub const FLASH_SIZE: u64 = 0x0010_0000;
@@ -60,7 +60,10 @@ pub struct Firmware {
 
 impl Firmware {
     fn new_machine() -> Result<Unicorn<'static, HookState>> {
-        let mut uc = Unicorn::new_with_data(Arch::ARM, Mode::THUMB | Mode::MCLASS, HookState::default())
+        // Note: with Mode::MCLASS Unicorn ignores the CPU model and always emulates a
+        // Cortex-M33 (single-precision FPU only). Without it, the CORTEX_M7 model is used
+        // (M profile, FPv5 with double precision, MVFR0 = 0x10110221).
+        let mut uc = Unicorn::new_with_data(Arch::ARM, Mode::THUMB, HookState::default())
             .map_err(|e| anyhow!("unicorn init: {e:?}"))?;
         uc.ctl_set_cpu_model(ArmCpuModel::CORTEX_M7 as i32)
             .map_err(|e| anyhow!("cpu model: {e:?}"))?;
@@ -73,29 +76,34 @@ impl Firmware {
             (STACK_BASE, STACK_SIZE),
             (RETURN_TRAP, 0x1000),
         ] {
-            uc.mem_map(base, size, rwx).map_err(|e| anyhow!("map {base:#x}: {e:?}"))?;
+            uc.mem_map(base, size, rwx)
+                .map_err(|e| anyhow!("map {base:#x}: {e:?}"))?;
         }
         // Peripherals (APB/AHB) and the system control space as MMIO.
         for (base, size) in [(0x4000_0000u64, 0x2000_0000u64), (0xE000_0000, 0x0010_0000)] {
             uc.mmio_map(
                 base,
                 size,
-                Some(move |uc: &mut Unicorn<HookState>, off: u64, sz: usize| -> u64 {
-                    let addr = base + off;
-                    let v = *uc.get_data().mmio_values.get(&addr).unwrap_or(&0);
-                    if uc.get_data().log_mmio {
-                        let pc = uc.reg_read(RegisterARM::PC).unwrap_or(0);
-                        uc.get_data_mut().mmio_log.push((pc, addr, sz, false, v));
-                    }
-                    v
-                }),
-                Some(move |uc: &mut Unicorn<HookState>, off: u64, sz: usize, val: u64| {
-                    let addr = base + off;
-                    if uc.get_data().log_mmio {
-                        let pc = uc.reg_read(RegisterARM::PC).unwrap_or(0);
-                        uc.get_data_mut().mmio_log.push((pc, addr, sz, true, val));
-                    }
-                }),
+                Some(
+                    move |uc: &mut Unicorn<HookState>, off: u64, sz: usize| -> u64 {
+                        let addr = base + off;
+                        let v = *uc.get_data().mmio_values.get(&addr).unwrap_or(&0);
+                        if uc.get_data().log_mmio {
+                            let pc = uc.reg_read(RegisterARM::PC).unwrap_or(0);
+                            uc.get_data_mut().mmio_log.push((pc, addr, sz, false, v));
+                        }
+                        v
+                    },
+                ),
+                Some(
+                    move |uc: &mut Unicorn<HookState>, off: u64, sz: usize, val: u64| {
+                        let addr = base + off;
+                        if uc.get_data().log_mmio {
+                            let pc = uc.reg_read(RegisterARM::PC).unwrap_or(0);
+                            uc.get_data_mut().mmio_log.push((pc, addr, sz, true, val));
+                        }
+                    },
+                ),
             )
             .map_err(|e| anyhow!("mmio map {base:#x}: {e:?}"))?;
         }
@@ -138,8 +146,15 @@ impl Firmware {
                 if name.is_empty() || matches!(s.kind(), SymbolKind::Section | SymbolKind::File) {
                     continue;
                 }
-                let addr = if s.kind() == SymbolKind::Text { s.address() & !1 } else { s.address() };
-                symbols.entry(name.to_string()).or_insert(Symbol { addr: addr as u32, size: s.size() as u32 });
+                let addr = if s.kind() == SymbolKind::Text {
+                    s.address() & !1
+                } else {
+                    s.address()
+                };
+                symbols.entry(name.to_string()).or_insert(Symbol {
+                    addr: addr as u32,
+                    size: s.size() as u32,
+                });
             }
         }
         Ok(Self::finish(uc, symbols))
@@ -151,16 +166,43 @@ impl Firmware {
     /// firmware's own startup code.
     pub fn from_bin(bin: &[u8], symbols: HashMap<String, Symbol>) -> Result<Self> {
         let mut uc = Self::new_machine()?;
-        uc.mem_write(APP_BASE, bin).map_err(|e| anyhow!("write bin: {e:?}"))?;
+        uc.mem_write(APP_BASE, bin)
+            .map_err(|e| anyhow!("write bin: {e:?}"))?;
         Ok(Self::finish(uc, symbols))
     }
 
     fn finish(uc: Unicorn<'static, HookState>, symbols: HashMap<String, Symbol>) -> Self {
-        Firmware { uc, symbols, scratch_next: SCRATCH_BASE, fpscr: FPSCR_FZ, insn_limit: 0 }
+        let mut fw = Firmware {
+            uc,
+            symbols,
+            scratch_next: SCRATCH_BASE,
+            fpscr: FPSCR_FZ,
+            insn_limit: 0,
+        };
+        fw.create_fp_context();
+        fw
+    }
+
+    /// The emulated core implements the ARMv7-M lazy FP context rules: the first FP
+    /// instruction executed while CONTROL.FPCA = 0 loads FPSCR[26:22] from FPDSCR (0 here;
+    /// the SCB is replaced by our MMIO stub) and sets FPCA. Execute one FP instruction now
+    /// so that the FPSCR written by `call_addr` is the one in effect from the first call on.
+    fn create_fp_context(&mut self) {
+        let code: [u16; 3] = [0xEEB0, 0x0A40, 0x4770]; // vmov.f32 s0, s0 ; bx lr
+        let at = (RETURN_TRAP + 0x10) as u32;
+        let bytes: Vec<u8> = code.iter().flat_map(|h| h.to_le_bytes()).collect();
+        self.write(at, &bytes).expect("write FP context stub");
+        let f = self.fpscr;
+        self.fpscr = 0;
+        self.call_addr(at, &[], &[]).expect("FP context stub");
+        self.fpscr = f;
     }
 
     pub fn sym(&self, name: &str) -> Result<Symbol> {
-        self.symbols.get(name).copied().ok_or_else(|| anyhow!("unknown symbol {name}"))
+        self.symbols
+            .get(name)
+            .copied()
+            .ok_or_else(|| anyhow!("unknown symbol {name}"))
     }
 
     pub fn addr(&self, name: &str) -> Result<u32> {
@@ -183,11 +225,15 @@ impl Firmware {
     }
 
     pub fn read(&self, addr: u32, len: usize) -> Result<Vec<u8>> {
-        self.uc.mem_read_as_vec(addr as u64, len).map_err(|e| anyhow!("read {addr:#x}+{len}: {e:?}"))
+        self.uc
+            .mem_read_as_vec(addr as u64, len)
+            .map_err(|e| anyhow!("read {addr:#x}+{len}: {e:?}"))
     }
 
     pub fn write(&mut self, addr: u32, bytes: &[u8]) -> Result<()> {
-        self.uc.mem_write(addr as u64, bytes).map_err(|e| anyhow!("write {addr:#x}: {e:?}"))
+        self.uc
+            .mem_write(addr as u64, bytes)
+            .map_err(|e| anyhow!("write {addr:#x}: {e:?}"))
     }
 
     pub fn read_u8(&self, addr: u32) -> Result<u8> {
@@ -210,7 +256,9 @@ impl Firmware {
     }
     pub fn read_i16s(&self, addr: u32, n: usize) -> Result<Vec<i16>> {
         let b = self.read(addr, n * 2)?;
-        Ok(b.chunks_exact(2).map(|c| i16::from_le_bytes([c[0], c[1]])).collect())
+        Ok(b.chunks_exact(2)
+            .map(|c| i16::from_le_bytes([c[0], c[1]]))
+            .collect())
     }
     pub fn write_u8(&mut self, addr: u32, v: u8) -> Result<()> {
         self.write(addr, &[v])
@@ -232,7 +280,11 @@ impl Firmware {
     /// Replace a firmware function with a host closure. The closure runs when the
     /// function is entered and must set the return registers; the harness then
     /// returns to the caller (LR).
-    pub fn intercept(&mut self, addr: u32, mut f: impl for<'a> FnMut(&mut Unicorn<'a, HookState>) + 'static) -> Result<()> {
+    pub fn intercept(
+        &mut self,
+        addr: u32,
+        mut f: impl for<'a> FnMut(&mut Unicorn<'a, HookState>) + 'static,
+    ) -> Result<()> {
         let a = (addr & !1) as u64;
         self.uc
             .add_code_hook(a, a, move |uc, _addr, _size| {
@@ -250,7 +302,12 @@ impl Firmware {
         if floats.len() > 16 {
             bail!("too many float args");
         }
-        let regs = [RegisterARM::R0, RegisterARM::R1, RegisterARM::R2, RegisterARM::R3];
+        let regs = [
+            RegisterARM::R0,
+            RegisterARM::R1,
+            RegisterARM::R2,
+            RegisterARM::R3,
+        ];
         let mut sp = STACK_BASE + STACK_SIZE - 0x100;
         let stack_args = if ints.len() > 4 { &ints[4..] } else { &[][..] };
         sp -= (stack_args.len() as u64 * 4 + 7) & !7;
@@ -258,16 +315,24 @@ impl Firmware {
             self.write_u32((sp + 4 * i as u64) as u32, *v)?;
         }
         for (i, v) in ints.iter().take(4).enumerate() {
-            self.uc.reg_write(regs[i], *v as u64).map_err(|e| anyhow!("{e:?}"))?;
+            self.uc
+                .reg_write(regs[i], *v as u64)
+                .map_err(|e| anyhow!("{e:?}"))?;
         }
         for (i, v) in floats.iter().enumerate() {
             self.uc
                 .reg_write(RegisterARM::S0 as i32 + i as i32, v.to_bits() as u64)
                 .map_err(|e| anyhow!("{e:?}"))?;
         }
-        self.uc.reg_write(RegisterARM::SP, sp).map_err(|e| anyhow!("{e:?}"))?;
-        self.uc.reg_write(RegisterARM::LR, RETURN_TRAP | 1).map_err(|e| anyhow!("{e:?}"))?;
-        self.uc.reg_write(RegisterARM::FPSCR, self.fpscr as u64).map_err(|e| anyhow!("{e:?}"))?;
+        self.uc
+            .reg_write(RegisterARM::SP, sp)
+            .map_err(|e| anyhow!("{e:?}"))?;
+        self.uc
+            .reg_write(RegisterARM::LR, RETURN_TRAP | 1)
+            .map_err(|e| anyhow!("{e:?}"))?;
+        self.uc
+            .reg_write(RegisterARM::FPSCR, self.fpscr as u64)
+            .map_err(|e| anyhow!("{e:?}"))?;
         self.uc
             .emu_start((addr | 1) as u64, RETURN_TRAP, 0, self.insn_limit)
             .map_err(|e| {
@@ -278,8 +343,14 @@ impl Firmware {
         if pc & !1 != RETURN_TRAP {
             bail!("call {addr:#x} stopped at pc={pc:#x} (instruction limit?)");
         }
-        let r0 = self.uc.reg_read(RegisterARM::R0).map_err(|e| anyhow!("{e:?}"))? as u32;
-        let s0 = self.uc.reg_read(RegisterARM::S0).map_err(|e| anyhow!("{e:?}"))? as u32;
+        let r0 = self
+            .uc
+            .reg_read(RegisterARM::R0)
+            .map_err(|e| anyhow!("{e:?}"))? as u32;
+        let s0 = self
+            .uc
+            .reg_read(RegisterARM::S0)
+            .map_err(|e| anyhow!("{e:?}"))? as u32;
         Ok((r0, f32::from_bits(s0)))
     }
 
