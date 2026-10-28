@@ -15,6 +15,7 @@ const MAX_BLOCK: usize = 256;
 struct Ctx {
     fw: Firmware,
     lxr: Box<Lxr>,
+    rng: std::rc::Rc<std::cell::Cell<u32>>,
     bus: u32,
     fxbuf: u32,
     fxptr: u32,
@@ -24,13 +25,14 @@ struct Ctx {
 
 fn new_ctx() -> Option<Ctx> {
     let mut fw = setup()?;
+    let rng = hook_rng(&mut fw);
     let bus = fw.addr("fxBus").unwrap();
     assert_eq!(fw.sym("fxBus").unwrap().size, 352);
     let fxbuf = fw.addr("FX_BUFFER").unwrap();
     let fxptr = fw.alloc(MAX_BLOCK * 4).unwrap();
     let outptr = fw.alloc(MAX_BLOCK * 4 + 8).unwrap();
     let out2ptr = fw.alloc(MAX_BLOCK * 4 + 8).unwrap();
-    Some(Ctx { fw, lxr: Box::new(Lxr::new_zeroed()), bus, fxbuf, fxptr, outptr, out2ptr })
+    Some(Ctx { fw, lxr: Box::new(Lxr::new_zeroed()), rng, bus, fxbuf, fxptr, outptr, out2ptr })
 }
 
 impl Ctx {
@@ -76,6 +78,7 @@ impl Ctx {
         assert_i16s("output", ctx, &self.fw.read_i16s(self.outptr, n + 2).unwrap(), &r1);
         assert_i16s("output2", ctx, &self.fw.read_i16s(self.out2ptr, n + 2).unwrap(), &r2);
         self.check(ctx);
+        assert_eq!(self.rng.get(), self.lxr.rng_state, "rng state ({ctx})");
     }
 }
 
@@ -157,6 +160,10 @@ fn run(seed: u64, blocks: usize, types: &[u8]) {
             }
             if sw.next_u32() % 3 == 0 {
                 c.lxr.fxBus.distortion.distortionType = (sw.next_u32() % 3) as u8;
+            }
+            if sw.next_u32() % 3 == 0 {
+                // ring modulator waveform (MIDI sets it with Ringmod_setWave); NOISE uses the RNG
+                c.lxr.fxBus.ringmod.osc.waveform = (sw.next_u32() % 5) as u8;
             }
             if sw.next_u32() % 3 == 0 {
                 c.lxr.fxBus.compressor.ratio = [1.0, 0.5, 0.25, 0.125][(sw.next_u32() % 4) as usize];

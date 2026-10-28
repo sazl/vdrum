@@ -119,6 +119,23 @@ fn install_osc_stub(fw: &mut Firmware) {
     .unwrap();
 }
 
+/// Replace the firmware's `GetRngValue` by the xorshift32 that lxr-core uses (as the P1 tests do), starting at
+/// `lxr_core::rng::RNG_SEED` like `Lxr::new_zeroed()`. Returns the firmware side state, to be compared with
+/// `Lxr::rng_state` (the ring modulator's NOISE waveform draws random numbers).
+pub fn hook_rng(fw: &mut Firmware) -> std::rc::Rc<std::cell::Cell<u32>> {
+    let st = std::rc::Rc::new(std::cell::Cell::new(lxr_core::rng::RNG_SEED));
+    let s2 = st.clone();
+    let addr = fw.addr("GetRngValue").unwrap();
+    fw.intercept(addr, move |uc| {
+        let mut x = s2.get();
+        let v = lxr_core::rng::xorshift32(&mut x);
+        s2.set(x);
+        uc.reg_write(RegisterARM::R0, v as u64).unwrap();
+    })
+    .unwrap();
+    st
+}
+
 // ---- little-endian field access
 pub fn g32(b: &[u8], o: usize) -> u32 {
     u32::from_le_bytes(b[o..o + 4].try_into().unwrap())

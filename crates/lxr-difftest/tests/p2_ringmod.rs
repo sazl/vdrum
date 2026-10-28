@@ -17,6 +17,7 @@ const MAX_BLOCK: usize = 256;
 struct Ctx {
     fw: Firmware,
     lxr: Box<Lxr>,
+    rng: std::rc::Rc<std::cell::Cell<u32>>,
     rptr: u32,
     fxptr: u32,
     outptr: u32,
@@ -24,10 +25,11 @@ struct Ctx {
 
 fn new_ctx() -> Option<Ctx> {
     let mut fw = setup()?;
+    let rng = hook_rng(&mut fw);
     let rptr = fw.alloc(44).unwrap();
     let fxptr = fw.alloc(MAX_BLOCK * 4).unwrap();
     let outptr = fw.alloc(MAX_BLOCK * 4 + 8).unwrap();
-    Some(Ctx { fw, lxr: Box::new(Lxr::new_zeroed()), rptr, fxptr, outptr })
+    Some(Ctx { fw, lxr: Box::new(Lxr::new_zeroed()), rng, rptr, fxptr, outptr })
 }
 
 impl Ctx {
@@ -69,6 +71,7 @@ impl Ctx {
         let fw_out = self.fw.read_i16s(self.outptr, n + 2).unwrap();
         assert_i16s("output", ctx, &fw_out, &out);
         self.check(r, ctx);
+        assert_eq!(self.rng.get(), self.lxr.rng_state, "rng state ({ctx})");
     }
 }
 
