@@ -110,8 +110,11 @@ impl Lxr {
     ///
     /// Hardware / UI function outside the engine, called from engine code. Decide its behaviour
     /// (no-op, fixed value, or an emulation of its effect on engine state) when porting the caller.
+    ///
+    /// Ported (USE_FADER_VOLUME = 1 in the reference build): returns the global `adc_faderValues[idx]`
+    /// (`ldr r3,=adc_faderValues; vldr s0,[r3, r0, lsl #2]`).
     pub fn adc_getFaderVolume(&mut self, idx: u8) -> f32 {
-        todo!("port: Core/Src/IO/adcPots.c:282")
+        self.adc_faderValues[idx as usize]
     }
 
     /// C: `int CodecInit()`

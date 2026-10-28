@@ -94,6 +94,8 @@ pub const ADDR_l2_Available: CPtr = 0x20021989;
 pub const ADDR_r1_Available: CPtr = 0x2002198a;
 /// `r2_Available` (1 bytes)
 pub const ADDR_r2_Available: CPtr = 0x2002198b;
+/// `adc_faderValues` (24 bytes)
+pub const ADDR_adc_faderValues: CPtr = 0x20021134;
 /// `cortex_midiMsg` (8 bytes)
 pub const ADDR_cortex_midiMsg: CPtr = 0x2002198c;
 /// `frontParser_activeStep` (1 bytes)
