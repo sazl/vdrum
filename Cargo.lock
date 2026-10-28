@@ -180,6 +180,15 @@ name = "lxr-core"
 version = "0.1.0"
 
 [[package]]
+name = "lxr-difftest"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "lxr-core",
+ "lxr-emu",
+]
+
+[[package]]
 name = "lxr-emu"
 version = "0.1.0"
 dependencies = [

@@ -1,0 +1,11 @@
+[package]
+name = "lxr-difftest"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+lxr-core = { path = "../lxr-core" }
+lxr-emu = { path = "../lxr-emu" }
+anyhow = "1"
