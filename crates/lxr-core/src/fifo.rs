@@ -68,5 +68,10 @@ impl Default for FifoBig {
 ///
 /// Source: `Core/Src/Soundengine/FIFO.c:36`. Reference build: out-of-line in flash. Group P3.
 pub fn fifo_bufferOut(fifo: &mut Fifo, pByte: &mut u8) -> u8 {
-    todo!("port: Core/Src/Soundengine/FIFO.c:36")
+    if fifo.read == fifo.write {
+        return 0;
+    }
+    *pByte = fifo.data[fifo.read as usize];
+    fifo.read = fifo.read.wrapping_add(1) & BUFFER_MASK as u8;
+    1
 }

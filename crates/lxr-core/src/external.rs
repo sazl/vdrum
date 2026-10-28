@@ -121,7 +121,9 @@ impl Lxr {
     /// Hardware / UI function outside the engine, called from engine code. Decide its behaviour
     /// (no-op, fixed value, or an emulation of its effect on engine state) when porting the caller.
     pub fn CodecInit(&mut self) -> i32 {
-        todo!("port: Core/Src/Soundengine/AudioCodecManager.c:24")
+        self.dma_buffer[0] = 32756;
+        // codec_initCsCodec (I2S/DMA start) is hardware only: not modelled.
+        0
     }
 
     /// C: `void trigger_clockTick(uint8_t onOff, uint8_t cnt)`
@@ -131,7 +133,8 @@ impl Lxr {
     /// Hardware / UI function outside the engine, called from engine code. Decide its behaviour
     /// (no-op, fixed value, or an emulation of its effect on engine state) when porting the caller.
     pub fn trigger_clockTick(&mut self, onOff: u8, cnt: u8) {
-        todo!("port: Core/Src/Soundengine/TriggerOut.c:484")
+        // Drives the clock/trigger-out GPIOs only (trigger_nextPulseOut1 is not engine state): no-op.
+        let _ = (onOff, cnt);
     }
 
     /// C: `void trigger_reset(uint8_t value)`
@@ -141,7 +144,8 @@ impl Lxr {
     /// Hardware / UI function outside the engine, called from engine code. Decide its behaviour
     /// (no-op, fixed value, or an emulation of its effect on engine state) when porting the caller.
     pub fn trigger_reset(&mut self, value: u8) {
-        todo!("port: Core/Src/Soundengine/TriggerOut.c:558")
+        // Drives the reset trigger-out GPIO only: no-op.
+        let _ = value;
     }
 
     /// C: `void usb_tick()`
@@ -151,7 +155,7 @@ impl Lxr {
     /// Hardware / UI function outside the engine, called from engine code. Decide its behaviour
     /// (no-op, fixed value, or an emulation of its effect on engine state) when porting the caller.
     pub fn usb_tick(&mut self) {
-        todo!("port: Core/Src/Soundengine/USB/usb_manager.c:61")
+        // USB MIDI is not modelled (the emulator intercepts usb_tick as a no-op).
     }
 
     /// C: `void usb_sendMidi(MidiMsg msg)`
@@ -161,7 +165,8 @@ impl Lxr {
     /// Hardware / UI function outside the engine, called from engine code. Decide its behaviour
     /// (no-op, fixed value, or an emulation of its effect on engine state) when porting the caller.
     pub fn usb_sendMidi(&mut self, msg: MidiMsg) {
-        todo!("port: Core/Src/Soundengine/USB/usb_manager.c:136")
+        // USB MIDI output is not modelled: no-op.
+        let _ = msg;
     }
 
     /// C: `uint8_t buttonHandler_getMode()`
@@ -171,7 +176,9 @@ impl Lxr {
     /// Hardware / UI function outside the engine, called from engine code. Decide its behaviour
     /// (no-op, fixed value, or an emulation of its effect on engine state) when porting the caller.
     pub fn buttonHandler_getMode(&mut self) -> u8 {
-        todo!("port: Core/Src/buttonHandler.c:2212")
+        // buttonHandler_stateMemory.selectButtonMode: .bss 0 (SELECT_MODE_VOICE) and only changed by
+        // button presses, which are not modelled.
+        SELECT_MODE_VOICE
     }
 
     /// C: `void led_initPatternSelectLeds()`
@@ -181,7 +188,7 @@ impl Lxr {
     /// Hardware / UI function outside the engine, called from engine code. Decide its behaviour
     /// (no-op, fixed value, or an emulation of its effect on engine state) when porting the caller.
     pub fn led_initPatternSelectLeds(&mut self) {
-        todo!("port: Core/Src/ledHandler.c:77")
+        // LED state only (front panel AVR / LED driver): no-op.
     }
 
     /// C: `void led_setValue(uint8_t val, uint8_t ledNr)`
@@ -191,7 +198,8 @@ impl Lxr {
     /// Hardware / UI function outside the engine, called from engine code. Decide its behaviour
     /// (no-op, fixed value, or an emulation of its effect on engine state) when porting the caller.
     pub fn led_setValue(&mut self, val: u8, ledNr: u8) {
-        todo!("port: Core/Src/ledHandler.c:230")
+        // LED state only: no-op.
+        let _ = (val, ledNr);
     }
 
     /// C: `uint8_t led_idx2StepLed(uint8_t idx)`
@@ -201,7 +209,11 @@ impl Lxr {
     /// Hardware / UI function outside the engine, called from engine code. Decide its behaviour
     /// (no-op, fixed value, or an emulation of its effect on engine state) when porting the caller.
     pub fn led_idx2StepLed(&mut self, idx: u8) -> u8 {
-        todo!("port: Core/Src/ledHandler.c:321")
+        const STEP_LEDS: [u8; 16] = [
+            LED_STEP1, LED_STEP2, LED_STEP3, LED_STEP4, LED_STEP5, LED_STEP6, LED_STEP7, LED_STEP8,
+            LED_STEP9, LED_STEP10, LED_STEP11, LED_STEP12, LED_STEP13, LED_STEP14, LED_STEP15, LED_STEP16,
+        ];
+        STEP_LEDS[(idx % 16) as usize]
     }
 
     /// C: `void led_setActive_step(uint8_t stepNr)`
@@ -211,7 +223,8 @@ impl Lxr {
     /// Hardware / UI function outside the engine, called from engine code. Decide its behaviour
     /// (no-op, fixed value, or an emulation of its effect on engine state) when porting the caller.
     pub fn led_setActive_step(&mut self, stepNr: u8) {
-        todo!("port: Core/Src/ledHandler.c:380")
+        // LED state only: no-op.
+        let _ = stepNr;
     }
 
     /// C: `void led_clearActive_step()`
@@ -221,7 +234,7 @@ impl Lxr {
     /// Hardware / UI function outside the engine, called from engine code. Decide its behaviour
     /// (no-op, fixed value, or an emulation of its effect on engine state) when porting the caller.
     pub fn led_clearActive_step(&mut self) {
-        todo!("port: Core/Src/ledHandler.c:398")
+        // LED state only (front panel AVR / LED driver): no-op.
     }
 
     /// C: `void led_updateSeqLeds()`
@@ -231,7 +244,7 @@ impl Lxr {
     /// Hardware / UI function outside the engine, called from engine code. Decide its behaviour
     /// (no-op, fixed value, or an emulation of its effect on engine state) when porting the caller.
     pub fn led_updateSeqLeds(&mut self) {
-        todo!("port: Core/Src/ledHandler.c:403")
+        // LED state only (front panel AVR / LED driver): no-op.
     }
 
     /// C: `void led_clearSequencerLeds()`
@@ -241,7 +254,7 @@ impl Lxr {
     /// Hardware / UI function outside the engine, called from engine code. Decide its behaviour
     /// (no-op, fixed value, or an emulation of its effect on engine state) when porting the caller.
     pub fn led_clearSequencerLeds(&mut self) {
-        todo!("port: Core/Src/ledHandler.c:450")
+        // LED state only (front panel AVR / LED driver): no-op.
     }
 
     /// C: `void led_clearAllBlinkLeds()`
@@ -251,7 +264,7 @@ impl Lxr {
     /// Hardware / UI function outside the engine, called from engine code. Decide its behaviour
     /// (no-op, fixed value, or an emulation of its effect on engine state) when porting the caller.
     pub fn led_clearAllBlinkLeds(&mut self) {
-        todo!("port: Core/Src/ledHandler.c:563")
+        // LED state only (front panel AVR / LED driver): no-op.
     }
 
     /// C: `void led_setBlinkLed(const uint8_t ledNr, const uint8_t onOff)`
@@ -261,7 +274,8 @@ impl Lxr {
     /// Hardware / UI function outside the engine, called from engine code. Decide its behaviour
     /// (no-op, fixed value, or an emulation of its effect on engine state) when porting the caller.
     pub fn led_setBlinkLed(&mut self, ledNr: u8, onOff: u8) {
-        todo!("port: Core/Src/ledHandler.c:574")
+        // LED state only: no-op.
+        let _ = (ledNr, onOff);
     }
 
     /// C: `void led_resetBlinkTimer()`
@@ -271,7 +285,7 @@ impl Lxr {
     /// Hardware / UI function outside the engine, called from engine code. Decide its behaviour
     /// (no-op, fixed value, or an emulation of its effect on engine state) when porting the caller.
     pub fn led_resetBlinkTimer(&mut self) {
-        todo!("port: Core/Src/ledHandler.c:614")
+        // LED state only (front panel AVR / LED driver): no-op.
     }
 
     /// C: `void led_blinkHandler()`
@@ -281,6 +295,6 @@ impl Lxr {
     /// Hardware / UI function outside the engine, called from engine code. Decide its behaviour
     /// (no-op, fixed value, or an emulation of its effect on engine state) when porting the caller.
     pub fn led_blinkHandler(&mut self) {
-        todo!("port: Core/Src/ledHandler.c:619")
+        // LED state only (front panel AVR / LED driver): no-op.
     }
 }

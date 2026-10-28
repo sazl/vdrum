@@ -532,6 +532,32 @@ pub struct Lxr {
     ///
     /// Declared at `Core/Inc/Soundengine/globals.h:18`; firmware address 0x2001a378 (`.dtcmz`), 4 bytes.
     pub systick_ticks: u32,
+    // ---------------- P3 additions: globals of UI-side files that engine code reaches
+    // (`uart_sendFrontpanelByte` -> `frontPanel_parseData`, `menu_init`, `HAL_I2S_TxCpltCallback`)
+    /// `uint8_t frontPanel_sysexMode = 0;` (Core/Src/frontPanelParser.c); firmware address 0x2005d594, 1 bytes.
+    pub frontPanel_sysexMode: u8,
+    /// `volatile MidiMsg frontParser_midiMsg;` (Core/Src/frontPanelParser.c); firmware address 0x2005d598, 8 bytes.
+    pub frontParser_midiMsg: MidiMsg,
+    /// `volatile uint8_t frontParser_newSeqDataAvailable = 0;` (Core/Src/frontPanelParser.c); 0x2005d5a0, 1 bytes.
+    pub frontParser_newSeqDataAvailable: u8,
+    /// `static uint16_t frontParser_nrpnNr = 0;` (Core/Src/frontPanelParser.c); firmware address 0x2005d5a2, 2 bytes.
+    pub frontParser_nrpnNr: u16,
+    /// `static uint8_t frontParser_rxCnt=0;` of Core/Src/frontPanelParser.c (a different variable than
+    /// `frontParser_rxCnt` of CortexParser.c); firmware address 0x2005d5a4, 1 bytes.
+    pub frontPanelParser_rxCnt: u8,
+    /// `volatile Step frontParser_stepData;` (Core/Src/frontPanelParser.c); firmware address 0x2005d5a8, 7 bytes.
+    pub frontParser_stepData: Step,
+    /// `volatile static uint8_t frontParser_sysexBuffer[7];` of Core/Src/frontPanelParser.c (a different
+    /// variable than `frontParser_sysexBuffer` of CortexParser.c); firmware address 0x2005d5b0, 7 bytes.
+    pub frontPanelParser_sysexBuffer: [u8; 7],
+    /// `uint8_t paramToModTarget[END_OF_SOUND_PARAMETERS];` (Core/Src/menu/Cc2Text.c); 0x2005dec0, 247 bytes.
+    pub paramToModTarget: [u8; 247],
+    /// `uint8_t menu_activeVoice = 0;` (Core/Src/menu/menu.c); firmware address 0x20061ef8, 1 bytes.
+    pub menu_activeVoice: u8,
+    /// `static uint8_t menu_TargetVoiceGapIndex = 0xFF;` (Core/Src/menu/menu.c); firmware address 0x200202f7, 1 bytes.
+    pub menu_TargetVoiceGapIndex: u8,
+    /// `uint8_t dmaPtr;` (Core/Src/Soundengine/cs4344_cs5343.c); firmware address 0x2005d56c, 1 bytes.
+    pub dmaPtr: u8,
     // ---------------- not C globals
     /// State of the deterministic replacement of the hardware RNG (`GetRngValue`, see `crate::rng`).
     pub rng_state: u32,
@@ -662,6 +688,17 @@ impl Lxr {
             menu_songMenuPosition: 0,
             morphParameters: None,
             systick_ticks: 0,
+            frontPanel_sysexMode: 0,
+            frontParser_midiMsg: MidiMsg::ZERO,
+            frontParser_newSeqDataAvailable: 0,
+            frontParser_nrpnNr: 0,
+            frontPanelParser_rxCnt: 0,
+            frontParser_stepData: Step::ZERO,
+            frontPanelParser_sysexBuffer: [0; 7],
+            paramToModTarget: [0; 247],
+            menu_activeVoice: 0,
+            menu_TargetVoiceGapIndex: 0xFF,
+            dmaPtr: 0,
             rng_state: crate::rng::RNG_SEED,
         }
     }

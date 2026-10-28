@@ -44,6 +44,29 @@ pub const ADDR_velocityModulators: CPtr = 0x2001a1b8;
 pub const ADDR_fxBus: CPtr = 0x2001a218;
 /// `systick_ticks` (4 bytes)
 pub const ADDR_systick_ticks: CPtr = 0x2001a378;
+// P3 additions (globals of UI-side files reached by engine code)
+/// `frontPanel_sysexMode` (1 bytes)
+pub const ADDR_frontPanel_sysexMode: CPtr = 0x2005d594;
+/// `frontParser_midiMsg` (8 bytes)
+pub const ADDR_frontParser_midiMsg: CPtr = 0x2005d598;
+/// `frontParser_newSeqDataAvailable` (1 bytes)
+pub const ADDR_frontParser_newSeqDataAvailable: CPtr = 0x2005d5a0;
+/// `frontParser_nrpnNr` (2 bytes)
+pub const ADDR_frontParser_nrpnNr: CPtr = 0x2005d5a2;
+/// `frontParser_rxCnt` of frontPanelParser.c (1 bytes)
+pub const ADDR_frontPanelParser_rxCnt: CPtr = 0x2005d5a4;
+/// `frontParser_stepData` (7 bytes)
+pub const ADDR_frontParser_stepData: CPtr = 0x2005d5a8;
+/// `frontParser_sysexBuffer` of frontPanelParser.c (7 bytes)
+pub const ADDR_frontPanelParser_sysexBuffer: CPtr = 0x2005d5b0;
+/// `paramToModTarget` (247 bytes)
+pub const ADDR_paramToModTarget: CPtr = 0x2005dec0;
+/// `menu_activeVoice` (1 bytes)
+pub const ADDR_menu_activeVoice: CPtr = 0x20061ef8;
+/// `menu_TargetVoiceGapIndex` (1 bytes)
+pub const ADDR_menu_TargetVoiceGapIndex: CPtr = 0x200202f7;
+/// `dmaPtr` (1 bytes)
+pub const ADDR_dmaPtr: CPtr = 0x2005d56c;
 /// `midiParser_mtcIgnore` (1 bytes)
 pub const ADDR_midiParser_mtcIgnore: CPtr = 0x200202d3;
 /// `midiParser_txRxFilter` (1 bytes)
