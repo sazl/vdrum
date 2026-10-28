@@ -654,6 +654,33 @@ pub mod offset_of_c {
     pub const seq_rndValue_t_next: u32 = 2;
 }
 
+/// Byte at firmware address `p` of a DTCM table (initialised RAM holding constant data), for reads through
+/// pointers that out-of-range stores have moved into a table (`midi::shipped_layout::SHIPPED_TABLES`).
+/// Non-C helper, group P3.
+pub fn table_byte(p: CPtr) -> Option<u8> {
+    use crate::tables::distortion::{ecc83Table, table_1n914};
+    use crate::tables::transient_tables::{transientData, transientVolumeTable};
+    use crate::tables::wavetable::sine_table;
+    fn at<const W: usize>(off: u32, el: impl Fn(usize) -> [u8; W]) -> u8 {
+        el(off as usize / W)[off as usize % W]
+    }
+    let inr = |a: CPtr, n: u32| p >= a && p < a + n;
+    Some(if inr(ADDR_transientData, 26460) {
+        let o = (p - ADDR_transientData) as usize;
+        transientData[o / 2205][o % 2205] as u8
+    } else if inr(ADDR_transientVolumeTable, 69 * 4) {
+        at(p - ADDR_transientVolumeTable, |i| transientVolumeTable[i].to_le_bytes())
+    } else if inr(ADDR_sine_table, 4097 * 2) {
+        at(p - ADDR_sine_table, |i| sine_table[i].to_le_bytes())
+    } else if inr(ADDR_table_1n914, 257 * 4) {
+        at(p - ADDR_table_1n914, |i| table_1n914[i].to_le_bytes())
+    } else if inr(ADDR_ecc83Table, 129 * 8) {
+        at(p - ADDR_ecc83Table, |i| ecc83Table[i].to_le_bytes())
+    } else {
+        return None;
+    })
+}
+
 impl Lxr {
     /// Byte at firmware address `p`, which must lie in an `Lxr` global (panics otherwise: the firmware
     /// would read memory the port does not model).
@@ -664,7 +691,7 @@ impl Lxr {
         if (p as usize) < crate::preset::SHIPPED_ITCM_HEAD.len() {
             return crate::preset::SHIPPED_ITCM_HEAD[p as usize];
         }
-        match self.global_get_byte(p) {
+        match self.global_get_byte(p).or_else(|| table_byte(p)) {
             Some(b) => b,
             None => panic!("cptr: read of unmapped firmware address {p:#010x}"),
         }
