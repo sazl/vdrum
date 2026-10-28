@@ -234,6 +234,7 @@ dependencies = [
  "anyhow",
  "lxr-core",
  "lxr-emu",
+ "unicorn-engine",
 ]
 
 [[package]]

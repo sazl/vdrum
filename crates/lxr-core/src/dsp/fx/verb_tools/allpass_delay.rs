@@ -62,112 +62,124 @@ impl Default for AllpassModDelay {
 }
 
 // ---- functions without access to globals
+//
+// Not in the reference firmware (Reverb is disabled with `USE_REVERB 0`): ported from C, untestable.
+// Buffer access as in `verb_delay` (`ram` = `Lxr::FX_BUFFER`, buffers given by firmware address).
+
+use super::verb_delay::{VerbDelay_init, VerbDelay_read, VerbDelay_setBuffer, VerbDelay_setLength, VerbDelay_setRoomSize, VerbDelay_write};
+use super::verb_mod_delay::{
+    VerbModDelay_calcLength, VerbModDelay_init, VerbModDelay_read, VerbModDelay_setBuffer, VerbModDelay_setLength, VerbModDelay_setModDepth, VerbModDelay_setModValue,
+    VerbModDelay_setRoomSize, VerbModDelay_write,
+};
+
 /// C: `void AllpassDelay_init(AllpassDelay *d)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:20`. Reference build: not in the reference ELF (file not linked or function optimised away). Group P2.
-/// Calls: `dsp::fx::verb_tools::verb_delay::VerbDelay_init`.
 pub fn AllpassDelay_init(d: &mut AllpassDelay) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:20")
+    d.g = INITIAL_ALLPASS_COFF as f32;
+    d.r#in = 0.0;
+    d.out = 0.0;
+    VerbDelay_init(&mut d.delay);
 }
 
 /// C: `float AllpassDelay_process(AllpassDelay *d, float input)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:26`. Reference build: not in the reference ELF (file not linked or function optimised away). Group P2.
-/// Calls: `dsp::fx::verb_tools::verb_delay::VerbDelay_read`, `dsp::fx::verb_tools::verb_delay::VerbDelay_write`.
-pub fn AllpassDelay_process(d: &mut AllpassDelay, input: f32) -> f32 {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:26")
+pub fn AllpassDelay_process(d: &mut AllpassDelay, input: f32, ram: &mut [u16]) -> f32 {
+    d.out = VerbDelay_read(&mut d.delay, ram);
+    d.r#in = input + d.g * d.out;
+    VerbDelay_write(&mut d.delay, d.r#in, ram);
+    d.out + (-d.g * d.r#in)
 }
 
 /// C: `void AllpassDelay_setCoefficient(AllpassDelay *d, float coff)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:33`. Reference build: not in the reference ELF (file not linked or function optimised away). Group P2.
 pub fn AllpassDelay_setCoefficient(d: &mut AllpassDelay, coff: f32) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:33")
+    d.g = coff;
 }
 
 /// C: `void AllpassDelay_setDelay(AllpassDelay *d, float del)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:37`. Reference build: not in the reference ELF (file not linked or function optimised away). Group P2.
-/// Calls: `dsp::fx::verb_tools::verb_delay::VerbDelay_setLength`.
 pub fn AllpassDelay_setDelay(d: &mut AllpassDelay, del: f32) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:37")
+    VerbDelay_setLength(&mut d.delay, del as u32 as u16);
 }
 
 /// C: `void AllpassDelay_setBuffer(AllpassDelay *d, volatile __fp16 *buffer)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:41`. Reference build: not in the reference ELF (file not linked or function optimised away). Group P2.
-/// Calls: `dsp::fx::verb_tools::verb_delay::VerbDelay_setBuffer`.
-pub fn AllpassDelay_setBuffer(d: &mut AllpassDelay, buffer: &mut [u16]) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:41")
+pub fn AllpassDelay_setBuffer(d: &mut AllpassDelay, buffer: CPtr) {
+    VerbDelay_setBuffer(&mut d.delay, buffer);
 }
 
 /// C: `void AllpassDelay_setRoomSize(AllpassDelay *d, float sz)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:45`. Reference build: not in the reference ELF (file not linked or function optimised away). Group P2.
-/// Calls: `dsp::fx::verb_tools::verb_delay::VerbDelay_setRoomSize`.
 pub fn AllpassDelay_setRoomSize(d: &mut AllpassDelay, sz: f32) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:45")
+    VerbDelay_setRoomSize(&mut d.delay, sz);
 }
 
 /// C: `void AllpassModDelay_init(AllpassModDelay *d)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:54`. Reference build: not in the reference ELF (file not linked or function optimised away). Group P2.
-/// Calls: `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_init`.
 pub fn AllpassModDelay_init(d: &mut AllpassModDelay) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:54")
+    d.g = INITIAL_ALLPASS_COFF as f32;
+    d.r#in = 0.0;
+    d.out = 0.0;
+    VerbModDelay_init(&mut d.delay);
 }
 
 /// C: `float AllpassModDelay_process(AllpassModDelay *d, float input)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:60`. Reference build: not in the reference ELF (file not linked or function optimised away). Group P2.
-/// Calls: `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_calcLength`, `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_read`, `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_write`.
-pub fn AllpassModDelay_process(d: &mut AllpassModDelay, input: f32) -> f32 {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:60")
+pub fn AllpassModDelay_process(d: &mut AllpassModDelay, input: f32, ram: &mut [u16]) -> f32 {
+    VerbModDelay_calcLength(&mut d.delay);
+    d.out = VerbModDelay_read(&mut d.delay, ram);
+    d.r#in = input + d.g * d.out;
+    VerbModDelay_write(&mut d.delay, d.r#in, ram);
+    d.out + (-d.g * d.r#in)
 }
 
 /// C: `void AllpassModDelay_setCoefficient(AllpassModDelay *d, float coff)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:68`. Reference build: not in the reference ELF (file not linked or function optimised away). Group P2.
 pub fn AllpassModDelay_setCoefficient(d: &mut AllpassModDelay, coff: f32) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:68")
+    d.g = coff;
 }
 
 /// C: `void AllpassModDelay_setDelay(AllpassModDelay *d, float del)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:72`. Reference build: not in the reference ELF (file not linked or function optimised away). Group P2.
-/// Calls: `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_setLength`.
 pub fn AllpassModDelay_setDelay(d: &mut AllpassModDelay, del: f32) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:72")
+    VerbModDelay_setLength(&mut d.delay, del as u32);
 }
 
 /// C: `void AllpassModDelay_setBuffer(AllpassModDelay *d, volatile __fp16 *buffer)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:76`. Reference build: not in the reference ELF (file not linked or function optimised away). Group P2.
-/// Calls: `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_setBuffer`.
-pub fn AllpassModDelay_setBuffer(d: &mut AllpassModDelay, buffer: &mut [u16]) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:76")
+pub fn AllpassModDelay_setBuffer(d: &mut AllpassModDelay, buffer: CPtr) {
+    VerbModDelay_setBuffer(&mut d.delay, buffer);
 }
 
 /// C: `void AllpassModDelay_setRoomSize(AllpassModDelay *d, float sz)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:80`. Reference build: not in the reference ELF (file not linked or function optimised away). Group P2.
-/// Calls: `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_setRoomSize`.
 pub fn AllpassModDelay_setRoomSize(d: &mut AllpassModDelay, sz: f32) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:80")
+    VerbModDelay_setRoomSize(&mut d.delay, sz);
 }
 
 /// C: `void AllpassModDelay_setModDepth(AllpassModDelay *d,float depth)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:84`. Reference build: not in the reference ELF (file not linked or function optimised away). Group P2.
-/// Calls: `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_setModDepth`.
 pub fn AllpassModDelay_setModDepth(d: &mut AllpassModDelay, depth: f32) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:84")
+    VerbModDelay_setModDepth(&mut d.delay, depth);
 }
 
 /// C: `void AllpassModDelay_setModValue(AllpassModDelay *d,float v)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:89`. Reference build: not in the reference ELF (file not linked or function optimised away). Group P2.
-/// Calls: `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_calcLength`, `dsp::fx::verb_tools::verb_mod_delay::VerbModDelay_setModValue`.
 pub fn AllpassModDelay_setModValue(d: &mut AllpassModDelay, v: f32) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/VerbTools/AllpassDelay.c:89")
+    VerbModDelay_setModValue(&mut d.delay, v);
+    VerbModDelay_calcLength(&mut d.delay);
 }

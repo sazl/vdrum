@@ -61,27 +61,70 @@ impl Default for MasterDistortion {
     }
 }
 
+
+use super::{ld32, pkhbt, ssat16, st32, sx, vmaxnm32, vminnm32};
+use crate::cmsis::__QADD16;
+use crate::fpu::vfma64;
+
+// Constants of the machine code (literal pools of Distortion_process).
+/// `0.55*p1 + 0.55*p1` folded to `p1 * 1.1` (double).
+const OUT_MOD_K: f64 = f64::from_bits(0x3ff1_9999_9999_999a);
+/// `0.06537948995454451662`
+const COFF_A: f64 = f64::from_bits(0x3fb0_bcb5_d32f_15fc);
+/// `0.92410701734426630737`
+const COFF_B: f64 = f64::from_bits(0x3fed_9248_e12f_ed64);
+/// `0.64116641920131193922`
+const HP1_K: f64 = f64::from_bits(0x3fe4_846f_7038_6aff);
+/// `1. - 0.1025353241628911807`
+const LP1_K: f64 = f64::from_bits(0x3fec_b807_d701_23d4);
+/// `1. - 0.99149556438154282898`
+const HP3_K: f64 = f64::from_bits(0x3f81_6ac6_06d1_5400);
+/// `1. - 0.93130041642945205043`
+const LP2_K: f64 = f64::from_bits(0x3fb1_964b_c0af_2fc0);
+/// `6.79655641141821477118`
+const SLEW_MAX: f64 = f64::from_bits(0x401b_2fac_7be1_d767);
+/// `4.2`
+const RAIL: f64 = f64::from_bits(0x4010_cccc_cccc_cccd);
+/// `1/512.f`
+const INV_512: f32 = f32::from_bits(0x3b00_0000);
+/// `1/32768.f`
+const INV_32768: f32 = f32::from_bits(0x3800_0000);
+
+/// `table_1n914[i]` for `i` in `0..=257`. `diode()` reads `table_1n914[itg+1]` with `itg` up to 256, i.e. one
+/// element past the 257-entry table: the 4 bytes at 0x20000404 (alignment padding before `ecc83Table`, zero
+/// in the firmware image; checked by the differential test). It is only ever multiplied by a zero fraction.
+#[inline(always)]
+fn t1n914(i: usize) -> f32 {
+    if i < 257 {
+        table_1n914[i]
+    } else {
+        0.0
+    }
+}
+
 // ---- functions without access to globals
 /// C: `float clamp(float d, float min, float max)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:111`. Reference build: inlined into its callers only. Group P2.
+/// (Inlined as `vmaxnm`/`vminnm`.)
 pub fn clamp(d: f32, min: f32, max: f32) -> f32 {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/Distortion.c:111")
+    vminnm32(vmaxnm32(d, min), max)
 }
 
 /// C: `static float fnms(float a, float b, float c)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:117`. Reference build: inlined into its callers only. Group P2.
 pub fn fnms(a: f32, b: f32, c: f32) -> f32 {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/Distortion.c:117")
+    vfms(c, a, b)
 }
 
 /// C: `static float lerp(float a, float b, float t)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:122`. Reference build: inlined into its callers only. Group P2.
 /// Calls: `dsp::fx::distortion::fnms`.
+/// C form `fmaf(t, b, fnms(t, a, a))`; the only caller (`diode`) is compiled differently, see there.
 pub fn lerp(a: f32, b: f32, t: f32) -> f32 {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/Distortion.c:122")
+    fma(t, b, fnms(t, a, a))
 }
 
 /// C: `float diode(float in)`
@@ -89,50 +132,98 @@ pub fn lerp(a: f32, b: f32, t: f32) -> f32 {
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:130`. Reference build: inlined into its callers only. Group P2.
 /// Tables: `table_1n914`.
 /// Calls: `dsp::fx::distortion::clamp`, `dsp::fx::distortion::lerp`.
+///
+/// As inlined in `Distortion_process`: `a*(1-frac)` is computed in single precision as
+/// `((1 - index) + itg) * a`, the final `+ frac*b` is a double precision `vfma` rounded to float.
 pub fn diode(r#in: f32) -> f32 {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/Distortion.c:130")
+    let c = clamp(r#in, -1.0, 1.0);
+    let index = (c + 1.0) * 128.0;
+    let itg = (index as i32) as u16;
+    let itgf = itg as i32 as f32;
+    let a_part = ((1.0 - index) + itgf) * t1n914(itg as usize);
+    let frac = index - itgf;
+    vfma64(a_part as f64, frac as f64, t1n914(itg as usize + 1) as f64) as f32
 }
 
 /// C: `void Distortion_init(MasterDistortion *dist)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:147`. Reference build: out-of-line in flash. Group P2.
 pub fn Distortion_init(dist: &mut MasterDistortion) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/Distortion.c:147")
+    dist.distortionType = DISTORTION_TUBE;
+    dist.drive = 1.0;
+    dist.p1 = 1.0;
+    dist.p2 = 0.0;
+    dist.p3 = 0.0;
+    dist.lastOut = [0.0; 2];
+    dist.hp1_state = [0.0; 2];
+    dist.hp2_state = [0.0; 2];
+    dist.hp3_state = [0.0; 2];
+    dist.lp1_state = [0.0; 2];
+    dist.lp2_state = [0.0; 2];
+    dist.slewState = [0.0; 2];
+    dist.lp3_state = [0.0; 2];
 }
 
 /// C: `IN_ITCM_RAM void Distortion_setDrive(MasterDistortion *dist,float d)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:180`. Reference build: out-of-line in ITCM. Group P2.
 pub fn Distortion_setDrive(dist: &mut MasterDistortion, d: f32) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/Distortion.c:180")
+    dist.drive = d;
 }
 
 /// C: `IN_ITCM_RAM void Distortion_setParam1(MasterDistortion *dist,float p)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:184`. Reference build: out-of-line in ITCM. Group P2.
 pub fn Distortion_setParam1(dist: &mut MasterDistortion, p: f32) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/Distortion.c:184")
+    dist.p1 = p;
 }
 
 /// C: `IN_ITCM_RAM void Distortion_setParam2(MasterDistortion *dist,float p)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:189`. Reference build: out-of-line in ITCM. Group P2.
 pub fn Distortion_setParam2(dist: &mut MasterDistortion, p: f32) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/Distortion.c:189")
+    dist.p2 = p;
 }
 
 /// C: `IN_ITCM_RAM void Distortion_setParam3(MasterDistortion *dist,float p)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:194`. Reference build: out-of-line in ITCM. Group P2.
 pub fn Distortion_setParam3(dist: &mut MasterDistortion, p: f32) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/Distortion.c:194")
+    dist.p3 = p;
 }
 
 /// C: `float foldback(float in, float threshold)`
 ///
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:199`. Reference build: inlined into its callers only. Group P2.
+/// As inlined (threshold 1): `(double)(in - th)` (float subtraction), `fmod(.., 4.0)`, `fabs`, `- 2.0`,
+/// `fabs`, `- 1.0` in double, rounded to float.
 pub fn foldback(r#in: f32, threshold: f32) -> f32 {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/Distortion.c:199")
+    if r#in > threshold || r#in < -threshold {
+        let r = libm::fmod((r#in - threshold) as f64, (threshold * 4.0) as f64);
+        ((r.abs() - (threshold * 2.0) as f64).abs() - threshold as f64) as f32
+    } else {
+        r#in
+    }
+}
+
+/// `(int16_t)(fx + __SSAT((wet - fx) * dryWet, 16))` (no outer saturation in the distortion code).
+#[inline(always)]
+fn dw(fx: i16, wet: i32, dryWet: f32) -> i32 {
+    fx as i32 + ssat16((((wet - fx as i32) as f32) * dryWet) as i32)
+}
+
+/// RAT slew limiter as compiled: `slew + (signal - slew)` is folded to `signal`.
+#[inline(always)]
+fn slew_limit(signal: f64, slew: f64) -> f64 {
+    let diff = signal - slew;
+    let lim = if diff > 0.0 { SLEW_MAX } else { -SLEW_MAX };
+    let mut s = if diff.abs() > SLEW_MAX { slew + lim } else { signal };
+    if s > RAIL {
+        s = RAIL;
+    } else if s < -RAIL {
+        s = -RAIL;
+    }
+    s
 }
 
 /// C: `void Distortion_process(MasterDistortion *dist, int16_t *fxBuffer, int16_t* outL, int16_t* outR, uint16_t size, uint8_t channels, float dryWet)`
@@ -140,6 +231,184 @@ pub fn foldback(r#in: f32, threshold: f32) -> f32 {
 /// Source: `Core/Src/Soundengine/DSPAudio/FX/Distortion.c:208`. Reference build: out-of-line in flash. Group P2.
 /// Tables: `ecc83Table`, `table_1n914`.
 /// Calls: `cmsis::__QADD16`, `dsp::fx::distortion::diode`, `dsp::fx::distortion::foldback`.
-pub fn Distortion_process(dist: &mut MasterDistortion, fxBuffer: &mut [i16], outL: &mut [i16], outR: &mut [i16], size: u16, channels: u8, dryWet: f32) {
-    todo!("port: Core/Src/Soundengine/DSPAudio/FX/Distortion.c:208")
+///
+/// `outL` is the interleaved output starting at the C `outL` pointer (`outR` is unused in C).
+pub fn Distortion_process(dist: &mut MasterDistortion, fxBuffer: &[i16], outL: &mut [i16], size: u16, channels: u8, dryWet: f32) {
+    if dist.distortionType == DISTORTION_TUBE {
+        let coff = vfma64(COFF_A, dist.p2 as f64, COFF_B);
+        let outputModifier = vfma64(1.0, dist.p1 as f64, OUT_MOD_K) as f32;
+        // val * outputModifier * p3 * 32768.0 reassociated to val * ((p3 * 32768.0) * outputModifier)
+        let scale = (dist.p3 as f64 * 32768.0) * outputModifier as f64;
+        if channels == 2 {
+            if size == 0 {
+                return;
+            }
+            let g = vfma(1.0, dist.drive, 4.0);
+            let mut l0 = dist.lp3_state[0];
+            let mut l1 = dist.lp3_state[1];
+            for i in 0..size as u32 {
+                let idx1 = ((i * 2) & 0xfe) as usize;
+                let idx2 = ((i * 2 + 1) & 0xff) as usize;
+                let fx1 = fxBuffer[idx1];
+                let fx2 = fxBuffer[idx2];
+                let in1 = (fx1 as f32 * g) as i32;
+                let in2 = (fx2 as f32 * g) as i32;
+                let itg1 = ((ssat16(in1) >> 9) + 64) as u8 as usize;
+                let itg2 = ((ssat16(in2) >> 9) + 64) as u8 as usize;
+                let frac1 = ((in1 & 0x1ff) as f32 * INV_512) as f64;
+                let frac2 = ((in2 & 0x1ff) as f32 * INV_512) as f64;
+                let a1 = ecc83Table[itg1];
+                let a2 = ecc83Table[itg2];
+                l0 = vfma64(l0, vfma64(a1 - l0, ecc83Table[itg1 + 1] - a1, frac1), coff);
+                l1 = vfma64(l1, vfma64(a2 - l1, ecc83Table[itg2 + 1] - a2, frac2), coff);
+                let wet = ssat16((l0 * scale) as i32);
+                let wet2 = ssat16((l1 * scale) as i32);
+                let x = pkhbt(dw(fx1, wet, dryWet), dw(fx2, wet2, dryWet));
+                let k = 2 * i as usize;
+                let w = __QADD16(ld32(outL, k), x);
+                st32(outL, k, w);
+            }
+            dist.lp3_state[0] = l0;
+            dist.lp3_state[1] = l1;
+        } else {
+            if size == 0 {
+                return;
+            }
+            let g = dist.drive + 1.0;
+            let mut l0 = dist.lp3_state[0];
+            for i in 0..size as u32 {
+                let idx1 = ((i * 2) & 0xfe) as usize;
+                let fx1 = fxBuffer[idx1];
+                let in1 = (fx1 as f32 * g) as i32;
+                let itg1 = ((ssat16(in1) >> 9) + 64) as u8 as usize;
+                let frac1 = ((in1 & 0x1ff) as f32 * INV_512) as f64;
+                let a1 = ecc83Table[itg1];
+                l0 = vfma64(l0, vfma64(a1 - l0, ecc83Table[itg1 + 1] - a1, frac1), coff);
+                let wet = ssat16((l0 * scale) as i32);
+                let d = dw(fx1, wet, dryWet) as i16;
+                let k = 2 * i as usize;
+                outL[k] = __QADD16(sx(outL[k]), sx(d)) as i16;
+            }
+            dist.lp3_state[0] = l0;
+        }
+    } else if dist.distortionType == DISTORTION_FOLD {
+        let coff = vfma64(COFF_A, dist.p2 as f64, COFF_B);
+        if size == 0 {
+            return;
+        }
+        // input/32768 * (1 + drive*4) + p1 compiled as fx * ((1 + drive*4) * 2^-15) + p1 (fused)
+        let k_in = vfma(1.0, dist.drive, 4.0) * INV_32768;
+        let p1 = dist.p1;
+        let p3s = dist.p3 * 32768.0;
+        if channels == 2 {
+            let mut l0 = dist.lp3_state[0];
+            let mut l1 = dist.lp3_state[1];
+            for i in 0..size as u32 {
+                let idx1 = ((i * 2) & 0xfe) as usize;
+                let idx2 = ((i * 2 + 1) & 0xff) as usize;
+                let fx1 = fxBuffer[idx1];
+                let fx2 = fxBuffer[idx2];
+                let v1 = vfma(p1, fx1 as f32, k_in);
+                let v2 = vfma(p1, fx2 as f32, k_in);
+                l0 = vfma64(l0, v1 as f64 - l0, coff);
+                l1 = vfma64(l1, v2 as f64 - l1, coff);
+                let f1 = foldback(l0 as f32, 1.0);
+                let f2 = foldback(l1 as f32, 1.0);
+                let wet = ssat16((f1 * p3s) as i32);
+                let wet2 = ssat16((f2 * p3s) as i32);
+                let x = pkhbt(dw(fx1, wet, dryWet), dw(fx2, wet2, dryWet));
+                let k = 2 * i as usize;
+                let w = __QADD16(ld32(outL, k), x);
+                st32(outL, k, w);
+            }
+            dist.lp3_state[0] = l0;
+            dist.lp3_state[1] = l1;
+        } else {
+            let mut l0 = dist.lp3_state[0];
+            for i in 0..size as u32 {
+                let idx1 = ((i * 2) & 0xfe) as usize;
+                let fx1 = fxBuffer[idx1];
+                let v1 = vfma(p1, fx1 as f32, k_in);
+                l0 = vfma64(l0, v1 as f64 - l0, coff);
+                let f1 = foldback(l0 as f32, 1.0);
+                let wet = ssat16((f1 * p3s) as i32);
+                let d = dw(fx1, wet, dryWet) as i16;
+                let k = 2 * i as usize;
+                outL[k] = __QADD16(sx(outL[k]), sx(d)) as i16;
+            }
+            dist.lp3_state[0] = l0;
+        }
+    } else {
+        // DISTORTION_RAT
+        let coff = vfma64(COFF_A, dist.p2 as f64, COFF_B);
+        let gain = vfma(1.0, dist.drive, 2304.0) as f64;
+        if size == 0 {
+            return;
+        }
+        let p1_8 = dist.p1 as f64 * 0.125;
+        let p3 = dist.p3 as f64;
+        if channels == 2 {
+            let mut i: u8 = 0;
+            let mut k: usize = 0;
+            loop {
+                let idx1 = i.wrapping_mul(2) as usize;
+                let idx2 = i.wrapping_mul(2).wrapping_add(1) as usize;
+                let fx1 = fxBuffer[idx1];
+                let fx2 = fxBuffer[idx2];
+                // signal = fx/32768. + lastOut*p1*0.125: product rounded, then fused with the exact fx*2^-15
+                let s1 = vfma64(dist.lastOut[0] * p1_8, fx1 as f64, f64::from_bits(0x3f00_0000_0000_0000));
+                let s2 = vfma64(dist.lastOut[1] * p1_8, fx2 as f64, f64::from_bits(0x3f00_0000_0000_0000));
+                let d = &mut *dist;
+                d.hp1_state[0] = vfma64(d.hp1_state[0], s1 - d.hp1_state[0], HP1_K);
+                d.lp1_state[0] = vfma64(d.lp1_state[0], (s1 - d.lp1_state[0]) - d.hp1_state[0], LP1_K);
+                d.hp1_state[1] = vfma64(d.hp1_state[1], s2 - d.hp1_state[1], HP1_K);
+                d.lp1_state[1] = vfma64(d.lp1_state[1], (s2 - d.lp1_state[1]) - d.hp1_state[1], LP1_K);
+                d.hp3_state[0] = vfma64(d.hp3_state[0], d.lp1_state[0] - d.hp3_state[0], HP3_K);
+                d.lp2_state[0] = vfma64(d.lp2_state[0], (d.lp1_state[0] - d.lp2_state[0]) - d.hp3_state[0], LP2_K);
+                d.hp3_state[1] = vfma64(d.hp3_state[1], d.lp1_state[1] - d.hp3_state[1], HP3_K);
+                d.lp2_state[1] = vfma64(d.lp2_state[1], (d.lp1_state[1] - d.lp2_state[1]) - d.hp3_state[1], LP2_K);
+                let g1 = d.lp2_state[0] * gain;
+                let g2 = d.lp2_state[1] * gain;
+                d.slewState[0] = slew_limit(g1, d.slewState[0]);
+                d.slewState[1] = slew_limit(g2, d.slewState[1]);
+                let dio1 = diode(d.slewState[0] as f32) as f64;
+                let dio2 = diode(d.slewState[1] as f32) as f64;
+                d.lp3_state[0] = vfma64(d.lp3_state[0], dio1 - d.lp3_state[0], coff);
+                d.lp3_state[1] = vfma64(d.lp3_state[1], dio2 - d.lp3_state[1], coff);
+                d.lastOut[0] = d.lp3_state[0] * p3;
+                d.lastOut[1] = d.lp3_state[1] * p3;
+                let wet = ssat16((d.lastOut[0] * 32768.0) as i32);
+                let wet2 = ssat16((d.lastOut[1] * 32768.0) as i32);
+                let x = pkhbt(dw(fx1, wet, dryWet), dw(fx2, wet2, dryWet));
+                let w = __QADD16(ld32(outL, k), x);
+                st32(outL, k, w);
+                k += 2;
+                i = i.wrapping_add(1);
+                if i as u16 >= size {
+                    break;
+                }
+            }
+        } else {
+            for i in 0..size as u32 {
+                let idx1 = ((i * 2) & 0xfe) as usize;
+                let fx1 = fxBuffer[idx1];
+                let d = &mut *dist;
+                // (fx/32768.f) + lastOut*(p1*0.125), fused
+                let s1 = vfma64((fx1 as f32 * INV_32768) as f64, d.lastOut[0], p1_8);
+                d.hp1_state[0] = vfma64(d.hp1_state[0], s1 - d.hp1_state[0], HP1_K);
+                d.lp1_state[0] = vfma64(d.lp1_state[0], (s1 - d.lp1_state[0]) - d.hp1_state[0], LP1_K);
+                d.hp3_state[0] = vfma64(d.hp3_state[0], d.lp1_state[0] - d.hp3_state[0], HP3_K);
+                d.lp2_state[0] = vfma64(d.lp2_state[0], (d.lp1_state[0] - d.lp2_state[0]) - d.hp3_state[0], LP2_K);
+                let g1 = d.lp2_state[0] * gain;
+                d.slewState[0] = slew_limit(g1, d.slewState[0]);
+                let dio1 = diode(d.slewState[0] as f32) as f64;
+                d.lp3_state[0] = vfma64(d.lp3_state[0], dio1 - d.lp3_state[0], coff);
+                d.lastOut[0] = d.lp3_state[0] * p3;
+                let wet = ssat16((d.lastOut[0] * 32768.0) as i32);
+                let dd = dw(fx1, wet, dryWet) as i16;
+                let k = 2 * i as usize;
+                outL[k] = __QADD16(sx(outL[k]), sx(dd)) as i16;
+            }
+        }
+    }
 }
