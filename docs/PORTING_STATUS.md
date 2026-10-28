@@ -24,131 +24,131 @@ Functions marked `gc`/`absent` cannot be checked against the reference binary.
 
 | C file | C name | Rust | Group | Ref build | Status |
 |---|---|---|---|---|---|
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:23` | `bufferTool_addBuffers` | `dsp::buffer_tools::bufferTool_addBuffers` | P1 | absent | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:32` | `bufferTool_addBuffersSaturating` | `dsp::buffer_tools::bufferTool_addBuffersSaturating` | P1 | inlined | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:54` | `bufferTool_addBuffersSaturatingWithGain` | `dsp::buffer_tools::bufferTool_addBuffersSaturatingWithGain` | P1 | absent | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:63` | `bufferTool_subBuffersSaturating` | `dsp::buffer_tools::bufferTool_subBuffersSaturating` | P1 | absent | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:72` | `bufferTool_copyWithGain` | `dsp::buffer_tools::bufferTool_copyWithGain` | P1 | absent | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:81` | `bufferTool_clearBuffer` | `dsp::buffer_tools::bufferTool_clearBuffer` | P1 | inlined | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:103` | `bufferTool_addGain` | `dsp::buffer_tools::bufferTool_addGain` | P1 | inlined | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:112` | `bufferTool_addGainDithered` | `Lxr::bufferTool_addGainDithered` | P1 | absent | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:121` | `bufferTool_addGainInterpolated` | `dsp::buffer_tools::bufferTool_addGainInterpolated` | P1 | inlined | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:173` | `bufferTool_addGainInterpolatedDouble` | `dsp::buffer_tools::bufferTool_addGainInterpolatedDouble` | P1 | absent | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:186` | `bufferTool_addGainInterpolatedDoubleDithered` | `Lxr::bufferTool_addGainInterpolatedDoubleDithered` | P1 | absent | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:203` | `bufferTool_mulInt` | `dsp::buffer_tools::bufferTool_mulInt` | P1 | absent | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:212` | `bufferTool_multiplyWithFloatBuffer` | `dsp::buffer_tools::bufferTool_multiplyWithFloatBuffer` | P1 | absent | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:221` | `bufferTool_multiplyWithFloatBufferDithered` | `Lxr::bufferTool_multiplyWithFloatBufferDithered` | P1 | absent | stub |
-| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:231` | `bufferTool_moveBuffer` | `dsp::buffer_tools::bufferTool_moveBuffer` | P1 | absent | stub |
-| `Core/Inc/Soundengine/DSPAudio/medianFilter.h:23` | `medianFilter` | `dsp::median_filter::medianFilter` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:21` | `initOnePole` | `dsp::one_pole_lp::initOnePole` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:27` | `calcOnePole` | `dsp::one_pole_lp::calcOnePole` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:35` | `calcOnePoleAdaptiveVolume` | `dsp::one_pole_lp::calcOnePoleAdaptiveVolume` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:52` | `calcOnePoleBlock` | `dsp::one_pole_lp::calcOnePoleBlock` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:62` | `calcOnePoleBlockFixedInput` | `dsp::one_pole_lp::calcOnePoleBlockFixedInput` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:72` | `setOnePoleCoef` | `dsp::one_pole_lp::setOnePoleCoef` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:77` | `setOnePoleValue` | `dsp::one_pole_lp::setOnePoleValue` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:82` | `setOnePoleFreq` | `dsp::one_pole_lp::setOnePoleFreq` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/Decay.c:21` | `DecayEg_calcSlopeValue` | `dsp::decay::DecayEg_calcSlopeValue` | P1 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/Decay.c:26` | `DecayEg_init` | `dsp::decay::DecayEg_init` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/Decay.c:33` | `DecayEg_calcTime` | `dsp::decay::DecayEg_calcTime` | P1 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/Decay.c:47` | `DecayEg_trigger` | `dsp::decay::DecayEg_trigger` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/Decay.c:52` | `DecayEg_calc` | `dsp::decay::DecayEg_calc` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/Decay.c:69` | `DecayEg_setDecay` | `dsp::decay::DecayEg_setDecay` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/Decay.c:74` | `DecayEg_setSlope` | `dsp::decay::DecayEg_setSlope` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:22` | `freq2PhaseIncr` | `dsp::oscillator::freq2PhaseIncr` | P1 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:28` | `fast_log2` | `dsp::oscillator::fast_log2` | P1 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:33` | `freqToMidiNote` | `dsp::oscillator::freqToMidiNote` | P1 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:38` | `freqToTableIndex` | `dsp::oscillator::freqToTableIndex` | P1 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:45` | `freq2PhaseIncr1024` | `dsp::oscillator::freq2PhaseIncr1024` | P1 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:50` | `freq2PhaseIncr32767` | `dsp::oscillator::freq2PhaseIncr32767` | P1 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:55` | `calcSineBlock` | `dsp::oscillator::calcSineBlock` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:85` | `calcSine` | `dsp::oscillator::calcSine` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:109` | `calcFmSineBlock` | `dsp::oscillator::calcFmSineBlock` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:135` | `calcFmSine` | `dsp::oscillator::calcFmSine` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:158` | `calcFmBlock` | `dsp::oscillator::calcFmBlock` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:186` | `calcPwmFmBlock` | `dsp::oscillator::calcPwmFmBlock` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:225` | `calcFm` | `dsp::oscillator::calcFm` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:250` | `calcNextOscSampleFmBlock` | `Lxr::calcNextOscSampleFmBlock` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:325` | `calcNoiseBlock` | `Lxr::calcNoiseBlock` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:343` | `calcNoise` | `Lxr::calcNoise` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:375` | `calcNextOscSampleBlock` | `Lxr::calcNextOscSampleBlock` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:450` | `calcWavetableOscBlock` | `dsp::oscillator::calcWavetableOscBlock` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:475` | `calcWavetableOsc` | `dsp::oscillator::calcWavetableOsc` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:555` | `calcUserSampleOscFmBlock` | `dsp::oscillator::calcUserSampleOscFmBlock` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:592` | `calcUserSampleOscBlock` | `dsp::oscillator::calcUserSampleOscBlock` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:656` | `calcPwmBlock` | `dsp::oscillator::calcPwmBlock` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:722` | `osc_calcSineFreq` | `dsp::oscillator::osc_calcSineFreq` | P1 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:727` | `osc_calcNoiseFreq` | `dsp::oscillator::osc_calcNoiseFreq` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:732` | `osc_calcWavetableFreq` | `dsp::oscillator::osc_calcWavetableFreq` | P1 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:741` | `osc_calcSampleFreq` | `dsp::oscillator::osc_calcSampleFreq` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:747` | `osc_calcUserSampleFreq` | `dsp::oscillator::osc_calcUserSampleFreq` | P1 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:753` | `osc_setFreq` | `dsp::oscillator::osc_setFreq` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:790` | `osc_setBaseNote` | `dsp::oscillator::osc_setBaseNote` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:805` | `osc_recalcFreq` | `dsp::oscillator::osc_recalcFreq` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:23` | `SVF_setReso` | `dsp::resonant_filter::SVF_setReso` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:29` | `SVF_init` | `dsp::resonant_filter::SVF_init` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:48` | `SVF_reset` | `dsp::resonant_filter::SVF_reset` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:60` | `fastTanh` | `dsp::resonant_filter::fastTanh` | P1 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:67` | `fastTan` | `dsp::resonant_filter::fastTan` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:81` | `SVF_recalcFreq` | `dsp::resonant_filter::SVF_recalcFreq` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:89` | `SVF_setDrive` | `dsp::resonant_filter::SVF_setDrive` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:100` | `SVF_directSetFilterValue` | `dsp::resonant_filter::SVF_directSetFilterValue` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:108` | `tanhXdX` | `dsp::resonant_filter::tanhXdX` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:116` | `softClipTwo` | `dsp::resonant_filter::softClipTwo` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:130` | `removeMaliciousSample` | `dsp::resonant_filter::removeMaliciousSample` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:157` | `SVF_calcBlockZDF` | `dsp::resonant_filter::SVF_calcBlockZDF` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:378` | `SVF_calcBlockCheapZDF` | `dsp::resonant_filter::SVF_calcBlockCheapZDF` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:22` | `slopeEg2_init` | `dsp::slope_eg2::slopeEg2_init` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:33` | `slopeEg2_trigger` | `dsp::slope_eg2::slopeEg2_trigger` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:51` | `slopeEg2_calcSlopeValue` | `dsp::slope_eg2::slopeEg2_calcSlopeValue` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:56` | `slopeEg2_calc` | `dsp::slope_eg2::slopeEg2_calc` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:137` | `slopeEg2_calcTime` | `dsp::slope_eg2::slopeEg2_calcTime` | P1 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:150` | `slopeEg2_setAttack` | `dsp::slope_eg2::slopeEg2_setAttack` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:157` | `slopeEg2_setDecay` | `dsp::slope_eg2::slopeEg2_setDecay` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:164` | `slopeEg2_calcDecay` | `dsp::slope_eg2::slopeEg2_calcDecay` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:169` | `slopeEg2_setSlope` | `dsp::slope_eg2::slopeEg2_setSlope` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/TiltEq.c:20` | `fasterpow2` | `dsp::tilt_eq::fasterpow2` | P1 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/TiltEq.c:28` | `fasterexp` | `dsp::tilt_eq::fasterexp` | P1 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/TiltEq.c:35` | `TiltEq_init` | `dsp::tilt_eq::TiltEq_init` | P1 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/TiltEq.c:40` | `TiltEq_process` | `dsp::tilt_eq::TiltEq_process` | P1 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/TiltEq.c:51` | `TiltEq_setFreq` | `dsp::tilt_eq::TiltEq_setFreq` | P1 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/TiltEq.c:60` | `TiltEq_setParameter` | `dsp::tilt_eq::TiltEq_setParameter` | P1 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/automationNode.c:17` | `autoNode_init` | `dsp::automation_node::autoNode_init` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/automationNode.c:22` | `autoNode_setDestination` | `Lxr::autoNode_setDestination` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/automationNode.c:44` | `autoNode_updateValue` | `Lxr::autoNode_updateValue` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/distortion.c:18` | `setDistortionShape` | `dsp::distortion::setDistortionShape` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/distortion.c:24` | `calcDistBlock` | `dsp::distortion::calcDistBlock` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/distortion.c:36` | `calcDistBlockFiltered` | `dsp::distortion::calcDistBlockFiltered` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/distortion.c:54` | `distortion_calcSampleFloat` | `dsp::distortion::distortion_calcSampleFloat` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/dither.c:26` | `dither_process` | `Lxr::dither_process` | P1 | absent | stub |
-| `Core/Src/Soundengine/DSPAudio/lfo.c:25` | `lfo_init` | `Lxr::lfo_init` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/lfo.c:39` | `lfo_calc` | `Lxr::lfo_calc` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/lfo.c:108` | `lfo_dispatchNextValue` | `Lxr::lfo_dispatchNextValue` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/lfo.c:114` | `lfo_calcPhaseInc` | `Lxr::lfo_calcPhaseInc` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/lfo.c:185` | `lfo_setFreq` | `Lxr::lfo_setFreq` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/lfo.c:195` | `lfo_setSync` | `Lxr::lfo_setSync` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/lfo.c:201` | `lfo_recalcSync` | `Lxr::lfo_recalcSync` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/lfo.c:222` | `lfo_retrigger` | `Lxr::lfo_retrigger` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/modulationNode.c:30` | `modNode_init` | `Lxr::modNode_init` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/modulationNode.c:37` | `modNode_setOriginalValueChanged` | `Lxr::modNode_setOriginalValueChanged` | P1 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/modulationNode.c:74` | `modNode_originalValueChanged` | `Lxr::modNode_originalValueChanged` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/modulationNode.c:90` | `modNode_resetTargets` | `Lxr::modNode_resetTargets` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/modulationNode.c:108` | `modNode_reassignVeloMod` | `Lxr::modNode_reassignVeloMod` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/modulationNode.c:120` | `modNode_setDestination` | `Lxr::modNode_setDestination` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/modulationNode.c:164` | `modNode_updateValue` | `Lxr::modNode_updateValue` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/random.c:18` | `initRng` | `dsp::random::initRng` | P1 | gc | stub |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:23` | `bufferTool_addBuffers` | `dsp::buffer_tools::bufferTool_addBuffers` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:32` | `bufferTool_addBuffersSaturating` | `dsp::buffer_tools::bufferTool_addBuffersSaturating` | P1 | inlined | ported (inlined only; follows the machine code in the voice/mixer callers; difftested via P4 voice/mixer tests) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:54` | `bufferTool_addBuffersSaturatingWithGain` | `dsp::buffer_tools::bufferTool_addBuffersSaturatingWithGain` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:63` | `bufferTool_subBuffersSaturating` | `dsp::buffer_tools::bufferTool_subBuffersSaturating` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:72` | `bufferTool_copyWithGain` | `dsp::buffer_tools::bufferTool_copyWithGain` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:81` | `bufferTool_clearBuffer` | `dsp::buffer_tools::bufferTool_clearBuffer` | P1 | inlined | ported (inlined only; follows the machine code in the voice/mixer callers; difftested via P4 voice/mixer tests) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:103` | `bufferTool_addGain` | `dsp::buffer_tools::bufferTool_addGain` | P1 | inlined | ported (inlined only; follows the machine code in the voice/mixer callers; difftested via P4 voice/mixer tests) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:112` | `bufferTool_addGainDithered` | `Lxr::bufferTool_addGainDithered` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:121` | `bufferTool_addGainInterpolated` | `dsp::buffer_tools::bufferTool_addGainInterpolated` | P1 | inlined | ported (inlined only; follows the machine code in the voice/mixer callers; difftested via P4 voice/mixer tests) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:173` | `bufferTool_addGainInterpolatedDouble` | `dsp::buffer_tools::bufferTool_addGainInterpolatedDouble` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:186` | `bufferTool_addGainInterpolatedDoubleDithered` | `Lxr::bufferTool_addGainInterpolatedDoubleDithered` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:203` | `bufferTool_mulInt` | `dsp::buffer_tools::bufferTool_mulInt` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:212` | `bufferTool_multiplyWithFloatBuffer` | `dsp::buffer_tools::bufferTool_multiplyWithFloatBuffer` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:221` | `bufferTool_multiplyWithFloatBufferDithered` | `Lxr::bufferTool_multiplyWithFloatBufferDithered` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Inc/Soundengine/DSPAudio/BufferTools.h:231` | `bufferTool_moveBuffer` | `dsp::buffer_tools::bufferTool_moveBuffer` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Inc/Soundengine/DSPAudio/medianFilter.h:23` | `medianFilter` | `dsp::median_filter::medianFilter` | P1 | gc | ported as medianFilter_state (not in firmware build, untestable; statics passed explicitly, unit-tested natively) |
+| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:21` | `initOnePole` | `dsp::one_pole_lp::initOnePole` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:27` | `calcOnePole` | `dsp::one_pole_lp::calcOnePole` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:35` | `calcOnePoleAdaptiveVolume` | `dsp::one_pole_lp::calcOnePoleAdaptiveVolume` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:52` | `calcOnePoleBlock` | `dsp::one_pole_lp::calcOnePoleBlock` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:62` | `calcOnePoleBlockFixedInput` | `dsp::one_pole_lp::calcOnePoleBlockFixedInput` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:72` | `setOnePoleCoef` | `dsp::one_pole_lp::setOnePoleCoef` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:77` | `setOnePoleValue` | `dsp::one_pole_lp::setOnePoleValue` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/1PoleLp.c:82` | `setOnePoleFreq` | `dsp::one_pole_lp::setOnePoleFreq` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/Decay.c:21` | `DecayEg_calcSlopeValue` | `dsp::decay::DecayEg_calcSlopeValue` | P1 | inlined | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Decay.c:26` | `DecayEg_init` | `dsp::decay::DecayEg_init` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Decay.c:33` | `DecayEg_calcTime` | `dsp::decay::DecayEg_calcTime` | P1 | inlined | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Decay.c:47` | `DecayEg_trigger` | `dsp::decay::DecayEg_trigger` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Decay.c:52` | `DecayEg_calc` | `dsp::decay::DecayEg_calc` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Decay.c:69` | `DecayEg_setDecay` | `dsp::decay::DecayEg_setDecay` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Decay.c:74` | `DecayEg_setSlope` | `dsp::decay::DecayEg_setSlope` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:22` | `freq2PhaseIncr` | `dsp::oscillator::freq2PhaseIncr` | P1 | inlined | ported (inlined only; the callers inline the machine-code operation order, difftested through osc_setFreq) |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:28` | `fast_log2` | `dsp::oscillator::fast_log2` | P1 | inlined | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:33` | `freqToMidiNote` | `dsp::oscillator::freqToMidiNote` | P1 | inlined | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:38` | `freqToTableIndex` | `dsp::oscillator::freqToTableIndex` | P1 | inlined | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:45` | `freq2PhaseIncr1024` | `dsp::oscillator::freq2PhaseIncr1024` | P1 | inlined | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:50` | `freq2PhaseIncr32767` | `dsp::oscillator::freq2PhaseIncr32767` | P1 | inlined | ported (inlined only; the callers inline the machine-code operation order, difftested through osc_setFreq) |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:55` | `calcSineBlock` | `dsp::oscillator::calcSineBlock` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:85` | `calcSine` | `dsp::oscillator::calcSine` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:109` | `calcFmSineBlock` | `dsp::oscillator::calcFmSineBlock` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:135` | `calcFmSine` | `dsp::oscillator::calcFmSine` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:158` | `calcFmBlock` | `dsp::oscillator::calcFmBlock` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:186` | `calcPwmFmBlock` | `dsp::oscillator::calcPwmFmBlock` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:225` | `calcFm` | `dsp::oscillator::calcFm` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:250` | `calcNextOscSampleFmBlock` | `Lxr::calcNextOscSampleFmBlock` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:325` | `calcNoiseBlock` | `Lxr::calcNoiseBlock` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:343` | `calcNoise` | `Lxr::calcNoise` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:375` | `calcNextOscSampleBlock` | `Lxr::calcNextOscSampleBlock` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:450` | `calcWavetableOscBlock` | `dsp::oscillator::calcWavetableOscBlock` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:475` | `calcWavetableOsc` | `dsp::oscillator::calcWavetableOsc` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:555` | `calcUserSampleOscFmBlock` | `dsp::oscillator::calcUserSampleOscFmBlock` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:592` | `calcUserSampleOscBlock` | `dsp::oscillator::calcUserSampleOscBlock` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:656` | `calcPwmBlock` | `dsp::oscillator::calcPwmBlock` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:722` | `osc_calcSineFreq` | `dsp::oscillator::osc_calcSineFreq` | P1 | inlined | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:727` | `osc_calcNoiseFreq` | `dsp::oscillator::osc_calcNoiseFreq` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:732` | `osc_calcWavetableFreq` | `dsp::oscillator::osc_calcWavetableFreq` | P1 | inlined | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:741` | `osc_calcSampleFreq` | `dsp::oscillator::osc_calcSampleFreq` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:747` | `osc_calcUserSampleFreq` | `dsp::oscillator::osc_calcUserSampleFreq` | P1 | inlined | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:753` | `osc_setFreq` | `dsp::oscillator::osc_setFreq` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:790` | `osc_setBaseNote` | `dsp::oscillator::osc_setBaseNote` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:805` | `osc_recalcFreq` | `dsp::oscillator::osc_recalcFreq` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:23` | `SVF_setReso` | `dsp::resonant_filter::SVF_setReso` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:29` | `SVF_init` | `dsp::resonant_filter::SVF_init` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:48` | `SVF_reset` | `dsp::resonant_filter::SVF_reset` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:60` | `fastTanh` | `dsp::resonant_filter::fastTanh` | P1 | inlined | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:67` | `fastTan` | `dsp::resonant_filter::fastTan` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:81` | `SVF_recalcFreq` | `dsp::resonant_filter::SVF_recalcFreq` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:89` | `SVF_setDrive` | `dsp::resonant_filter::SVF_setDrive` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:100` | `SVF_directSetFilterValue` | `dsp::resonant_filter::SVF_directSetFilterValue` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:108` | `tanhXdX` | `dsp::resonant_filter::tanhXdX` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:116` | `softClipTwo` | `dsp::resonant_filter::softClipTwo` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:130` | `removeMaliciousSample` | `dsp::resonant_filter::removeMaliciousSample` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:157` | `SVF_calcBlockZDF` | `dsp::resonant_filter::SVF_calcBlockZDF` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:378` | `SVF_calcBlockCheapZDF` | `dsp::resonant_filter::SVF_calcBlockCheapZDF` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:22` | `slopeEg2_init` | `dsp::slope_eg2::slopeEg2_init` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:33` | `slopeEg2_trigger` | `dsp::slope_eg2::slopeEg2_trigger` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:51` | `slopeEg2_calcSlopeValue` | `dsp::slope_eg2::slopeEg2_calcSlopeValue` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:56` | `slopeEg2_calc` | `dsp::slope_eg2::slopeEg2_calc` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:137` | `slopeEg2_calcTime` | `dsp::slope_eg2::slopeEg2_calcTime` | P1 | inlined | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:150` | `slopeEg2_setAttack` | `dsp::slope_eg2::slopeEg2_setAttack` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:157` | `slopeEg2_setDecay` | `dsp::slope_eg2::slopeEg2_setDecay` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:164` | `slopeEg2_calcDecay` | `dsp::slope_eg2::slopeEg2_calcDecay` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/SlopeEg2.c:169` | `slopeEg2_setSlope` | `dsp::slope_eg2::slopeEg2_setSlope` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/TiltEq.c:20` | `fasterpow2` | `dsp::tilt_eq::fasterpow2` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/TiltEq.c:28` | `fasterexp` | `dsp::tilt_eq::fasterexp` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/TiltEq.c:35` | `TiltEq_init` | `dsp::tilt_eq::TiltEq_init` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/TiltEq.c:40` | `TiltEq_process` | `dsp::tilt_eq::TiltEq_process` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/TiltEq.c:51` | `TiltEq_setFreq` | `dsp::tilt_eq::TiltEq_setFreq` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/TiltEq.c:60` | `TiltEq_setParameter` | `dsp::tilt_eq::TiltEq_setParameter` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/automationNode.c:17` | `autoNode_init` | `dsp::automation_node::autoNode_init` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/automationNode.c:22` | `autoNode_setDestination` | `Lxr::autoNode_setDestination` | P1 | flash | ported+difftested (midiParser_ccHandler intercepted: messages and values compared; callee is P3) |
+| `Core/Src/Soundengine/DSPAudio/automationNode.c:44` | `autoNode_updateValue` | `Lxr::autoNode_updateValue` | P1 | flash | ported+difftested (midiParser_ccHandler intercepted: messages and values compared; callee is P3) |
+| `Core/Src/Soundengine/DSPAudio/distortion.c:18` | `setDistortionShape` | `dsp::distortion::setDistortionShape` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/distortion.c:24` | `calcDistBlock` | `dsp::distortion::calcDistBlock` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/distortion.c:36` | `calcDistBlockFiltered` | `dsp::distortion::calcDistBlockFiltered` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/distortion.c:54` | `distortion_calcSampleFloat` | `dsp::distortion::distortion_calcSampleFloat` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/dither.c:26` | `dither_process` | `Lxr::dither_process` | P1 | absent | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/lfo.c:25` | `lfo_init` | `Lxr::lfo_init` | P1 | flash | ported (not difftested yet: depends on P3 paramArray_setParameter / cptr_read_*) |
+| `Core/Src/Soundengine/DSPAudio/lfo.c:39` | `lfo_calc` | `Lxr::lfo_calc` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/lfo.c:108` | `lfo_dispatchNextValue` | `Lxr::lfo_dispatchNextValue` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/lfo.c:114` | `lfo_calcPhaseInc` | `Lxr::lfo_calcPhaseInc` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/lfo.c:185` | `lfo_setFreq` | `Lxr::lfo_setFreq` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/lfo.c:195` | `lfo_setSync` | `Lxr::lfo_setSync` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/lfo.c:201` | `lfo_recalcSync` | `Lxr::lfo_recalcSync` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/lfo.c:222` | `lfo_retrigger` | `Lxr::lfo_retrigger` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/modulationNode.c:30` | `modNode_init` | `Lxr::modNode_init` | P1 | flash | ported (not difftested yet: depends on P3 paramArray_setParameter / cptr_read_*) |
+| `Core/Src/Soundengine/DSPAudio/modulationNode.c:37` | `modNode_setOriginalValueChanged` | `Lxr::modNode_setOriginalValueChanged` | P1 | inlined | ported (not difftested yet: depends on P3 paramArray_setParameter / cptr_read_*) |
+| `Core/Src/Soundengine/DSPAudio/modulationNode.c:74` | `modNode_originalValueChanged` | `Lxr::modNode_originalValueChanged` | P1 | flash | ported (not difftested yet: depends on P3 paramArray_setParameter / cptr_read_*) |
+| `Core/Src/Soundengine/DSPAudio/modulationNode.c:90` | `modNode_resetTargets` | `Lxr::modNode_resetTargets` | P1 | itcm | ported (not difftested yet: depends on P3 paramArray_setParameter / cptr_read_*) |
+| `Core/Src/Soundengine/DSPAudio/modulationNode.c:108` | `modNode_reassignVeloMod` | `Lxr::modNode_reassignVeloMod` | P1 | itcm | ported+difftested (midiParser_ccHandler intercepted: messages and values compared; callee is P3) |
+| `Core/Src/Soundengine/DSPAudio/modulationNode.c:120` | `modNode_setDestination` | `Lxr::modNode_setDestination` | P1 | flash | ported (not difftested yet: depends on P3 paramArray_setParameter / cptr_read_*) |
+| `Core/Src/Soundengine/DSPAudio/modulationNode.c:164` | `modNode_updateValue` | `Lxr::modNode_updateValue` | P1 | flash | ported+difftested (midiParser_ccHandler intercepted: messages and values compared; callee is P3) |
+| `Core/Src/Soundengine/DSPAudio/random.c:18` | `initRng` | `dsp::random::initRng` | P1 | gc | ported (not in firmware build, untestable) |
 | `Core/Src/Soundengine/DSPAudio/random.c:27` | `GetRngValue` | `Lxr::GetRngValue` | P1 | flash | ported (`src/rng.rs`) |
-| `Core/Src/Soundengine/DSPAudio/snapEg.c:19` | `SnapEg_init` | `dsp::snap_eg::SnapEg_init` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/snapEg.c:24` | `SnapEg_trigger` | `dsp::snap_eg::SnapEg_trigger` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/snapEg.c:29` | `SnapEg_calc` | `dsp::snap_eg::SnapEg_calc` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/transientGenerator.c:20` | `transient_init` | `dsp::transient_generator::transient_init` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/transientGenerator.c:29` | `transient_setWaveform` | `dsp::transient_generator::transient_setWaveform` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/transientGenerator.c:37` | `transient_trigger` | `dsp::transient_generator::transient_trigger` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/transientGenerator.c:43` | `transient_calcBlock` | `dsp::transient_generator::transient_calcBlock` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/transientGenerator.c:71` | `transient_calc` | `dsp::transient_generator::transient_calc` | P1 | gc | stub |
-| `Drivers/CMSIS/Include/cmsis_gcc.h:219` | `__get_APSR` | `cmsis::__get_APSR` | P1 | inlined | stub |
-| `Drivers/CMSIS/Include/cmsis_gcc.h:1644` | `__QADD16` | `cmsis::__QADD16` | P1 | inlined | stub |
-| `Drivers/CMSIS/Include/cmsis_gcc.h:1692` | `__QSUB16` | `cmsis::__QSUB16` | P1 | inlined | stub |
+| `Core/Src/Soundengine/DSPAudio/snapEg.c:19` | `SnapEg_init` | `dsp::snap_eg::SnapEg_init` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/snapEg.c:24` | `SnapEg_trigger` | `dsp::snap_eg::SnapEg_trigger` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/snapEg.c:29` | `SnapEg_calc` | `dsp::snap_eg::SnapEg_calc` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/transientGenerator.c:20` | `transient_init` | `dsp::transient_generator::transient_init` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/transientGenerator.c:29` | `transient_setWaveform` | `dsp::transient_generator::transient_setWaveform` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/transientGenerator.c:37` | `transient_trigger` | `dsp::transient_generator::transient_trigger` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/transientGenerator.c:43` | `transient_calcBlock` | `dsp::transient_generator::transient_calcBlock` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/transientGenerator.c:71` | `transient_calc` | `dsp::transient_generator::transient_calc` | P1 | gc | ported (not in firmware build, untestable) |
+| `Drivers/CMSIS/Include/cmsis_gcc.h:219` | `__get_APSR` | `cmsis::__get_APSR` | P1 | inlined | ported (untestable: reads CPU flags, not observable in Rust; only caller calcNoise is gc'd) |
+| `Drivers/CMSIS/Include/cmsis_gcc.h:1644` | `__QADD16` | `cmsis::__QADD16` | P1 | inlined | ported+difftested |
+| `Drivers/CMSIS/Include/cmsis_gcc.h:1692` | `__QSUB16` | `cmsis::__QSUB16` | P1 | inlined | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/FX/Compressor.c:32` | `Compressor_init` | `dsp::fx::compressor::Compressor_init` | P2 | flash | stub |
 | `Core/Src/Soundengine/DSPAudio/FX/Compressor.c:45` | `lin2dB` | `dsp::fx::compressor::lin2dB` | P2 | inlined | stub |
 | `Core/Src/Soundengine/DSPAudio/FX/Compressor.c:51` | `dB2lin` | `dsp::fx::compressor::dB2lin` | P2 | inlined | stub |
