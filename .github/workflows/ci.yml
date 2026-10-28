@@ -1,0 +1,313 @@
+# SPDX-License-Identifier: GPL-3.0-only
+#
+# build:  per OS, test lxr-core / lxr-params / vdrum, bundle CLAP + VST3 + standalone, validate them
+#         (clap-validator, pluginval; on macOS also the AUv2 from au/CMakeLists.txt with auval) and
+#         upload the bundles.
+# verify: build the GCC 11.3 reference firmware ELF from the submodule, run the emulator and the
+#         differential tests against it and compare every scenario with the v1.71 reference hashes.
+#         The shipped image (LXR_FIRMWARE_IMG) is not available here, so tests that need it skip.
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  CARGO_NET_RETRY: 10
+  RUST_BACKTRACE: 1
+  # Validators: release binaries, pinned by version and SHA-256 (per OS in the build matrix).
+  CLAP_VALIDATOR_URL: https://github.com/free-audio/clap-validator/releases/download/0.3.2
+  PLUGINVAL_URL: https://github.com/Tracktion/pluginval/releases/download/v1.0.4
+  # Arm GNU Toolchain used for the reference firmware build (docs/ARCHITECTURE.md).
+  ARM_TOOLCHAIN: arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi
+  ARM_TOOLCHAIN_URL: https://developer.arm.com/-/media/Files/downloads/gnu/11.3.rel1/binrel/arm-gnu-toolchain-11.3.rel1-x86_64-arm-none-eabi.tar.xz
+  ARM_TOOLCHAIN_SHA256: d420d87f68615d9163b99bbb62fe69e85132dc0a8cd69fca04e813597fe06121
+  # SHA-256 of `objcopy -O binary` of the reference ELF (the loadable image, independent of the
+  # build paths in the debug info). Changes only with the firmware submodule or tools/build_fw.sh.
+  REFERENCE_FW_BIN_SHA256: d314224f2554d30559201a13893fca7d612beffaf90abb2fc557ce08f011f3b7
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    name: build (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x86_64
+            os: ubuntu-latest
+            bundle: bundle
+            cv_asset: clap-validator-0.3.2-ubuntu-18.04.tar.gz
+            cv_sha256: 1476ed68f5657e76050e0c4f19790c02d819ecc62c35fd465059d21f05169cb1
+            cv_bin: clap-validator
+            pv_asset: pluginval_Linux.zip
+            pv_sha256: c01c49d8063965c4c2dea8324468336768f5c9139e0b1caebde14c2400b55352
+            pv_bin: pluginval
+            pv_gui: true
+          - name: macos-universal
+            os: macos-latest
+            bundle: bundle-universal
+            cv_asset: clap-validator-0.3.2-macos-universal.tar.gz
+            cv_sha256: 3750f3729adfd8489f2b29019f7f2ed65ba71bf9d5049735f6a2ca0fccb18ffd
+            cv_bin: binaries/clap-validator
+            pv_asset: pluginval_macOS.zip
+            pv_sha256: 3c4c533bda0c5059eea3ddaea752d757ee2025041f0f47e6bcb0e87f6082b29f
+            pv_bin: pluginval.app/Contents/MacOS/pluginval
+            pv_gui: true
+          - name: windows-x86_64
+            os: windows-latest
+            bundle: bundle
+            cv_asset: clap-validator-0.3.2-windows.zip
+            cv_sha256: 68cdbe51c05489542b5420a870b7159b4cb352b5ce5c486f9bd8a9b49b75bdda
+            cv_bin: clap-validator.exe
+            pv_asset: pluginval_Windows.zip
+            pv_sha256: c08e61ce3b96db41636f8ec7e76f4c7e2c13ebdac7fa1b5a1f52b4f32ec715ab
+            pv_bin: pluginval.exe
+            # Hosted Windows runners only have GDI's OpenGL 1.1; the egui editor needs OpenGL 3.
+            pv_gui: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            pkg-config libasound2-dev libjack-jackd2-dev libgl-dev libglx-dev libx11-dev \
+            libx11-xcb-dev libxcb1-dev libxcb-dri2-0-dev libxcb-icccm4-dev libxcb-render0-dev \
+            libxcb-shape0-dev libxcb-shm0-dev libxcb-xfixes0-dev libxcursor-dev libxkbcommon-dev \
+            libwayland-dev libglib2.0-dev xvfb xauth libgl1-mesa-dri libfreetype6 libfontconfig1
+
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable --profile minimal --no-self-update
+          rustup default stable
+          if [ "$RUNNER_OS" = macOS ]; then
+            rustup target add x86_64-apple-darwin aarch64-apple-darwin
+          fi
+          rustc --version --verbose
+
+      - uses: Swatinem/rust-cache@2201cc584a476d1b508be977bbe4b7d1c7a52e9c # v2.9.3
+        with:
+          key: ${{ matrix.name }}
+
+      - name: Test lxr-core, lxr-params, vdrum
+        run: cargo test --locked -p lxr-core -p lxr-params -p vdrum
+
+      - name: Bundle CLAP, VST3 and standalone
+        run: |
+          cargo xtask ${{ matrix.bundle }} vdrum --release --locked
+          ls -la target/bundled
+
+      - name: Download validators
+        env:
+          CV_ASSET: ${{ matrix.cv_asset }}
+          CV_SHA256: ${{ matrix.cv_sha256 }}
+          CV_BIN: ${{ matrix.cv_bin }}
+          PV_ASSET: ${{ matrix.pv_asset }}
+          PV_SHA256: ${{ matrix.pv_sha256 }}
+          PV_BIN: ${{ matrix.pv_bin }}
+        run: |
+          tools="$(cd "$RUNNER_TEMP" && pwd)/validators"
+          mkdir -p "$tools/cv" "$tools/pv"
+          sha256_check() { # <sha256> <file>
+            if [ "$RUNNER_OS" = macOS ]; then
+              echo "$1  $2" | shasum -a 256 -c -
+            else
+              echo "$1  $2" | sha256sum -c -
+            fi
+          }
+          extract() { # <archive> <dir>
+            case "$1" in
+              *.tar.gz) tar -xzf "$1" -C "$2" ;;
+              *.zip) if [ "$RUNNER_OS" = Windows ]; then 7z x -y -o"$2" "$1" >/dev/null; else unzip -q "$1" -d "$2"; fi ;;
+            esac
+          }
+          cd "$tools"
+          curl -fsSL --retry 5 -o "$CV_ASSET" "$CLAP_VALIDATOR_URL/$CV_ASSET"
+          curl -fsSL --retry 5 -o "$PV_ASSET" "$PLUGINVAL_URL/$PV_ASSET"
+          sha256_check "$CV_SHA256" "$CV_ASSET"
+          sha256_check "$PV_SHA256" "$PV_ASSET"
+          extract "$CV_ASSET" cv
+          extract "$PV_ASSET" pv
+          chmod +x "cv/$CV_BIN" "pv/$PV_BIN"
+          echo "CLAP_VALIDATOR=$tools/cv/$CV_BIN" >> "$GITHUB_ENV"
+          echo "PLUGINVAL=$tools/pv/$PV_BIN" >> "$GITHUB_ENV"
+
+      - name: Validate CLAP (clap-validator)
+        run: |
+          clap="$PWD/target/bundled/VDrum.clap"
+          if [ "$RUNNER_OS" = Windows ]; then clap=$(cygpath -w "$clap"); fi
+          "$CLAP_VALIDATOR" validate "$clap"
+
+      - name: Validate VST3 (pluginval)
+        env:
+          PV_GUI: ${{ matrix.pv_gui }}
+        run: |
+          vst3="$PWD/target/bundled/VDrum.vst3"
+          logs="$PWD/target/validation/pluginval"
+          mkdir -p "$logs"
+          if [ "$RUNNER_OS" = Windows ]; then
+            vst3=$(cygpath -w "$vst3")
+            logs=$(cygpath -w "$logs")
+          fi
+          args=(--strictness-level 10 --validate-in-process --output-dir "$logs")
+          if [ "$PV_GUI" != true ]; then args+=(--skip-gui-tests); fi
+          if [ "$RUNNER_OS" = Linux ]; then
+            # Xvfb's software GLX has no sRGB framebuffer config, which the editor asks for.
+            cc -shared -fPIC -O2 -o "$RUNNER_TEMP/nosrgb.so" .github/ci/nosrgb.c -ldl
+            xvfb-run -a -s "-screen 0 1920x1080x24 +extension GLX" \
+              env LD_PRELOAD="$RUNNER_TEMP/nosrgb.so" "$PLUGINVAL" "${args[@]}" --validate "$vst3"
+          else
+            "$PLUGINVAL" "${args[@]}" --validate "$vst3"
+          fi
+
+      - name: Build AUv2 and standalone app (clap-wrapper)
+        if: runner.os == 'macOS'
+        run: |
+          cmake -S au -B target/au -G Xcode -DVDRUM_CLAP="$PWD/target/bundled/VDrum.clap"
+          cmake --build target/au --config Release
+          comp=$(find target/au -type d -name VDrum.component -path '*Release*' -prune -print | head -n 1)
+          app=$(find target/au -type d -name VDrum.app -path '*Release*' -prune -print | head -n 1)
+          if [ -z "$comp" ] || [ -z "$app" ]; then
+            echo "::error::VDrum.component / VDrum.app not found under target/au"
+            find target/au -maxdepth 4 \( -name '*.component' -o -name '*.app' \)
+            exit 1
+          fi
+          # Ad-hoc sign the bundles (and the embedded CLAP): arm64 macOS does not load unsigned code.
+          codesign --force --deep --sign - "$comp"
+          codesign --force --deep --sign - "$app"
+          echo "AU_COMPONENT=$PWD/$comp" >> "$GITHUB_ENV"
+          echo "AU_APP=$PWD/$app" >> "$GITHUB_ENV"
+
+      - name: Validate AUv2 (auval)
+        if: runner.os == 'macOS'
+        run: |
+          # Type/subtype/manufacturer from au/CMakeLists.txt: aumu VDr1 VDrm.
+          dest="$HOME/Library/Audio/Plug-Ins/Components"
+          mkdir -p "$dest"
+          rm -rf "$dest/VDrum.component"
+          cp -R "$AU_COMPONENT" "$dest/"
+          killall -9 AudioComponentRegistrar 2>/dev/null || true
+          auval -a | grep -i 'VDr1' || { echo "::error::VDrum AU is not registered"; auval -a; exit 1; }
+          set +e
+          auval -v aumu VDr1 VDrm | tee "$RUNNER_TEMP/auval.txt"
+          rc=${PIPESTATUS[0]}
+          set -e
+          mkdir -p target/validation && cp "$RUNNER_TEMP/auval.txt" target/validation/
+          grep -q 'AU VALIDATION SUCCEEDED' "$RUNNER_TEMP/auval.txt" && [ "$rc" -eq 0 ]
+
+      - name: Stage bundles
+        if: ${{ !cancelled() }}
+        run: |
+          dist="dist/VDrum-${{ matrix.name }}"
+          mkdir -p "$dist"
+          shopt -s nullglob
+          # nih-plug: VDrum.clap, VDrum.vst3 and the standalone (VDrum / VDrum.exe / VDrum.app).
+          for f in target/bundled/VDrum*; do cp -R "$f" "$dist/"; done
+          if [ -n "${AU_COMPONENT:-}" ]; then
+            cp -R "$AU_COMPONENT" "$dist/"
+            mkdir -p "$dist/clap-wrapper" && cp -R "$AU_APP" "$dist/clap-wrapper/"
+          fi
+          cp LICENSE "$dist/"
+          # tar keeps executable bits and macOS bundle structure through the artifact zip.
+          tar -czf "dist/VDrum-${{ matrix.name }}.tar.gz" -C dist "VDrum-${{ matrix.name }}"
+          ls -la dist
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: VDrum-${{ matrix.name }}
+          path: dist/VDrum-${{ matrix.name }}.tar.gz
+          if-no-files-found: warn
+          retention-days: 30
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ failure() }}
+        with:
+          name: validation-logs-${{ matrix.name }}
+          path: target/validation
+          if-no-files-found: ignore
+          retention-days: 14
+
+  verify:
+    name: verify (reference firmware + emulator)
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: true
+
+      - name: Cache Arm GNU Toolchain
+        id: arm-toolchain
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/toolchains/${{ env.ARM_TOOLCHAIN }}
+          key: ${{ env.ARM_TOOLCHAIN }}-${{ env.ARM_TOOLCHAIN_SHA256 }}
+
+      - name: Download Arm GNU Toolchain
+        if: steps.arm-toolchain.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/toolchains
+          curl -fsSL --retry 5 -o "$RUNNER_TEMP/arm.tar.xz" "$ARM_TOOLCHAIN_URL"
+          echo "$ARM_TOOLCHAIN_SHA256  $RUNNER_TEMP/arm.tar.xz" | sha256sum -c -
+          tar -xJf "$RUNNER_TEMP/arm.tar.xz" -C ~/toolchains
+          rm "$RUNNER_TEMP/arm.tar.xz"
+
+      - name: Build the reference firmware ELF (GCC 11.3, all files -O3)
+        run: |
+          tc=~/toolchains/$ARM_TOOLCHAIN/bin/arm-none-eabi-
+          "${tc}gcc" --version | head -n 1
+          out="$RUNNER_TEMP/fw"
+          # No 4th argument (no ITCM -O2 override), NO_THREAD_JUMPS unset: docs/ARCHITECTURE.md.
+          env -u NO_THREAD_JUMPS tools/build_fw.sh "$PWD/third_party/lxr-firmware" "$out" "$tc"
+          echo "$REFERENCE_FW_BIN_SHA256  $out/fw.bin" | sha256sum -c -
+          echo "LXR_FW_ELF=$out/fw.elf" >> "$GITHUB_ENV"
+
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable --profile minimal --no-self-update
+          rustup default stable
+          rustc --version --verbose
+
+      - uses: Swatinem/rust-cache@2201cc584a476d1b508be977bbe4b7d1c7a52e9c # v2.9.3
+        with:
+          key: verify
+
+      # lxr-emu: boot + sample scenarios vs the reference hashes; lxr-difftest: every ported
+      # function (and, once added, whole-engine scenarios) bitwise against the firmware;
+      # lxr-params: parameter table cross-check against the firmware source in the submodule.
+      - name: Emulator and differential tests
+        run: cargo test --locked -p lxr-emu -p lxr-difftest -p lxr-params --release --no-fail-fast
+
+      - name: Scenario corpus vs v1.71 reference hashes (emulated ELF)
+        run: |
+          cargo build --locked --release -p lxr-emu --bin lxr-emu
+          .github/ci/check_scenarios.sh target/release/lxr-emu --elf "$LXR_FW_ELF" "$(nproc)"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: reference-firmware-gcc11.3
+          path: |
+            ${{ runner.temp }}/fw/fw.elf
+            ${{ runner.temp }}/fw/fw.map
+            ${{ runner.temp }}/fw/warn.log
+          if-no-files-found: warn
+          retention-days: 14
