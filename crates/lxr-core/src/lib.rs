@@ -29,6 +29,7 @@
 // skeleton: stubs do not use their parameters yet
 #![allow(unused_variables, unused_imports, dead_code, unreachable_code)]
 
+pub mod cmem;
 pub mod engine;
 pub mod fpu;
 pub mod memmap;
