@@ -83,7 +83,10 @@ pub fn calcPitchModAmount(data2: u8) -> f32 {
 ///
 /// Source: `Core/Src/Soundengine/MIDI/MidiParser.c:118`. Reference build: out-of-line in flash. Group P3.
 pub fn midiParser_calcDetune(value: u8) -> f32 {
-    todo!("port: Core/Src/Soundengine/MIDI/MidiParser.c:118")
+    // Ported by P1 (needed by osc_setBaseNote / osc_recalcFreq; difftested in p1_oscillator.rs).
+    // frac = vfma(-0.5, value, 1/127.f); return vfma(1, frac, SEMITONE_UP - 1)
+    let frac = vfma(-0.5, value as i32 as f32, f32::from_bits(0x3c010204));
+    vfma(1.0, frac, f32::from_bits(0x3d738fa0))
 }
 
 /// C: `uint8_t midiParser_cc2voiceNr(uint8_t cc)`

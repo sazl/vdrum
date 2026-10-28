@@ -55,36 +55,36 @@ Functions marked `gc`/`absent` cannot be checked against the reference binary.
 | `Core/Src/Soundengine/DSPAudio/Decay.c:52` | `DecayEg_calc` | `dsp::decay::DecayEg_calc` | P1 | itcm | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/Decay.c:69` | `DecayEg_setDecay` | `dsp::decay::DecayEg_setDecay` | P1 | flash | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/Decay.c:74` | `DecayEg_setSlope` | `dsp::decay::DecayEg_setSlope` | P1 | itcm | ported+difftested |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:22` | `freq2PhaseIncr` | `dsp::oscillator::freq2PhaseIncr` | P1 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:28` | `fast_log2` | `dsp::oscillator::fast_log2` | P1 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:33` | `freqToMidiNote` | `dsp::oscillator::freqToMidiNote` | P1 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:38` | `freqToTableIndex` | `dsp::oscillator::freqToTableIndex` | P1 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:45` | `freq2PhaseIncr1024` | `dsp::oscillator::freq2PhaseIncr1024` | P1 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:50` | `freq2PhaseIncr32767` | `dsp::oscillator::freq2PhaseIncr32767` | P1 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:55` | `calcSineBlock` | `dsp::oscillator::calcSineBlock` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:85` | `calcSine` | `dsp::oscillator::calcSine` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:109` | `calcFmSineBlock` | `dsp::oscillator::calcFmSineBlock` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:135` | `calcFmSine` | `dsp::oscillator::calcFmSine` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:158` | `calcFmBlock` | `dsp::oscillator::calcFmBlock` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:186` | `calcPwmFmBlock` | `dsp::oscillator::calcPwmFmBlock` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:225` | `calcFm` | `dsp::oscillator::calcFm` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:250` | `calcNextOscSampleFmBlock` | `Lxr::calcNextOscSampleFmBlock` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:325` | `calcNoiseBlock` | `Lxr::calcNoiseBlock` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:343` | `calcNoise` | `Lxr::calcNoise` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:375` | `calcNextOscSampleBlock` | `Lxr::calcNextOscSampleBlock` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:450` | `calcWavetableOscBlock` | `dsp::oscillator::calcWavetableOscBlock` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:475` | `calcWavetableOsc` | `dsp::oscillator::calcWavetableOsc` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:555` | `calcUserSampleOscFmBlock` | `dsp::oscillator::calcUserSampleOscFmBlock` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:592` | `calcUserSampleOscBlock` | `dsp::oscillator::calcUserSampleOscBlock` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:656` | `calcPwmBlock` | `dsp::oscillator::calcPwmBlock` | P1 | itcm | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:722` | `osc_calcSineFreq` | `dsp::oscillator::osc_calcSineFreq` | P1 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:727` | `osc_calcNoiseFreq` | `dsp::oscillator::osc_calcNoiseFreq` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:732` | `osc_calcWavetableFreq` | `dsp::oscillator::osc_calcWavetableFreq` | P1 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:741` | `osc_calcSampleFreq` | `dsp::oscillator::osc_calcSampleFreq` | P1 | gc | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:747` | `osc_calcUserSampleFreq` | `dsp::oscillator::osc_calcUserSampleFreq` | P1 | inlined | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:753` | `osc_setFreq` | `dsp::oscillator::osc_setFreq` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:790` | `osc_setBaseNote` | `dsp::oscillator::osc_setBaseNote` | P1 | flash | stub |
-| `Core/Src/Soundengine/DSPAudio/Oscillator.c:805` | `osc_recalcFreq` | `dsp::oscillator::osc_recalcFreq` | P1 | itcm | stub |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:22` | `freq2PhaseIncr` | `dsp::oscillator::freq2PhaseIncr` | P1 | inlined | ported (inlined only; the callers inline the machine-code operation order, difftested through osc_setFreq) |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:28` | `fast_log2` | `dsp::oscillator::fast_log2` | P1 | inlined | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:33` | `freqToMidiNote` | `dsp::oscillator::freqToMidiNote` | P1 | inlined | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:38` | `freqToTableIndex` | `dsp::oscillator::freqToTableIndex` | P1 | inlined | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:45` | `freq2PhaseIncr1024` | `dsp::oscillator::freq2PhaseIncr1024` | P1 | inlined | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:50` | `freq2PhaseIncr32767` | `dsp::oscillator::freq2PhaseIncr32767` | P1 | inlined | ported (inlined only; the callers inline the machine-code operation order, difftested through osc_setFreq) |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:55` | `calcSineBlock` | `dsp::oscillator::calcSineBlock` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:85` | `calcSine` | `dsp::oscillator::calcSine` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:109` | `calcFmSineBlock` | `dsp::oscillator::calcFmSineBlock` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:135` | `calcFmSine` | `dsp::oscillator::calcFmSine` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:158` | `calcFmBlock` | `dsp::oscillator::calcFmBlock` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:186` | `calcPwmFmBlock` | `dsp::oscillator::calcPwmFmBlock` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:225` | `calcFm` | `dsp::oscillator::calcFm` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:250` | `calcNextOscSampleFmBlock` | `Lxr::calcNextOscSampleFmBlock` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:325` | `calcNoiseBlock` | `Lxr::calcNoiseBlock` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:343` | `calcNoise` | `Lxr::calcNoise` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:375` | `calcNextOscSampleBlock` | `Lxr::calcNextOscSampleBlock` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:450` | `calcWavetableOscBlock` | `dsp::oscillator::calcWavetableOscBlock` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:475` | `calcWavetableOsc` | `dsp::oscillator::calcWavetableOsc` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:555` | `calcUserSampleOscFmBlock` | `dsp::oscillator::calcUserSampleOscFmBlock` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:592` | `calcUserSampleOscBlock` | `dsp::oscillator::calcUserSampleOscBlock` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:656` | `calcPwmBlock` | `dsp::oscillator::calcPwmBlock` | P1 | itcm | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:722` | `osc_calcSineFreq` | `dsp::oscillator::osc_calcSineFreq` | P1 | inlined | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:727` | `osc_calcNoiseFreq` | `dsp::oscillator::osc_calcNoiseFreq` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:732` | `osc_calcWavetableFreq` | `dsp::oscillator::osc_calcWavetableFreq` | P1 | inlined | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:741` | `osc_calcSampleFreq` | `dsp::oscillator::osc_calcSampleFreq` | P1 | gc | ported (not in firmware build, untestable) |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:747` | `osc_calcUserSampleFreq` | `dsp::oscillator::osc_calcUserSampleFreq` | P1 | inlined | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:753` | `osc_setFreq` | `dsp::oscillator::osc_setFreq` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:790` | `osc_setBaseNote` | `dsp::oscillator::osc_setBaseNote` | P1 | flash | ported+difftested |
+| `Core/Src/Soundengine/DSPAudio/Oscillator.c:805` | `osc_recalcFreq` | `dsp::oscillator::osc_recalcFreq` | P1 | itcm | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:23` | `SVF_setReso` | `dsp::resonant_filter::SVF_setReso` | P1 | itcm | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:29` | `SVF_init` | `dsp::resonant_filter::SVF_init` | P1 | flash | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/ResonantFilter.c:48` | `SVF_reset` | `dsp::resonant_filter::SVF_reset` | P1 | flash | ported+difftested |
@@ -146,9 +146,9 @@ Functions marked `gc`/`absent` cannot be checked against the reference binary.
 | `Core/Src/Soundengine/DSPAudio/transientGenerator.c:37` | `transient_trigger` | `dsp::transient_generator::transient_trigger` | P1 | flash | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/transientGenerator.c:43` | `transient_calcBlock` | `dsp::transient_generator::transient_calcBlock` | P1 | flash | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/transientGenerator.c:71` | `transient_calc` | `dsp::transient_generator::transient_calc` | P1 | gc | ported (not in firmware build, untestable) |
-| `Drivers/CMSIS/Include/cmsis_gcc.h:219` | `__get_APSR` | `cmsis::__get_APSR` | P1 | inlined | stub |
-| `Drivers/CMSIS/Include/cmsis_gcc.h:1644` | `__QADD16` | `cmsis::__QADD16` | P1 | inlined | stub |
-| `Drivers/CMSIS/Include/cmsis_gcc.h:1692` | `__QSUB16` | `cmsis::__QSUB16` | P1 | inlined | stub |
+| `Drivers/CMSIS/Include/cmsis_gcc.h:219` | `__get_APSR` | `cmsis::__get_APSR` | P1 | inlined | ported (untestable: reads CPU flags, not observable in Rust; only caller calcNoise is gc'd) |
+| `Drivers/CMSIS/Include/cmsis_gcc.h:1644` | `__QADD16` | `cmsis::__QADD16` | P1 | inlined | ported+difftested |
+| `Drivers/CMSIS/Include/cmsis_gcc.h:1692` | `__QSUB16` | `cmsis::__QSUB16` | P1 | inlined | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/FX/Compressor.c:32` | `Compressor_init` | `dsp::fx::compressor::Compressor_init` | P2 | flash | stub |
 | `Core/Src/Soundengine/DSPAudio/FX/Compressor.c:45` | `lin2dB` | `dsp::fx::compressor::lin2dB` | P2 | inlined | stub |
 | `Core/Src/Soundengine/DSPAudio/FX/Compressor.c:51` | `dB2lin` | `dsp::fx::compressor::dB2lin` | P2 | inlined | stub |
