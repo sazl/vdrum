@@ -428,6 +428,7 @@ unsafe impl Params for VDrumParams {
             m.insert("editor-state".into(), s);
         }
         m.insert("ui-scale".into(), self.ui_scale.load(Ordering::Relaxed).to_string());
+        m.insert("editor-layout".into(), crate::editor::LAYOUT_VERSION.to_string());
         let kit = self.kit();
         if let Ok(s) = serde_json::to_string(&hex(&kit.to_file_bytes())) {
             m.insert("kit".into(), s);
@@ -457,9 +458,19 @@ unsafe impl Params for VDrumParams {
                 self.editor_state.set(state);
             }
         }
+        // States saved before the compact layout have no layout version. Their zoom had no
+        // effect and their default window size was too large for laptop screens, so both are
+        // reset; a size the user chose by dragging the corner is kept.
+        let legacy = !serialized.contains_key("editor-layout");
         if let Some(Ok(z)) = serialized.get("ui-scale").map(|s| s.parse::<f32>()) {
-            if z.is_finite() {
-                self.ui_scale.store(z.clamp(0.5, 3.0), Ordering::Relaxed);
+            if z.is_finite() && !legacy {
+                self.ui_scale.store(z.clamp(crate::editor::MIN_ZOOM, crate::editor::MAX_ZOOM), Ordering::Relaxed);
+            }
+        }
+        if legacy {
+            self.ui_scale.store(1.0, Ordering::Relaxed);
+            if self.editor_state.size() == crate::editor::LEGACY_SIZE {
+                self.editor_state.set_size(crate::editor::DEFAULT_SIZE);
             }
         }
         let mut restore = Restore::default();
@@ -547,6 +558,31 @@ mod tests {
         assert_eq!(kit.values[lxr_params::par::VOL1 as usize], 5);
         assert_eq!(kit.name_str(), "Initkit");
         assert_eq!(r.globals.len(), 16);
+    }
+
+    #[test]
+    fn editor_state_migration() {
+        use crate::editor::{DEFAULT_SIZE, LEGACY_SIZE};
+        let load = |pairs: &[(&str, String)]| {
+            let p = VDrumParams::new(Arc::new(Shared::new()));
+            p.deserialize_fields(&pairs.iter().map(|(k, v)| (k.to_string(), v.clone())).collect());
+            (p.editor_state.size(), p.ui_scale.load(Ordering::Relaxed))
+        };
+        let state = |(w, h): (u32, u32)| format!("{{\"size\":[{w},{h}]}}");
+        // First layout, default size: new default size, zoom reset (it had no effect).
+        assert_eq!(load(&[("editor-state", state(LEGACY_SIZE)), ("ui-scale", "1.3".into())]), (DEFAULT_SIZE, 1.0));
+        // First layout, resized by hand: size kept.
+        assert_eq!(load(&[("editor-state", state((1500, 700))), ("ui-scale", "1.3".into())]), ((1500, 700), 1.0));
+        // Current layout: both kept.
+        let cur = [("editor-state", state((1531, 869))), ("ui-scale", "1.1".into()), ("editor-layout", "2".into())];
+        assert_eq!(load(&cur), ((1531, 869), 1.1));
+        // And written back.
+        let p = VDrumParams::new(Arc::new(Shared::new()));
+        p.ui_scale.store(1.1, Ordering::Relaxed);
+        let f = p.serialize_fields();
+        let p2 = VDrumParams::new(Arc::new(Shared::new()));
+        p2.deserialize_fields(&f);
+        assert_eq!((p2.editor_state.size(), p2.ui_scale.load(Ordering::Relaxed)), (DEFAULT_SIZE, 1.1));
     }
 
     #[test]

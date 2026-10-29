@@ -226,7 +226,11 @@ change is applied at the start of the next tick.
     destinations, the spelled-out target.
   * Values that differ from their default (the init kit, or the plugin default for globals) have an
     amber stripe. The top bar counts them.
-  * The default window is 1812 × 960 and fits everything at 100 % on a 1920 × 1080 display.
+  * The default window is 1392 × 790 logical pixels (macOS points) and holds everything at 100 %
+    without scrolling. It leaves room for the menu bar, a host's plugin window header and the Dock
+    on the default resolutions of the MacBook Air 13" (1470 × 956), MacBook Pro 14" (1512 × 982)
+    and 16" (1728 × 1117). The `default_size_fits_everything` test lays the editor out headlessly
+    and checks this.
   * A right-hand column holds:
     * the FX bus, with P1–P4 labelled for the current FX type from the firmware's FX page and
       controls not used by the type dimmed;
@@ -240,8 +244,14 @@ change is applied at the start of the next tick.
   * List parameters (waveforms, filter types, LFO and velocity targets, …) open a list on click.
     Mod-target lists offer the destination voice's range (`modTargetVoiceOffsets`).
   * Tooltips show the full name, value, range, default, CC/NRPN, learned CC and stable ID.
-* **Window.** Resizable from the corner. Zoom with −/+ (persisted); click the percentage to reset
-  it to 100 %. The content scrolls if it does not fit.
+* **Window.** Resizable from the corner. Zoom with −/+ in 10 % steps from 50 % to 300 %
+  (persisted); click the percentage to reset it to 100 %. Zoom scales the content and asks the host
+  to scale the window by the same ratio; if the host refuses, the content is zoomed inside the
+  unchanged window. The content scrolls if it does not fit. States saved by versions before the
+  compact layout open at the new default size and 100 %, unless the window had been resized by
+  hand.
+* **Vendored GUI crates.** `third_party/egui-baseview` and `third_party/nih_plug_egui` are copies of
+  the revisions nih-plug pins, with fixes for zoom and resizing (see `third_party/README.md`).
 
 ## Validation (Linux, x86_64)
 
