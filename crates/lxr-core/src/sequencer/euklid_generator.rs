@@ -6,6 +6,9 @@
 
 use crate::prelude::*;
 
+/// Recursion limit of `euklid_calcRecursive` (port only, see there).
+pub const EUKLID_MAX_ITERATIONS: u8 = 64;
+
 // ---- functions without access to globals
 /// C: `static inline uint8_t getObjSize(uint16_t group)`
 ///
@@ -39,6 +42,14 @@ impl Lxr {
     /// Globals: `euklid_nextCnt1`, `euklid_originalLength`, `euklid_patternBuffer`.
     /// Calls: `sequencer::euklid_generator::getObjSize`.
     pub fn euklid_calcRecursive(&mut self, length: u8, steps: u8, iteration: u8, group1: u16, group2: u16) {
+        // Port guard (not in the C source): for lengths above 17 (the menu allows 1..16, `set_parameter`
+        // does not range-limit) some step counts never reach `objCnt2 <= 1` because the 16 bit groups
+        // overflow, and the firmware recurses until the stack overflows. Terminating inputs need at most
+        // 18 iterations (lengths 1..255), so stop there with the pattern buffer as it is (empty).
+        // docs/ENGINE_CONTRACT.md section 9.
+        if iteration > EUKLID_MAX_ITERATIONS {
+            return;
+        }
         // omit division by zero
         let remainder: u16 = if steps != 0 { (length % steps) as u16 } else { 0 };
 

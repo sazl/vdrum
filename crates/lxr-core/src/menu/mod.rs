@@ -327,7 +327,8 @@ impl Lxr {
             PAR_SHUFFLE => self.frontPanel_sendData(SEQ_CC, SEQ_SHUFFLE, value),
             PAR_AUTOM_TRACK => self.frontPanel_sendData(SEQ_CC, SEQ_SET_AUTOM_TRACK, value),
             PAR_P1_DEST | PAR_P2_DEST => {
-                let tmp = modTargets[value as usize].param as u8;
+                // C reads past the table for an index the menu never produces: target 0 here
+                let tmp = modTargets.get(value as usize).map_or(0, |t| t.param as u8);
                 let st = self.activeParameters[PAR_ACTIVE_STEP as usize];
                 self.frontPanel_sendData(SEQ_CC, SEQ_SELECT_ACTIVE_STEP, st);
                 let cmd = if paramNr == PAR_P1_DEST { SET_P1_DEST } else { SET_P2_DEST };

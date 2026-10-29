@@ -216,7 +216,15 @@ impl Pair {
         self.blocks += 1;
         if a.dac1 != b.dac1 || a.dac2 != b.dac2 {
             let k = a.dac1.iter().chain(a.dac2.iter()).zip(b.dac1.iter().chain(b.dac2.iter())).position(|(x, y)| x != y).unwrap();
-            panic!("{ctx}: block {} differs at sample {k}", self.blocks);
+            let l = &self.l;
+            let wf = [
+                l.voiceArray[0].osc.waveform, l.voiceArray[0].modOsc.waveform,
+                l.voiceArray[1].osc.waveform, l.voiceArray[1].modOsc.waveform,
+                l.voiceArray[2].osc.waveform, l.voiceArray[2].modOsc.waveform,
+                l.snareVoice.osc.waveform, l.cymbalVoice.osc.waveform, l.cymbalVoice.modOsc.waveform,
+                l.cymbalVoice.modOsc2.waveform, l.hatVoice.osc.waveform, l.hatVoice.modOsc.waveform,
+            ];
+            panic!("{ctx}: block {} differs at sample {k} (oscillator waveforms {wf:?})", self.blocks);
         }
     }
 }

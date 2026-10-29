@@ -246,150 +246,150 @@ Functions marked `gc`/`absent` cannot be checked against the reference binary.
 | `Core/Src/Soundengine/FxBus.c:137` | `FxBus_prepareFxChange` | `fx_bus::FxBus_prepareFxChange` | P2 | flash | ported+difftested |
 | `Core/Src/Soundengine/FxBus.c:143` | `FxBus_updateParameter` | `Lxr::FxBus_updateParameter` | P2 | itcm | ported+difftested |
 | `Core/Src/Soundengine/FxBus.c:192` | `FxBus_setParameter` | `Lxr::FxBus_setParameter` | P2 | itcm | ported+difftested |
-| `Core/Inc/Soundengine/MIDI/valueShaper.h:22` | `valueShaperI2F` | `midi::value_shaper::valueShaperI2F` | P3 | absent | stub |
-| `Core/Inc/Soundengine/MIDI/valueShaper.h:30` | `valueShaperF2F` | `midi::value_shaper::valueShaperF2F` | P3 | inlined | stub |
-| `Core/Src/IO/adcPots.c:282` | `adc_getFaderVolume` | `Lxr::adc_getFaderVolume` | P3 | flash | stub (external) |
-| `Core/Src/Preset/presetManager.c:174` | `preset_touchTimer` | `Lxr::preset_touchTimer` | P3 | flash | stub |
-| `Core/Src/Preset/presetManager.c:732` | `preset_isNameEmpty` | `preset::preset_isNameEmpty` | P3 | flash | stub |
-| `Core/Src/Preset/presetManager.c:750` | `preset_init` | `Lxr::preset_init` | P3 | flash | stub |
-| `Core/Src/Preset/presetManager.c:834` | `preset_loadDrumsetRam` | `Lxr::preset_loadDrumsetRam` | P3 | flash | stub |
-| `Core/Src/Preset/presetManager.c:1253` | `interpolate` | `preset::interpolate` | P3 | inlined | stub |
-| `Core/Src/Preset/presetManager.c:1263` | `preset_sendDrumsetParametersImmediate` | `Lxr::preset_sendDrumsetParametersImmediate` | P3 | itcm | stub |
-| `Core/Src/Preset/presetManager.c:1350` | `preset_sendDrumsetParameters` | `Lxr::preset_sendDrumsetParameters` | P3 | flash | stub |
-| `Core/Src/Preset/presetManager.c:2128` | `preset_morph_tick` | `Lxr::preset_morph_tick` | P3 | flash | stub |
-| `Core/Src/Preset/presetManager.c:2201` | `preset_morph` | `Lxr::preset_morph` | P3 | flash | stub |
-| `Core/Src/Soundengine/AudioCodecManager.c:24` | `CodecInit` | `Lxr::CodecInit` | P3 | flash | stub (external) |
-| `Core/Src/Soundengine/FIFO.c:36` | `fifo_bufferOut` | `fifo::fifo_bufferOut` | P3 | flash | stub |
-| `Core/Src/Soundengine/MIDI/CortexParser.c:99` | `frontParser_parseUartData` | `Lxr::frontParser_parseUartData` | P3 | flash | stub |
-| `Core/Src/Soundengine/MIDI/CortexParser.c:148` | `frontParser_handleSysexData` | `Lxr::frontParser_handleSysexData` | P3 | inlined | stub |
-| `Core/Src/Soundengine/MIDI/CortexParser.c:395` | `frontParser_handleMidiMessage` | `Lxr::frontParser_handleMidiMessage` | P3 | inlined | stub |
-| `Core/Src/Soundengine/MIDI/CortexParser.c:704` | `frontParser_handleSeqCC` | `Lxr::frontParser_handleSeqCC` | P3 | inlined | stub |
-| `Core/Src/Soundengine/MIDI/MidiParser.c:95` | `calcPitchModAmount` | `midi::midi_parser::calcPitchModAmount` | P3 | inlined | stub |
-| `Core/Src/Soundengine/MIDI/MidiParser.c:118` | `midiParser_calcDetune` | `midi::midi_parser::midiParser_calcDetune` | P3 | flash | stub |
-| `Core/Src/Soundengine/MIDI/MidiParser.c:134` | `midiParser_nrpnHandler` | `Lxr::midiParser_nrpnHandler` | P3 | inlined | stub |
-| `Core/Src/Soundengine/MIDI/MidiParser.c:144` | `midiParser_ccHandler` | `Lxr::midiParser_ccHandler` | P3 | flash | stub |
-| `Core/Src/Soundengine/MIDI/MidiParser.c:1448` | `midiParser_checkMtc` | `Lxr::midiParser_checkMtc` | P3 | flash | stub |
-| `Core/Src/Soundengine/MIDI/MidiParser.c:1477` | `midiParser_noteOn` | `Lxr::midiParser_noteOn` | P3 | clone | stub |
-| `Core/Src/Soundengine/MIDI/MidiParser.c:1543` | `midiParser_isValidChannel` | `Lxr::midiParser_isValidChannel` | P3 | inlined | stub |
-| `Core/Src/Soundengine/MIDI/MidiParser.c:1553` | `midiParser_cc2voiceNr` | `midi::midi_parser::midiParser_cc2voiceNr` | P3 | inlined | stub |
-| `Core/Src/Soundengine/MIDI/MidiParser.c:1717` | `midiParser_parseMidiMessage` | `Lxr::midiParser_parseMidiMessage` | P3 | flash | stub |
-| `Core/Src/Soundengine/MIDI/MidiParser.c:1923` | `midiParser_handleStatusByte` | `Lxr::midiParser_handleStatusByte` | P3 | inlined | stub |
-| `Core/Src/Soundengine/MIDI/MidiParser.c:1962` | `midiParser_parseUartData` | `Lxr::midiParser_parseUartData` | P3 | flash | stub |
-| `Core/Src/Soundengine/MIDI/MidiParser.c:2103` | `midiParser_setRouting` | `Lxr::midiParser_setRouting` | P3 | flash | stub |
-| `Core/Src/Soundengine/MIDI/MidiParser.c:2133` | `midiParser_setFilter` | `Lxr::midiParser_setFilter` | P3 | flash | stub |
-| `Core/Src/Soundengine/MIDI/MidiVoiceControl.c:30` | `voiceControl_noteOn` | `Lxr::voiceControl_noteOn` | P3 | flash | stub |
-| `Core/Src/Soundengine/MIDI/MidiVoiceControl.c:66` | `voiceControl_noteOff` | `Lxr::voiceControl_noteOff` | P3 | flash | stub |
-| `Core/Src/Soundengine/MIDI/MidiVoiceControl.c:88` | `voiceControl_isVoicePlaying` | `Lxr::voiceControl_isVoicePlaying` | P3 | gc | stub |
-| `Core/Src/Soundengine/MIDI/ParameterArray.c:32` | `paramArray_setParameter` | `Lxr::paramArray_setParameter` | P3 | itcm | stub |
-| `Core/Src/Soundengine/MIDI/ParameterArray.c:108` | `parameterArray_init` | `Lxr::parameterArray_init` | P3 | flash | stub |
-| `Core/Src/Soundengine/MIDI/Uart.c:42` | `uart_clearFrontFifo` | `Lxr::uart_clearFrontFifo` | P3 | flash | stub (external) |
-| `Core/Src/Soundengine/MIDI/Uart.c:88` | `uart_processMidi` | `Lxr::uart_processMidi` | P3 | flash | stub |
-| `Core/Src/Soundengine/MIDI/Uart.c:97` | `uart_sendMidi` | `Lxr::uart_sendMidi` | P3 | flash | stub (external) |
-| `Core/Src/Soundengine/MIDI/Uart.c:137` | `uart_sendFrontpanelByte` | `Lxr::uart_sendFrontpanelByte` | P3 | flash | stub (external) |
-| `Core/Src/Soundengine/MIDI/Uart.c:155` | `uart_sendFrontpanelSysExByte` | `Lxr::uart_sendFrontpanelSysExByte` | P3 | flash | stub (external) |
-| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:36` | `euklid_init` | `Lxr::euklid_init` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:53` | `getObjSize` | `sequencer::euklid_generator::getObjSize` | P3 | inlined | stub |
-| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:60` | `euklid_calcRecursive` | `Lxr::euklid_calcRecursive` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:142` | `euklid_generate` | `Lxr::euklid_generate` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:169` | `euklid_getLength` | `Lxr::euklid_getLength` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:174` | `euklid_getSteps` | `Lxr::euklid_getSteps` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:180` | `euklid_setLength` | `Lxr::euklid_setLength` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:187` | `euklid_setSteps` | `Lxr::euklid_setSteps` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:197` | `euklid_getRotation` | `Lxr::euklid_getRotation` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:202` | `euklid_setRotation` | `Lxr::euklid_setRotation` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:210` | `euklid_rotatePattern` | `Lxr::euklid_rotatePattern` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:221` | `euklid_transferPattern` | `Lxr::euklid_transferPattern` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/clockSync.c:29` | `sync_calcBpm` | `sequencer::clock_sync::sync_calcBpm` | P3 | inlined | stub |
-| `Core/Src/Soundengine/Sequencer/clockSync.c:42` | `sync_tick` | `Lxr::sync_tick` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/clockSync.c:129` | `sync_midiResetPosition` | `Lxr::sync_midiResetPosition` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/clockSync.c:135` | `sync_midiStartStop` | `Lxr::sync_midiStartStop` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/clockSync.c:147` | `sync_getClockCnt` | `Lxr::sync_getClockCnt` | P3 | gc | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:176` | `seq_getMasterStepCnt` | `Lxr::seq_getMasterStepCnt` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:181` | `seq_init` | `Lxr::seq_init` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:225` | `seq_copyPatternToBackupBuffer` | `Lxr::seq_copyPatternToBackupBuffer` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:242` | `seq_copyBackupBufferToPattern` | `Lxr::seq_copyBackupBufferToPattern` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:269` | `seq_setShuffle` | `Lxr::seq_setShuffle` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:274` | `seq_setTrackLength` | `Lxr::seq_setTrackLength` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:293` | `seq_getTrackLength` | `Lxr::seq_getTrackLength` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:354` | `seq_getDeltaTShuffleDelay` | `Lxr::seq_getDeltaTShuffleDelay` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:386` | `seq_calcDeltaT` | `Lxr::seq_calcDeltaT` | P3 | inlined | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:437` | `seq_setBpm` | `Lxr::seq_setBpm` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:444` | `seq_getBpm` | `Lxr::seq_getBpm` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:449` | `seq_sync` | `Lxr::seq_sync` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:457` | `seq_setNextPattern` | `Lxr::seq_setNextPattern` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:470` | `seq_sendMidi` | `Lxr::seq_sendMidi` | P3 | inlined | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:482` | `seq_parseAutomationNodes` | `Lxr::seq_parseAutomationNodes` | P3 | inlined | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:492` | `seq_triggerVoice` | `Lxr::seq_triggerVoice` | P3 | clone | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:565` | `seq_determineNextPattern` | `Lxr::seq_determineNextPattern` | P3 | inlined | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:602` | `seq_setPendingPatternActive` | `Lxr::seq_setPendingPatternActive` | P3 | itcm | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:831` | `seq_getLongestTrack` | `Lxr::seq_getLongestTrack` | P3 | inlined | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:845` | `getShiftValue` | `sequencer::getShiftValue` | P3 | gc | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:911` | `flamIdxToPattern` | `sequencer::flamIdxToPattern` | P3 | inlined | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:942` | `seq_getShiftFlamPattern` | `Lxr::seq_getShiftFlamPattern` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:1091` | `seq_processFlam` | `Lxr::seq_processFlam` | P3 | clone | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:1236` | `seq_MidiSyncQueue` | `Lxr::seq_MidiSyncQueue` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:1254` | `seq_nextStep` | `Lxr::seq_nextStep` | P3 | itcm | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:1518` | `seq_getExtSync` | `Lxr::seq_getExtSync` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:1523` | `seq_setExtSync` | `Lxr::seq_setExtSync` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:1528` | `seq_armAutomationStep` | `Lxr::seq_armAutomationStep` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:1642` | `seq_getElapsedStepTimePercent` | `Lxr::seq_getElapsedStepTimePercent` | P3 | inlined | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:1650` | `seq_tick` | `Lxr::seq_tick` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:1860` | `seq_setQuantisation` | `Lxr::seq_setQuantisation` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:1882` | `seq_setMainStep` | `Lxr::seq_setMainStep` | P3 | inlined | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:1910` | `seq_isRunning` | `Lxr::seq_isRunning` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:1914` | `seq_resetPosition` | `Lxr::seq_resetPosition` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:1956` | `seq_setRunning` | `Lxr::seq_setRunning` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2034` | `seq_intIsMainStepActive` | `Lxr::seq_intIsMainStepActive` | P3 | inlined | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2047` | `seq_setMute` | `Lxr::seq_setMute` | P3 | itcm | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2067` | `seq_isTrackMuted` | `Lxr::seq_isTrackMuted` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2115` | `seq_sendStepInfoToFront` | `Lxr::seq_sendStepInfoToFront` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2153` | `seq_setRoll` | `Lxr::seq_setRoll` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2171` | `seq_setRollRate` | `Lxr::seq_setRollRate` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2301` | `seq_isAutomationStepArmed` | `Lxr::seq_isAutomationStepArmed` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2307` | `seq_recordAutomation` | `Lxr::seq_recordAutomation` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2364` | `seq_addNote` | `Lxr::seq_addNote` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2514` | `seq_setRecordingMode` | `Lxr::seq_setRecordingMode` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2519` | `seq_setErasingMode` | `Lxr::seq_setErasingMode` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2526` | `seq_resetNote` | `sequencer::seq_resetNote` | P3 | inlined | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2537` | `seq_clearTrack` | `Lxr::seq_clearTrack` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2560` | `seq_clearPattern` | `Lxr::seq_clearPattern` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2568` | `seq_clearAutomation` | `Lxr::seq_clearAutomation` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2588` | `seq_copyTrack` | `Lxr::seq_copyTrack` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2618` | `seq_copyPattern` | `Lxr::seq_copyPattern` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2652` | `seq_setActiveAutomationTrack` | `Lxr::seq_setActiveAutomationTrack` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2679` | `seq_midiNoteOff` | `Lxr::seq_midiNoteOff` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2712` | `seq_sendRealtime` | `Lxr::seq_sendRealtime` | P3 | inlined | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2725` | `seq_sendMidiNoteOn` | `Lxr::seq_sendMidiNoteOn` | P3 | flash | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2753` | `seq_sendProgChg` | `Lxr::seq_sendProgChg` | P3 | inlined | stub |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2774` | `seq_setStepIndexToStart` | `Lxr::seq_setStepIndexToStart` | P3 | inlined | stub |
-| `Core/Src/Soundengine/Soundengine.c:21` | `soundengine_calcNextSampleBlock` | `Lxr::soundengine_calcNextSampleBlock` | P3 | flash | stub |
-| `Core/Src/Soundengine/Soundengine.c:38` | `soundengine_init` | `Lxr::soundengine_init` | P3 | flash | stub |
-| `Core/Src/Soundengine/Soundengine.c:77` | `soundengine_process` | `Lxr::soundengine_process` | P3 | flash | stub |
-| `Core/Src/Soundengine/TriggerOut.c:484` | `trigger_clockTick` | `Lxr::trigger_clockTick` | P3 | flash | stub (external) |
-| `Core/Src/Soundengine/TriggerOut.c:558` | `trigger_reset` | `Lxr::trigger_reset` | P3 | flash | stub (external) |
-| `Core/Src/Soundengine/USB/usb_manager.c:61` | `usb_tick` | `Lxr::usb_tick` | P3 | flash | stub (external) |
-| `Core/Src/Soundengine/USB/usb_manager.c:136` | `usb_sendMidi` | `Lxr::usb_sendMidi` | P3 | flash | stub (external) |
-| `Core/Src/buttonHandler.c:2212` | `buttonHandler_getMode` | `Lxr::buttonHandler_getMode` | P3 | flash | stub (external) |
-| `Core/Src/frontPanelParser.c:617` | `frontPanel_sendData` | `Lxr::frontPanel_sendData` | P3 | flash | stub |
-| `Core/Src/ledHandler.c:77` | `led_initPatternSelectLeds` | `Lxr::led_initPatternSelectLeds` | P3 | flash | stub (external) |
-| `Core/Src/ledHandler.c:230` | `led_setValue` | `Lxr::led_setValue` | P3 | flash | stub (external) |
-| `Core/Src/ledHandler.c:321` | `led_idx2StepLed` | `Lxr::led_idx2StepLed` | P3 | flash | stub (external) |
-| `Core/Src/ledHandler.c:380` | `led_setActive_step` | `Lxr::led_setActive_step` | P3 | flash | stub (external) |
-| `Core/Src/ledHandler.c:398` | `led_clearActive_step` | `Lxr::led_clearActive_step` | P3 | flash | stub (external) |
-| `Core/Src/ledHandler.c:403` | `led_updateSeqLeds` | `Lxr::led_updateSeqLeds` | P3 | flash | stub (external) |
-| `Core/Src/ledHandler.c:450` | `led_clearSequencerLeds` | `Lxr::led_clearSequencerLeds` | P3 | flash | stub (external) |
-| `Core/Src/ledHandler.c:563` | `led_clearAllBlinkLeds` | `Lxr::led_clearAllBlinkLeds` | P3 | flash | stub (external) |
-| `Core/Src/ledHandler.c:574` | `led_setBlinkLed` | `Lxr::led_setBlinkLed` | P3 | flash | stub (external) |
-| `Core/Src/ledHandler.c:614` | `led_resetBlinkTimer` | `Lxr::led_resetBlinkTimer` | P3 | flash | stub (external) |
-| `Core/Src/ledHandler.c:619` | `led_blinkHandler` | `Lxr::led_blinkHandler` | P3 | flash | stub (external) |
-| `Core/Src/menu/Cc2Text.c:439` | `getNumModTargets` | `menu::cc2_text::getNumModTargets` | P3 | flash | stub |
-| `Core/Src/menu/menu.c:725` | `menu_setShownPattern` | `Lxr::menu_setShownPattern` | P3 | flash | stub (external) |
-| `Core/Src/menu/menu.c:731` | `menu_getViewedPattern` | `Lxr::menu_getViewedPattern` | P3 | flash | stub (external) |
-| `Core/Src/menu/menu.c:1026` | `menu_repaintAll` | `Lxr::menu_repaintAll` | P3 | flash | stub (external) |
-| `Core/Src/menu/menu.c:1811` | `menu_repaint` | `Lxr::menu_repaint` | P3 | flash | stub (external) |
-| `Core/Src/menu/menu.c:3156` | `menu_switchSubPage` | `Lxr::menu_switchSubPage` | P3 | flash | stub (external) |
-| `Core/Src/menu/menu.c:3212` | `menu_getSubPage` | `Lxr::menu_getSubPage` | P3 | flash | stub (external) |
-| `Core/Src/menu/menu.c:4282` | `menu_getActiveVoice` | `Lxr::menu_getActiveVoice` | P3 | flash | stub (external) |
+| `Core/Inc/Soundengine/MIDI/valueShaper.h:22` | `valueShaperI2F` | `midi::value_shaper::valueShaperI2F` | P3 | absent | ported (not linked in the firmware: not difftestable) |
+| `Core/Inc/Soundengine/MIDI/valueShaper.h:30` | `valueShaperF2F` | `midi::value_shaper::valueShaperF2F` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/IO/adcPots.c:282` | `adc_getFaderVolume` | `Lxr::adc_getFaderVolume` | P3 | flash | external: returns `adc_faderValues[idx]` (set by `Lxr::set_fader_adc`, ADC path of `adc_checkFaders`) |
+| `Core/Src/Preset/presetManager.c:174` | `preset_touchTimer` | `Lxr::preset_touchTimer` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Preset/presetManager.c:732` | `preset_isNameEmpty` | `preset::preset_isNameEmpty` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Preset/presetManager.c:750` | `preset_init` | `Lxr::preset_init` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Preset/presetManager.c:834` | `preset_loadDrumsetRam` | `Lxr::preset_loadDrumsetRam` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Preset/presetManager.c:1253` | `interpolate` | `preset::interpolate` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Preset/presetManager.c:1263` | `preset_sendDrumsetParametersImmediate` | `Lxr::preset_sendDrumsetParametersImmediate` | P3 | itcm | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Preset/presetManager.c:1350` | `preset_sendDrumsetParameters` | `Lxr::preset_sendDrumsetParameters` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Preset/presetManager.c:2128` | `preset_morph_tick` | `Lxr::preset_morph_tick` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Preset/presetManager.c:2201` | `preset_morph` | `Lxr::preset_morph` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/AudioCodecManager.c:24` | `CodecInit` | `Lxr::CodecInit` | P3 | flash | external: codec I2C setup is hardware; keeps the DMA buffer init and returns 0 |
+| `Core/Src/Soundengine/FIFO.c:36` | `fifo_bufferOut` | `fifo::fifo_bufferOut` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/MIDI/CortexParser.c:99` | `frontParser_parseUartData` | `Lxr::frontParser_parseUartData` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/MIDI/CortexParser.c:148` | `frontParser_handleSysexData` | `Lxr::frontParser_handleSysexData` | P3 | inlined | ported, not difftested (only reachable from front-panel/UI commands that the engine API does not produce) |
+| `Core/Src/Soundengine/MIDI/CortexParser.c:395` | `frontParser_handleMidiMessage` | `Lxr::frontParser_handleMidiMessage` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/MIDI/CortexParser.c:704` | `frontParser_handleSeqCC` | `Lxr::frontParser_handleSeqCC` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/MIDI/MidiParser.c:95` | `calcPitchModAmount` | `midi::midi_parser::calcPitchModAmount` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/MIDI/MidiParser.c:118` | `midiParser_calcDetune` | `midi::midi_parser::midiParser_calcDetune` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/MIDI/MidiParser.c:134` | `midiParser_nrpnHandler` | `Lxr::midiParser_nrpnHandler` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/MIDI/MidiParser.c:144` | `midiParser_ccHandler` | `Lxr::midiParser_ccHandler` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/MIDI/MidiParser.c:1448` | `midiParser_checkMtc` | `Lxr::midiParser_checkMtc` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/MIDI/MidiParser.c:1477` | `midiParser_noteOn` | `Lxr::midiParser_noteOn` | P3 | clone | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/MIDI/MidiParser.c:1543` | `midiParser_isValidChannel` | `Lxr::midiParser_isValidChannel` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/MIDI/MidiParser.c:1553` | `midiParser_cc2voiceNr` | `midi::midi_parser::midiParser_cc2voiceNr` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/MIDI/MidiParser.c:1717` | `midiParser_parseMidiMessage` | `Lxr::midiParser_parseMidiMessage` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/MIDI/MidiParser.c:1923` | `midiParser_handleStatusByte` | `Lxr::midiParser_handleStatusByte` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/MIDI/MidiParser.c:1962` | `midiParser_parseUartData` | `Lxr::midiParser_parseUartData` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/MIDI/MidiParser.c:2103` | `midiParser_setRouting` | `Lxr::midiParser_setRouting` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/MIDI/MidiParser.c:2133` | `midiParser_setFilter` | `Lxr::midiParser_setFilter` | P3 | flash | ported, not difftested (only reachable from front-panel/UI commands that the engine API does not produce) |
+| `Core/Src/Soundengine/MIDI/MidiVoiceControl.c:30` | `voiceControl_noteOn` | `Lxr::voiceControl_noteOn` | P3 | flash | ported from the shipped v1.71 binary + difftested (p3_shipped: call_addr in the shipped image; engine level p3_scenarios, p3_midi) |
+| `Core/Src/Soundengine/MIDI/MidiVoiceControl.c:66` | `voiceControl_noteOff` | `Lxr::voiceControl_noteOff` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/MIDI/MidiVoiceControl.c:88` | `voiceControl_isVoicePlaying` | `Lxr::voiceControl_isVoicePlaying` | P3 | gc | ported (not linked in the firmware: not difftestable) |
+| `Core/Src/Soundengine/MIDI/ParameterArray.c:32` | `paramArray_setParameter` | `Lxr::paramArray_setParameter` | P3 | itcm | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/MIDI/ParameterArray.c:108` | `parameterArray_init` | `Lxr::parameterArray_init` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/MIDI/Uart.c:42` | `uart_clearFrontFifo` | `Lxr::uart_clearFrontFifo` | P3 | flash | external: no-op (front-panel bytes are parsed synchronously, no FIFO) |
+| `Core/Src/Soundengine/MIDI/Uart.c:88` | `uart_processMidi` | `Lxr::uart_processMidi` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/MIDI/Uart.c:97` | `uart_sendMidi` | `Lxr::uart_sendMidi` | P3 | flash | external: no-op (MIDI out is not part of the engine) |
+| `Core/Src/Soundengine/MIDI/Uart.c:137` | `uart_sendFrontpanelByte` | `Lxr::uart_sendFrontpanelByte` | P3 | flash | external: feeds the byte to the front-panel model (`frontPanel_parseData`) |
+| `Core/Src/Soundengine/MIDI/Uart.c:155` | `uart_sendFrontpanelSysExByte` | `Lxr::uart_sendFrontpanelSysExByte` | P3 | flash | external: no-op |
+| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:36` | `euklid_init` | `Lxr::euklid_init` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:53` | `getObjSize` | `sequencer::euklid_generator::getObjSize` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:60` | `euklid_calcRecursive` | `Lxr::euklid_calcRecursive` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:142` | `euklid_generate` | `Lxr::euklid_generate` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:169` | `euklid_getLength` | `Lxr::euklid_getLength` | P3 | flash | ported, not difftested (only reachable from front-panel/UI commands that the engine API does not produce) |
+| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:174` | `euklid_getSteps` | `Lxr::euklid_getSteps` | P3 | flash | ported, not difftested (only reachable from front-panel/UI commands that the engine API does not produce) |
+| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:180` | `euklid_setLength` | `Lxr::euklid_setLength` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:187` | `euklid_setSteps` | `Lxr::euklid_setSteps` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:197` | `euklid_getRotation` | `Lxr::euklid_getRotation` | P3 | flash | ported, not difftested (only reachable from front-panel/UI commands that the engine API does not produce) |
+| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:202` | `euklid_setRotation` | `Lxr::euklid_setRotation` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:210` | `euklid_rotatePattern` | `Lxr::euklid_rotatePattern` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:221` | `euklid_transferPattern` | `Lxr::euklid_transferPattern` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/clockSync.c:29` | `sync_calcBpm` | `sequencer::clock_sync::sync_calcBpm` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/clockSync.c:42` | `sync_tick` | `Lxr::sync_tick` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/clockSync.c:129` | `sync_midiResetPosition` | `Lxr::sync_midiResetPosition` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/clockSync.c:135` | `sync_midiStartStop` | `Lxr::sync_midiStartStop` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/clockSync.c:147` | `sync_getClockCnt` | `Lxr::sync_getClockCnt` | P3 | gc | ported (not linked in the firmware: not difftestable) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:176` | `seq_getMasterStepCnt` | `Lxr::seq_getMasterStepCnt` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:181` | `seq_init` | `Lxr::seq_init` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:225` | `seq_copyPatternToBackupBuffer` | `Lxr::seq_copyPatternToBackupBuffer` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:242` | `seq_copyBackupBufferToPattern` | `Lxr::seq_copyBackupBufferToPattern` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:269` | `seq_setShuffle` | `Lxr::seq_setShuffle` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:274` | `seq_setTrackLength` | `Lxr::seq_setTrackLength` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:293` | `seq_getTrackLength` | `Lxr::seq_getTrackLength` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:354` | `seq_getDeltaTShuffleDelay` | `Lxr::seq_getDeltaTShuffleDelay` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:386` | `seq_calcDeltaT` | `Lxr::seq_calcDeltaT` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:437` | `seq_setBpm` | `Lxr::seq_setBpm` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:444` | `seq_getBpm` | `Lxr::seq_getBpm` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:449` | `seq_sync` | `Lxr::seq_sync` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:457` | `seq_setNextPattern` | `Lxr::seq_setNextPattern` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:470` | `seq_sendMidi` | `Lxr::seq_sendMidi` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:482` | `seq_parseAutomationNodes` | `Lxr::seq_parseAutomationNodes` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:492` | `seq_triggerVoice` | `Lxr::seq_triggerVoice` | P3 | clone | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:565` | `seq_determineNextPattern` | `Lxr::seq_determineNextPattern` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:602` | `seq_setPendingPatternActive` | `Lxr::seq_setPendingPatternActive` | P3 | itcm | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:831` | `seq_getLongestTrack` | `Lxr::seq_getLongestTrack` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:845` | `getShiftValue` | `sequencer::getShiftValue` | P3 | gc | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:911` | `flamIdxToPattern` | `sequencer::flamIdxToPattern` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:942` | `seq_getShiftFlamPattern` | `Lxr::seq_getShiftFlamPattern` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:1091` | `seq_processFlam` | `Lxr::seq_processFlam` | P3 | clone | ported from the shipped v1.71 binary + difftested (p3_shipped: call_addr in the shipped image; engine level p3_scenarios, p3_midi) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:1236` | `seq_MidiSyncQueue` | `Lxr::seq_MidiSyncQueue` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:1254` | `seq_nextStep` | `Lxr::seq_nextStep` | P3 | itcm | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:1518` | `seq_getExtSync` | `Lxr::seq_getExtSync` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:1523` | `seq_setExtSync` | `Lxr::seq_setExtSync` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:1528` | `seq_armAutomationStep` | `Lxr::seq_armAutomationStep` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:1642` | `seq_getElapsedStepTimePercent` | `Lxr::seq_getElapsedStepTimePercent` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:1650` | `seq_tick` | `Lxr::seq_tick` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:1860` | `seq_setQuantisation` | `Lxr::seq_setQuantisation` | P3 | flash | ported, not difftested (only reachable from front-panel/UI commands that the engine API does not produce) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:1882` | `seq_setMainStep` | `Lxr::seq_setMainStep` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:1910` | `seq_isRunning` | `Lxr::seq_isRunning` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:1914` | `seq_resetPosition` | `Lxr::seq_resetPosition` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:1956` | `seq_setRunning` | `Lxr::seq_setRunning` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2034` | `seq_intIsMainStepActive` | `Lxr::seq_intIsMainStepActive` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2047` | `seq_setMute` | `Lxr::seq_setMute` | P3 | itcm | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2067` | `seq_isTrackMuted` | `Lxr::seq_isTrackMuted` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2115` | `seq_sendStepInfoToFront` | `Lxr::seq_sendStepInfoToFront` | P3 | flash | ported, not difftested (only reachable from front-panel/UI commands that the engine API does not produce) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2153` | `seq_setRoll` | `Lxr::seq_setRoll` | P3 | flash | ported, not difftested (only reachable from front-panel/UI commands that the engine API does not produce) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2171` | `seq_setRollRate` | `Lxr::seq_setRollRate` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2301` | `seq_isAutomationStepArmed` | `Lxr::seq_isAutomationStepArmed` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2307` | `seq_recordAutomation` | `Lxr::seq_recordAutomation` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2364` | `seq_addNote` | `Lxr::seq_addNote` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2514` | `seq_setRecordingMode` | `Lxr::seq_setRecordingMode` | P3 | flash | ported, not difftested (only reachable from front-panel/UI commands that the engine API does not produce) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2519` | `seq_setErasingMode` | `Lxr::seq_setErasingMode` | P3 | flash | ported, not difftested (only reachable from front-panel/UI commands that the engine API does not produce) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2526` | `seq_resetNote` | `sequencer::seq_resetNote` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2537` | `seq_clearTrack` | `Lxr::seq_clearTrack` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2560` | `seq_clearPattern` | `Lxr::seq_clearPattern` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2568` | `seq_clearAutomation` | `Lxr::seq_clearAutomation` | P3 | flash | ported, not difftested (only reachable from front-panel/UI commands that the engine API does not produce) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2588` | `seq_copyTrack` | `Lxr::seq_copyTrack` | P3 | flash | ported, not difftested (only reachable from front-panel/UI commands that the engine API does not produce) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2618` | `seq_copyPattern` | `Lxr::seq_copyPattern` | P3 | flash | ported, not difftested (only reachable from front-panel/UI commands that the engine API does not produce) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2652` | `seq_setActiveAutomationTrack` | `Lxr::seq_setActiveAutomationTrack` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2679` | `seq_midiNoteOff` | `Lxr::seq_midiNoteOff` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2712` | `seq_sendRealtime` | `Lxr::seq_sendRealtime` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2725` | `seq_sendMidiNoteOn` | `Lxr::seq_sendMidiNoteOn` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2753` | `seq_sendProgChg` | `Lxr::seq_sendProgChg` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2774` | `seq_setStepIndexToStart` | `Lxr::seq_setStepIndexToStart` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Soundengine.c:21` | `soundengine_calcNextSampleBlock` | `Lxr::soundengine_calcNextSampleBlock` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Soundengine.c:38` | `soundengine_init` | `Lxr::soundengine_init` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Soundengine.c:77` | `soundengine_process` | `Lxr::soundengine_process` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/TriggerOut.c:484` | `trigger_clockTick` | `Lxr::trigger_clockTick` | P3 | flash | external: no-op (trigger outputs are hardware) |
+| `Core/Src/Soundengine/TriggerOut.c:558` | `trigger_reset` | `Lxr::trigger_reset` | P3 | flash | external: no-op (trigger outputs are hardware) |
+| `Core/Src/Soundengine/USB/usb_manager.c:61` | `usb_tick` | `Lxr::usb_tick` | P3 | flash | external: no-op (USB) |
+| `Core/Src/Soundengine/USB/usb_manager.c:136` | `usb_sendMidi` | `Lxr::usb_sendMidi` | P3 | flash | external: no-op (USB MIDI out) |
+| `Core/Src/buttonHandler.c:2212` | `buttonHandler_getMode` | `Lxr::buttonHandler_getMode` | P3 | flash | external: returns SELECT_MODE_VOICE |
+| `Core/Src/frontPanelParser.c:617` | `frontPanel_sendData` | `Lxr::frontPanel_sendData` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/ledHandler.c:77` | `led_initPatternSelectLeds` | `Lxr::led_initPatternSelectLeds` | P3 | flash | external: no-op (LED / UI hardware) |
+| `Core/Src/ledHandler.c:230` | `led_setValue` | `Lxr::led_setValue` | P3 | flash | external: no-op (LED / UI hardware) |
+| `Core/Src/ledHandler.c:321` | `led_idx2StepLed` | `Lxr::led_idx2StepLed` | P3 | flash | external: index mapping as in the C (LED output itself is hardware) |
+| `Core/Src/ledHandler.c:380` | `led_setActive_step` | `Lxr::led_setActive_step` | P3 | flash | external: no-op (LED / UI hardware) |
+| `Core/Src/ledHandler.c:398` | `led_clearActive_step` | `Lxr::led_clearActive_step` | P3 | flash | external: no-op (LED / UI hardware) |
+| `Core/Src/ledHandler.c:403` | `led_updateSeqLeds` | `Lxr::led_updateSeqLeds` | P3 | flash | external: no-op (LED / UI hardware) |
+| `Core/Src/ledHandler.c:450` | `led_clearSequencerLeds` | `Lxr::led_clearSequencerLeds` | P3 | flash | external: no-op (LED / UI hardware) |
+| `Core/Src/ledHandler.c:563` | `led_clearAllBlinkLeds` | `Lxr::led_clearAllBlinkLeds` | P3 | flash | external: no-op (LED / UI hardware) |
+| `Core/Src/ledHandler.c:574` | `led_setBlinkLed` | `Lxr::led_setBlinkLed` | P3 | flash | external: no-op (LED / UI hardware) |
+| `Core/Src/ledHandler.c:614` | `led_resetBlinkTimer` | `Lxr::led_resetBlinkTimer` | P3 | flash | external: no-op (LED / UI hardware) |
+| `Core/Src/ledHandler.c:619` | `led_blinkHandler` | `Lxr::led_blinkHandler` | P3 | flash | external: no-op (LED / UI hardware) |
+| `Core/Src/menu/Cc2Text.c:439` | `getNumModTargets` | `menu::cc2_text::getNumModTargets` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/menu/menu.c:725` | `menu_setShownPattern` | `Lxr::menu_setShownPattern` | P3 | flash | external: stores `menu_shownPattern`, sends SEQ_CC/SEQ_SET_SHOWN_PATTERN as the C does |
+| `Core/Src/menu/menu.c:731` | `menu_getViewedPattern` | `Lxr::menu_getViewedPattern` | P3 | flash | external: returns `menu_shownPattern` |
+| `Core/Src/menu/menu.c:1026` | `menu_repaintAll` | `Lxr::menu_repaintAll` | P3 | flash | external: no-op (LCD) |
+| `Core/Src/menu/menu.c:1811` | `menu_repaint` | `Lxr::menu_repaint` | P3 | flash | external: no-op (LCD) |
+| `Core/Src/menu/menu.c:3156` | `menu_switchSubPage` | `Lxr::menu_switchSubPage` | P3 | flash | external: no-op (UI) |
+| `Core/Src/menu/menu.c:3212` | `menu_getSubPage` | `Lxr::menu_getSubPage` | P3 | flash | external: returns 0 |
+| `Core/Src/menu/menu.c:4282` | `menu_getActiveVoice` | `Lxr::menu_getActiveVoice` | P3 | flash | external: returns `menu_activeVoice` |
 | `Core/Src/Soundengine/DSPAudio/CymbalVoice.c:26` | `Cymbal_setPan` | `Lxr::Cymbal_setPan` | P4 | flash | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/CymbalVoice.c:34` | `Cymbal_init` | `Lxr::Cymbal_init` | P4 | flash | ported (difftest pending: needs P3 paramArray_setParameter) |
 | `Core/Src/Soundengine/DSPAudio/CymbalVoice.c:85` | `Cymbal_updatePan` | `Lxr::Cymbal_updatePan` | P4 | inlined | ported+difftested |
@@ -427,10 +427,15 @@ Functions marked `gc`/`absent` cannot be checked against the reference binary.
 | Rust | Group | Status | Note |
 |---|---|---|---|
 | `Lxr::new_zeroed` | - | done | globals with their ELF `.data`/`.dtcm` initial values |
-| `Lxr::new` | P3 | stub | power-on init sequence (soundengine_init, preset_init, ...) |
-| `Lxr::midi_byte` | P3 | stub | feeds one MIDI byte to the UART MIDI path |
-| `Lxr::tick` | P3 | stub | one audio block (sequencer tick + soundengine_calcNextSampleBlock) |
-| `Lxr::cptr_read_*` / `Lxr::cptr_write_*` | P3 | stub | resolve a `CPtr` firmware address to an `Lxr` field |
+| `Lxr::new` | P3 | done (p3_scenarios: state after power-on equals the emulator) | power-on init sequence (soundengine_init, preset_init, ...) |
+| `Lxr::midi_byte` | P3 | done (p3_midi, p3_scenarios) | feeds one MIDI byte to the UART MIDI path |
+| `Lxr::tick` | P3 | done (p3_scenarios: 101414 blocks bit-exact) | one audio block (sequencer tick + soundengine_calcNextSampleBlock) |
+| `Lxr::cptr_read_*` / `Lxr::cptr_write_*` | P3 | done (cmem.rs byte view of all globals; NULL reads ITCM bytes; DTCM tables readable; unmodelled addresses read 0 and drop writes) | resolve a `CPtr` firmware address to an `Lxr` field |
+| `Lxr::set_parameter` | P3 | done (p3_midi::set_parameter_all over every legal range, p3_scenarios) | menu encoder change (`menu_encoderChangeParameter` effects), ENGINE_CONTRACT section 5 |
+| `Lxr::load_kit` | P3 | done (p3_scenarios) | kit file load (`preset_loadDrumsetSD` + `preset_loadDrumsetRam`), ENGINE_CONTRACT section 6 |
+| `Lxr::set_fader_adc` | P3 | done (p3_scenarios) | `adc_checkFaders` for one fader |
+| `midi::shipped_layout` | P3 | done (generated from the shipped image) | shipped v1.71 addresses of the modelled globals and DTCM tables (out-of-range C indices and modified pointers) |
+| robustness | P3 | done (p3_fuzz, debug and release) | no panic for any MIDI byte stream, any `set_parameter` value, any `load_kit` content; ENGINE_CONTRACT section 9 lists the divergences |
 | `fpu::libm::{expf, logf, exp, fmod}` | P1 | ported+difftested | bit-exact vs shipped v1.71 and GCC 11.3 ELF (tests/p1_libm.rs) |
 | `fpu::libm::sinf` | P1 | stub (not linked in the firmware) | only used by sinCos.c, not linked |
 | `fpu::f16_bits_to_f32`, `fpu::f32_to_f16_bits` | P2 | ported+difftested (FPSCR=0: exhaustive half->single, ~587k single->half) | `__fp16` conversions for `FX_BUFFER` |

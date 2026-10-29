@@ -159,3 +159,9 @@ pub fn from_shipped(s: u32) -> Option<CPtr> {
         .find(|&&(_, n, b)| s >= b && s < b + n)
         .map(|&(a, _, b)| a + (s - b))
 }
+
+/// The reference-ELF address of the byte `off` bytes past the object at ELF address `p`, counted in the
+/// shipped v1.71 layout (for out-of-range C array indices; `None` when that byte is not modelled).
+pub fn shipped_offset(p: CPtr, off: u32) -> Option<CPtr> {
+    from_shipped(to_shipped(p)?.wrapping_add(off))
+}

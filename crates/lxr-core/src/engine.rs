@@ -798,9 +798,12 @@ impl Lxr {
         use crate::menu::{parameter_dtypes, DTYPE_TARGET_SELECTION_LFO, DTYPE_TARGET_SELECTION_VELO, DTYPE_VOICE_LFO};
         use crate::front_panel_parser::{CC_2, CC_LFO_TARGET, CC_VELO_TARGET};
         assert!(param < NUM_PARAMS, "parameter {param} out of range");
-        self.activeParameters[param as usize] = value;
         let dtype = (parameter_dtypes[param as usize] & 0xff) as u8;
-        let mod_param = |idx: u8| modTargets[idx as usize].param as u8;
+        // the menu limits the LFO voice number to 1..6 (menu_encoderChangeParameter, menu.c:2899)
+        let value = if dtype == DTYPE_VOICE_LFO { value.clamp(1, 6) } else { value };
+        self.activeParameters[param as usize] = value;
+        // a mod target index past `modTargets` (the menu never produces one) sends target 0
+        let mod_param = |idx: u8| modTargets.get(idx as usize).map_or(0, |t| t.param as u8);
         match dtype {
             DTYPE_TARGET_SELECTION_VELO => {
                 let voice = param.wrapping_sub(PAR_VEL_DEST_1) as u8;
