@@ -25,16 +25,34 @@ use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
 
 /// Width of a voice card's rows.
-const ROW_W: f32 = 232.0;
+const ROW_W: f32 = 180.0;
 /// Width of the global column's rows.
-const GLOBAL_W: f32 = 290.0;
-const ROW_H: f32 = 18.0;
+const GLOBAL_W: f32 = 206.0;
+const ROW_H: f32 = 15.0;
 const ROW_GAP: f32 = 1.0;
-const CARD_PAD: f32 = 6.0;
-const CARD_GAP: f32 = 6.0;
-/// Default window size: everything fits at 100 %, which leaves room for window decorations and a
-/// task bar on a 1920 × 1080 display.
-pub const DEFAULT_SIZE: (u32, u32) = (1812, 960);
+const CARD_PAD: f32 = 5.0;
+const CARD_GAP: f32 = 5.0;
+/// Height of a section header.
+const HEADER_H: f32 = 11.0;
+/// Text sizes: value rows, section headers and notes, card titles.
+const ROW_FONT: f32 = 11.0;
+const SMALL_FONT: f32 = 9.5;
+const TITLE_FONT: f32 = 14.0;
+/// Width of the track names in the global column's MIDI table.
+const TRACK_COL_W: f32 = 72.0;
+/// Default window size (logical pixels, i.e. macOS points) at 100 %: everything fits without
+/// scrolling (see the `default_size_fits_everything` test). It leaves room for the menu bar, a
+/// host's plugin window header and the Dock on a 1470 × 956 display (MacBook Air 13"), and so on
+/// the MacBook Pro 14" (1512 × 982) and 16" (1728 × 1117) defaults.
+pub const DEFAULT_SIZE: (u32, u32) = (1392, 790);
+/// The default size of the first layout, which did not fit laptop screens. Saved states with this
+/// size are migrated to [`DEFAULT_SIZE`].
+pub const LEGACY_SIZE: (u32, u32) = (1812, 960);
+/// Saved with the plugin state; states without it come from the first layout.
+pub const LAYOUT_VERSION: u32 = 2;
+pub const MIN_ZOOM: f32 = 0.5;
+pub const MAX_ZOOM: f32 = 3.0;
+const ZOOM_STEP: f32 = 0.1;
 
 pub const TRACK_NAMES: [&str; 7] = ["Drum 1", "Drum 2", "Drum 3", "Snare", "Cymbal", "Closed hi-hat", "Open hi-hat"];
 pub const PAD_LABELS: [&str; 7] = ["D1", "D2", "D3", "SN", "CY", "CH", "OH"];
@@ -175,6 +193,9 @@ struct Data {
     pad_lit: [f64; 7],
     file_reply: Arc<Mutex<Option<FileReply>>>,
     status: String,
+    /// Size of the scrolled content and of its viewport in the last frame, in points.
+    content_size: egui::Vec2,
+    viewport_size: egui::Vec2,
 }
 
 pub fn create(params: Arc<VDrumParams>, shared: Arc<Shared>) -> Option<Box<dyn Editor>> {
@@ -186,23 +207,54 @@ pub fn create(params: Arc<VDrumParams>, shared: Arc<Shared>) -> Option<Box<dyn E
         pad_lit: [-10.0; 7],
         file_reply: Arc::new(Mutex::new(None)),
         status: String::new(),
+        content_size: egui::Vec2::ZERO,
+        viewport_size: egui::Vec2::ZERO,
     };
+    let zoom = params.ui_scale.load(Ordering::Relaxed);
     create_egui_editor(
         params.editor_state.clone(),
         data,
-        |ctx, _| {
-            let mut v = egui::Visuals::dark();
-            v.panel_fill = Color32::from_rgb(24, 25, 29);
-            v.window_fill = Color32::from_rgb(24, 25, 29);
-            ctx.set_visuals(v);
-            ctx.style_mut(|s| {
-                s.spacing.item_spacing = vec2(4.0, ROW_GAP);
-                s.spacing.button_padding = vec2(6.0, 2.0);
-                s.interaction.tooltip_delay = 0.35;
-            });
-        },
+        move |ctx, _| setup(ctx, zoom),
         move |ctx, setter, data| update(ctx, setter, data, &params, &shared, &egui_state),
     )
+}
+
+fn setup(ctx: &egui::Context, zoom: f32) {
+    let mut v = egui::Visuals::dark();
+    v.panel_fill = Color32::from_rgb(24, 25, 29);
+    v.window_fill = Color32::from_rgb(24, 25, 29);
+    ctx.set_visuals(v);
+    ctx.style_mut(|s| {
+        s.spacing.item_spacing = vec2(4.0, ROW_GAP);
+        s.spacing.button_padding = vec2(5.0, 1.0);
+        s.spacing.interact_size.y = ROW_H;
+        s.interaction.tooltip_delay = 0.35;
+        for (style, size) in [
+            (egui::TextStyle::Body, 12.0),
+            (egui::TextStyle::Button, 12.0),
+            (egui::TextStyle::Small, SMALL_FONT),
+            (egui::TextStyle::Heading, TITLE_FONT),
+        ] {
+            s.text_styles.insert(style, FontId::proportional(size));
+        }
+    });
+    // The zoom buttons own the zoom factor (it is saved with the plugin and sizes the window).
+    ctx.options_mut(|o| o.zoom_with_keyboard = false);
+    ctx.set_zoom_factor(zoom);
+}
+
+/// Changes the zoom and asks the host to scale the window by the same ratio, so the content keeps
+/// filling it. If the host refuses, the content is zoomed inside the unchanged window.
+fn set_zoom(params: &VDrumParams, egui_state: &EguiState, zoom: f32) {
+    let old = params.ui_scale.load(Ordering::Relaxed);
+    let zoom = ((zoom / ZOOM_STEP).round() * ZOOM_STEP).clamp(MIN_ZOOM, MAX_ZOOM);
+    if (zoom - old).abs() < 1e-3 {
+        return;
+    }
+    params.ui_scale.store(zoom, Ordering::Relaxed);
+    let (w, h) = egui_state.requested_size().unwrap_or_else(|| egui_state.size());
+    let r = zoom / old;
+    egui_state.set_requested_size(((w as f32 * r).round() as u32, (h as f32 * r).round() as u32));
 }
 
 fn update(ctx: &egui::Context, setter: &ParamSetter, data: &mut Data, params: &VDrumParams, shared: &Shared, egui_state: &EguiState) {
@@ -267,9 +319,9 @@ fn update(ctx: &egui::Context, setter: &ParamSetter, data: &mut Data, params: &V
     }
 
     ResizableWindow::new("vdrum-window").min_size(vec2(480.0, 320.0)).show(ctx, egui_state, |ui| {
-        top_bar(ui, data, params, shared);
-        ui.add_space(4.0);
-        ScrollArea::both().auto_shrink([false, false]).show(ui, |ui| {
+        top_bar(ui, data, params, shared, egui_state);
+        ui.add_space(3.0);
+        let out = ScrollArea::both().auto_shrink([false, false]).show(ui, |ui| {
             ui.horizontal_top(|ui| {
                 ui.spacing_mut().item_spacing.x = CARD_GAP;
                 for v in 0..6 {
@@ -278,6 +330,8 @@ fn update(ctx: &egui::Context, setter: &ParamSetter, data: &mut Data, params: &V
                 global_column(ui, setter, data, params, shared);
             });
         });
+        data.content_size = out.content_size;
+        data.viewport_size = out.inner_rect.size();
     });
     ctx.request_repaint_after(std::time::Duration::from_millis(33));
 }
@@ -295,11 +349,11 @@ fn spawn_dialog(reply: Arc<Mutex<Option<FileReply>>>, save: Option<String>) {
     });
 }
 
-fn top_bar(ui: &mut Ui, data: &mut Data, params: &VDrumParams, shared: &Shared) {
+fn top_bar(ui: &mut Ui, data: &mut Data, params: &VDrumParams, shared: &Shared, egui_state: &EguiState) {
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = 6.0;
-        ui.label(RichText::new("VDrum").size(18.0).strong().color(Color32::WHITE));
-        ui.label(RichText::new("LXR-02 engine").size(11.0).color(LABEL));
+        ui.label(RichText::new("VDrum").size(16.0).strong().color(Color32::WHITE));
+        ui.label(RichText::new("LXR-02 engine").size(10.5).color(LABEL));
         ui.separator();
         ui.label(RichText::new("Kit").color(LABEL));
         let edit = ui.add(egui::TextEdit::singleline(&mut data.name_buf).char_limit(8).desired_width(80.0))
@@ -330,7 +384,7 @@ fn top_bar(ui: &mut Ui, data: &mut Data, params: &VDrumParams, shared: &Shared) 
             .filter(|i| i.kind == lxr_params::ParamKind::Sound)
             .filter(|i| params.param(i.index).is_some_and(|p| p.value() as u16 != plugin_default(i)))
             .count();
-        ui.label(RichText::new(format!("{changed} values differ from the init kit")).size(11.0).color(LABEL))
+        ui.label(RichText::new(format!("{changed} values differ from the init kit")).size(10.5).color(LABEL))
             .on_hover_text("Rows with an amber stripe differ from their default. Double-click a row to reset it.");
         ui.separator();
         let target = shared.learn_target.load(Ordering::Relaxed);
@@ -341,20 +395,20 @@ fn top_bar(ui: &mut Ui, data: &mut Data, params: &VDrumParams, shared: &Shared) 
                 shared.learn_target.store(-1, Ordering::Relaxed);
             }
         } else if !data.status.is_empty() {
-            ui.label(RichText::new(&data.status).size(11.0).color(LABEL));
+            ui.label(RichText::new(&data.status).size(10.5).color(LABEL));
         }
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             let z = params.ui_scale.load(Ordering::Relaxed);
-            if ui.small_button("+").on_hover_text("Larger").clicked() {
-                params.ui_scale.store((z + 0.1).min(3.0), Ordering::Relaxed);
+            if ui.small_button("+").on_hover_text("Larger (window and content)").clicked() {
+                set_zoom(params, egui_state, z + ZOOM_STEP);
             }
             if ui.small_button(format!("{:.0}%", z * 100.0)).on_hover_text("Reset to 100 %").clicked() {
-                params.ui_scale.store(1.0, Ordering::Relaxed);
+                set_zoom(params, egui_state, 1.0);
             }
-            if ui.small_button("−").on_hover_text("Smaller").clicked() {
-                params.ui_scale.store((z - 0.1).max(0.5), Ordering::Relaxed);
+            if ui.small_button("−").on_hover_text("Smaller (window and content)").clicked() {
+                set_zoom(params, egui_state, z - ZOOM_STEP);
             }
-            ui.label(RichText::new("Zoom").size(11.0).color(LABEL));
+            ui.label(RichText::new("Zoom").size(10.5).color(LABEL));
         });
     });
 }
@@ -383,7 +437,7 @@ fn pad(ui: &mut Ui, data: &mut Data, params: &VDrumParams, shared: &Shared, t: u
     if resp.hovered() {
         ui.painter().rect_stroke(rect, 3.0, Stroke::new(1.0_f32, Color32::from_gray(200)), StrokeKind::Inside);
     }
-    ui.painter().text(rect.center(), Align2::CENTER_CENTER, PAD_LABELS[t], FontId::proportional(12.0), Color32::WHITE);
+    ui.painter().text(rect.center(), Align2::CENTER_CENTER, PAD_LABELS[t], FontId::proportional(11.0), Color32::WHITE);
     let get = |p: u16| params.param(p).map(|x| x.value() as u16).unwrap_or(0);
     let (ch, note) = track_trigger_note(t, get);
     let resp = resp.on_hover_text(format!(
@@ -418,8 +472,8 @@ fn voice_card(ui: &mut Ui, setter: &ParamSetter, data: &mut Data, params: &VDrum
             let tracks: &[usize] = if v == 5 { &[5, 6] } else if v == 4 { &[4] } else { std::slice::from_ref(&[0, 1, 2, 3][v]) };
             ui.horizontal(|ui| {
                 ui.vertical(|ui| {
-                    ui.set_width(ROW_W - 40.0 * tracks.len() as f32 - 4.0);
-                    ui.label(RichText::new(Voice::VOICES[v].label()).size(16.0).strong().color(Color32::WHITE));
+                    ui.set_width(ROW_W - 32.0 * tracks.len() as f32 - 4.0);
+                    ui.label(RichText::new(Voice::VOICES[v].label()).size(TITLE_FONT).strong().color(Color32::WHITE));
                     let get = |p: u16| params.param(p).map(|x| x.value() as u16).unwrap_or(0);
                     let notes: Vec<String> = tracks
                         .iter()
@@ -435,10 +489,10 @@ fn voice_card(ui: &mut Ui, setter: &ParamSetter, data: &mut Data, params: &VDrum
                             }
                         })
                         .collect();
-                    ui.label(RichText::new(notes.join("  ")).size(10.5).color(LABEL));
+                    ui.label(RichText::new(notes.join("  ")).size(SMALL_FONT).color(LABEL));
                 });
                 for &t in tracks {
-                    pad(ui, data, params, shared, t, vec2(36.0, 30.0));
+                    pad(ui, data, params, shared, t, vec2(28.0, 26.0));
                 }
             });
             for g in &data.layout.voices[v] {
@@ -455,10 +509,10 @@ fn voice_card(ui: &mut Ui, setter: &ParamSetter, data: &mut Data, params: &VDrum
 }
 
 fn section_header(ui: &mut Ui, title: &str, width: f32) {
-    ui.add_space(2.0);
-    let (rect, _) = ui.allocate_exact_size(vec2(width, 14.0), Sense::hover());
+    ui.add_space(1.0);
+    let (rect, _) = ui.allocate_exact_size(vec2(width, HEADER_H), Sense::hover());
     let p = ui.painter();
-    let g = p.layout_no_wrap(title.to_uppercase(), FontId::proportional(10.5), ACCENT);
+    let g = p.layout_no_wrap(title.to_uppercase(), FontId::proportional(SMALL_FONT), ACCENT);
     let y = rect.center().y;
     let tw = g.size().x;
     p.galley(pos2(rect.min.x, y - g.size().y / 2.0), g, ACCENT);
@@ -468,10 +522,10 @@ fn section_header(ui: &mut Ui, title: &str, width: f32) {
 fn global_column(ui: &mut Ui, setter: &ParamSetter, data: &mut Data, params: &VDrumParams, shared: &Shared) {
     card(ui, GLOBAL_W, |ui| {
         ui.vertical(|ui| {
-            ui.label(RichText::new("FX bus & global").size(16.0).strong().color(Color32::WHITE));
+            ui.label(RichText::new("FX bus & global").size(TITLE_FONT).strong().color(Color32::WHITE));
             let fx_type = params.param(par::FX_TYPE).map(|p| p.value() as u8).unwrap_or(0);
             let fx_name = lxr_params::info(par::FX_TYPE).map(|i| value_text(i, fx_type as u16)).unwrap_or_default();
-            ui.label(RichText::new(format!("Type {fx_name}: unused controls are dimmed")).size(10.5).color(LABEL));
+            ui.label(RichText::new(format!("Type {fx_name}: unused controls are dimmed")).size(SMALL_FONT).color(LABEL));
             section_header(ui, "FX bus", GLOBAL_W);
             for &idx in &data.layout.fx {
                 let text = fx_param_text(fx_type, idx);
@@ -495,24 +549,24 @@ fn global_column(ui: &mut Ui, setter: &ParamSetter, data: &mut Data, params: &VD
             param_cell(ui, setter, params, shared, par::BPM, GLOBAL_W, "Tempo (BPM)", false);
             param_cell(ui, setter, params, shared, par::MIDI_CHAN_GLOBAL, GLOBAL_W, "Global channel", false);
             ui.horizontal(|ui| {
-                let w = (GLOBAL_W - 92.0 - 8.0) / 2.0;
-                for (text, width) in [("Track", 92.0), ("Channel", w), ("Trigger note", w)] {
-                    let (r, _) = ui.allocate_exact_size(vec2(width, 14.0), Sense::hover());
-                    ui.painter().text(r.left_center(), Align2::LEFT_CENTER, text, FontId::proportional(10.5), LABEL);
+                let w = (GLOBAL_W - TRACK_COL_W - 8.0) / 2.0;
+                for (text, width) in [("Track", TRACK_COL_W), ("Channel", w), ("Trigger note", w)] {
+                    let (r, _) = ui.allocate_exact_size(vec2(width, HEADER_H), Sense::hover());
+                    ui.painter().text(r.left_center(), Align2::LEFT_CENTER, text, FontId::proportional(SMALL_FONT), LABEL);
                 }
             });
             for t in 0..7 {
                 ui.horizontal(|ui| {
-                    let (rect, _) = ui.allocate_exact_size(vec2(92.0, ROW_H), Sense::hover());
-                    ui.painter().text(rect.left_center(), Align2::LEFT_CENTER, TRACK_NAMES[t], FontId::proportional(12.0), LABEL_CHANGED);
-                    let w = (GLOBAL_W - 92.0 - 8.0) / 2.0;
+                    let (rect, _) = ui.allocate_exact_size(vec2(TRACK_COL_W, ROW_H), Sense::hover());
+                    ui.painter().text(rect.left_center(), Align2::LEFT_CENTER, TRACK_NAMES[t], FontId::proportional(ROW_FONT), LABEL_CHANGED);
+                    let w = (GLOBAL_W - TRACK_COL_W - 8.0) / 2.0;
                     param_cell(ui, setter, params, shared, MIDI_CHAN[t], w, "Ch", false);
                     param_cell(ui, setter, params, shared, MIDI_NOTE[t], w, "Note", false);
                 });
             }
             ui.label(
                 RichText::new("Plugin default: one General MIDI note per track on channel 1 (the hardware default is note C4 for all tracks).")
-                    .size(10.0)
+                    .size(SMALL_FONT)
                     .color(LABEL),
             );
             section_header(ui, "Output", GLOBAL_W);
@@ -549,17 +603,17 @@ fn global_column(ui: &mut Ui, setter: &ParamSetter, data: &mut Data, params: &VD
                 } else {
                     "resampled from 44100 Hz"
                 };
-                ui.label(RichText::new(format!("{rate:.0} Hz ({mode}), latency {lat} samples")).size(10.5).color(LABEL));
+                ui.label(RichText::new(format!("{rate:.0} Hz ({mode}), latency {lat} samples")).size(SMALL_FONT).color(LABEL));
             }
             section_header(ui, "MIDI learn", GLOBAL_W);
             let n = shared.learn.iter().filter(|s| s.load(Ordering::Relaxed) != 0).count();
             ui.horizontal(|ui| {
-                ui.label(RichText::new(format!("{n} controller(s) learned")).size(11.0).color(LABEL_CHANGED));
+                ui.label(RichText::new(format!("{n} controller(s) learned")).size(10.5).color(LABEL_CHANGED));
                 if n > 0 && ui.small_button("Forget all").clicked() {
                     shared.forget_all();
                 }
             });
-            ui.label(RichText::new("Right-click a control to learn a CC. Tooltips show each control's CC/NRPN.").size(10.5).color(LABEL));
+            ui.label(RichText::new("Right-click a control to learn a CC. Tooltips show each control's CC/NRPN.").size(SMALL_FONT).color(LABEL));
         });
     });
 }
@@ -570,7 +624,7 @@ fn meters(ui: &mut Ui, shared: &Shared) {
         let v = shared.meters[c].load(Ordering::Relaxed);
         let db = if v > 0.0 { 20.0 * v.log10() } else { -120.0 };
         let frac = ((db + 60.0) / 60.0).clamp(0.0, 1.0);
-        let (rect, _) = ui.allocate_exact_size(vec2(GLOBAL_W, 13.0), Sense::hover());
+        let (rect, _) = ui.allocate_exact_size(vec2(GLOBAL_W, 12.0), Sense::hover());
         let p = ui.painter();
         p.rect_filled(rect, 2.0, Color32::from_gray(30));
         let mut fill = rect;
@@ -584,7 +638,7 @@ fn meters(ui: &mut Ui, shared: &Shared) {
         };
         p.rect_filled(fill, 2.0, col);
         let txt = if db > -120.0 { format!("{name}  {db:.1} dBFS") } else { format!("{name}  -inf") };
-        p.text(rect.left_center() + vec2(4.0, 0.0), Align2::LEFT_CENTER, txt, FontId::proportional(10.5), Color32::WHITE);
+        p.text(rect.left_center() + vec2(4.0, 0.0), Align2::LEFT_CENTER, txt, FontId::proportional(SMALL_FONT), Color32::WHITE);
     }
 }
 
@@ -669,7 +723,7 @@ fn paint_row(ui: &Ui, rect: Rect, resp: &egui::Response, frac: Option<f32>, chan
     }
     let alpha = if dim { 105 } else { 255 };
     let col = |c: Color32| Color32::from_rgba_unmultiplied(c.r(), c.g(), c.b(), alpha);
-    let font = FontId::proportional(12.0);
+    let font = FontId::proportional(ROW_FONT);
     let vg = painter.layout_no_wrap(value.to_string(), font.clone(), col(VALUE));
     let right = rect.max.x - if frac.is_none() { 13.0 } else { 5.0 };
     // The value keeps at most 60 % of the row; the label gets the rest.
@@ -912,6 +966,100 @@ mod tests {
         for info in params.infos.iter() {
             assert!(shown.contains(&info.index), "{} not shown", info.enum_name);
         }
+    }
+
+    /// A host that accepts every change and resize.
+    struct NullContext;
+    impl GuiContext for NullContext {
+        fn plugin_api(&self) -> PluginApi {
+            PluginApi::Clap
+        }
+        fn request_resize(&self) -> bool {
+            true
+        }
+        unsafe fn raw_begin_set_parameter(&self, _: ParamPtr) {}
+        unsafe fn raw_set_parameter_normalized(&self, _: ParamPtr, _: f32) {}
+        unsafe fn raw_end_set_parameter(&self, _: ParamPtr) {}
+        fn get_state(&self) -> PluginState {
+            unimplemented!()
+        }
+        fn set_state(&self, _: PluginState) {}
+    }
+
+    /// Lays the editor out (without rendering) in a window of `size` logical pixels and returns
+    /// the scrolled content's size and its viewport's size, in points.
+    fn layout(size: (u32, u32), zoom: f32) -> (egui::Vec2, egui::Vec2) {
+        let shared = Arc::new(Shared::new());
+        let params = VDrumParams::new(shared.clone());
+        params.ui_scale.store(zoom, Ordering::Relaxed);
+        let egui_state = EguiState::from_size(size.0, size.1);
+        let mut data = Data {
+            layout: Layout::build(),
+            name_buf: String::new(),
+            pad_seen: [0; 7],
+            pad_lit: [-10.0; 7],
+            file_reply: Arc::new(Mutex::new(None)),
+            status: String::new(),
+            content_size: egui::Vec2::ZERO,
+            viewport_size: egui::Vec2::ZERO,
+        };
+        let ctx = egui::Context::default();
+        setup(&ctx, zoom);
+        let setter = ParamSetter::new(&NullContext);
+        // The integration passes the window in points: logical pixels / zoom.
+        for _ in 0..3 {
+            let input = egui::RawInput {
+                screen_rect: Some(Rect::from_min_size(pos2(0.0, 0.0), vec2(size.0 as f32, size.1 as f32) / ctx.zoom_factor())),
+                ..Default::default()
+            };
+            let _ = ctx.run(input, |ctx| update(ctx, &setter, &mut data, &params, &shared, &egui_state));
+        }
+        assert!((ctx.zoom_factor() - zoom).abs() < 1e-6);
+        (data.content_size, data.viewport_size)
+    }
+
+    #[test]
+    fn default_size_fits_everything() {
+        let (content, viewport) = layout(DEFAULT_SIZE, 1.0);
+        println!("content {content:?}, viewport {viewport:?}");
+        assert!(content.x <= viewport.x && content.y <= viewport.y, "content {content:?} viewport {viewport:?}");
+        // Not much spare room either: the default size is the content's size.
+        assert!(viewport.x - content.x < 24.0 && viewport.y - content.y < 24.0, "content {content:?} viewport {viewport:?}");
+    }
+
+    #[test]
+    fn zoomed_window_fits_everything() {
+        // The zoom buttons scale the window with the zoom, so the content still fits.
+        for z in [0.5, 0.8, 1.2, 1.5, 2.0] {
+            let size = ((DEFAULT_SIZE.0 as f32 * z).round() as u32, (DEFAULT_SIZE.1 as f32 * z).round() as u32);
+            let (content, viewport) = layout(size, z);
+            assert!(content.x <= viewport.x + 1.0 && content.y <= viewport.y + 1.0, "{z}: content {content:?} viewport {viewport:?}");
+        }
+    }
+
+    #[test]
+    fn zoom_scales_the_window_request() {
+        let shared = Arc::new(Shared::new());
+        let params = VDrumParams::new(shared);
+        let state = EguiState::from_size(1000, 500);
+        set_zoom(&params, &state, 1.2);
+        assert_eq!(state.requested_size(), Some((1200, 600)));
+        assert!((params.ui_scale.load(Ordering::Relaxed) - 1.2).abs() < 1e-6);
+        // A second click before the host has resized scales the pending request.
+        set_zoom(&params, &state, 1.5);
+        assert_eq!(state.requested_size(), Some((1500, 750)));
+        set_zoom(&params, &state, 9.0);
+        assert!((params.ui_scale.load(Ordering::Relaxed) - MAX_ZOOM).abs() < 1e-6);
+        set_zoom(&params, &state, 0.0);
+        assert!((params.ui_scale.load(Ordering::Relaxed) - MIN_ZOOM).abs() < 1e-6);
+    }
+
+    #[test]
+    fn default_size_fits_laptop_screens() {
+        // Logical resolution of the smallest current MacBook default (Air 13", 1470 × 956) minus
+        // the menu bar (37 pt with the notch), a host's plugin window header (about 60 pt in Logic)
+        // and the Dock (about 60 pt when not hidden).
+        assert!(DEFAULT_SIZE.0 <= 1470 && DEFAULT_SIZE.1 <= 956 - 37 - 60 - 60, "{DEFAULT_SIZE:?}");
     }
 
     #[test]
