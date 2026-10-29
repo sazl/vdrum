@@ -58,6 +58,12 @@ pub struct VDrum {
     has_aux: bool,
     /// Whether the pipeline currently runs the engine at the hardware clock rate.
     hardware_clock: bool,
+    /// Wanted states of the two switches (host parameter or learned CC) and the last seen host
+    /// values.
+    hw_clock_want: bool,
+    hw_clock_host: bool,
+    sum_aux_want: bool,
+    sum_aux_host: bool,
     meter_decay_per_sample: f32,
     meter_state: [f32; 4],
 }
@@ -76,6 +82,10 @@ impl Default for VDrum {
             pipeline: None,
             has_aux: true,
             hardware_clock: false,
+            hw_clock_want: false,
+            hw_clock_host: false,
+            sum_aux_want: false,
+            sum_aux_host: false,
             meter_decay_per_sample: 0.9999,
             meter_state: [0.0; 4],
         };
@@ -205,6 +215,10 @@ impl Plugin for VDrum {
         self.last_fader = std::array::from_fn(|i| self.params.faders[i].value());
 
         self.hardware_clock = self.params.hardware_clock.value();
+        self.hw_clock_want = self.hardware_clock;
+        self.hw_clock_host = self.hardware_clock;
+        self.sum_aux_host = self.params.sum_aux.value();
+        self.sum_aux_want = self.sum_aux_host;
         let (rate, alt) = if self.hardware_clock {
             (engine::HARDWARE_RATE, engine::ENGINE_RATE as f64)
         } else {
@@ -261,12 +275,16 @@ impl Plugin for VDrum {
             }
         }
 
-        // Engine clock: 44100 Hz or the hardware's 44140.625 Hz (both prepared in initialize()).
+        // Switches: a host change wins until a learned CC changes them.
         let hw = params.hardware_clock.value();
-        if hw != self.hardware_clock && pipeline.swap_stage() {
-            self.hardware_clock = hw;
-            context.set_latency_samples(pipeline.latency());
-            shared.latency.store(pipeline.latency(), Ordering::Relaxed);
+        if hw != self.hw_clock_host {
+            self.hw_clock_host = hw;
+            self.hw_clock_want = hw;
+        }
+        let sum = params.sum_aux.value();
+        if sum != self.sum_aux_host {
+            self.sum_aux_host = sum;
+            self.sum_aux_want = sum;
         }
 
         // Host parameter changes (polled once per buffer)
@@ -312,15 +330,46 @@ impl Plugin for VDrum {
                         pipeline.push_event(timing, Ev::Param { idx, val, learned: true }, &mut apply);
                         continue;
                     }
+                    let v = bytes[2] & 0x7f;
+                    let extra = idx.wrapping_sub(params::LEARN_FADER) as usize;
+                    let value = match idx {
+                        params::LEARN_SUM_AUX => {
+                            self.sum_aux_want = v >= 64;
+                            Some(self.sum_aux_want as i32)
+                        }
+                        params::LEARN_HW_CLOCK => {
+                            self.hw_clock_want = v >= 64;
+                            Some(self.hw_clock_want as i32)
+                        }
+                        _ if extra < 6 => {
+                            let step = (v as i32 * params::FADER_MAX + 63) / 127;
+                            let ev = Ev::Fader { index: extra as u8, adc: params::fader_adc(step) };
+                            pipeline.push_event(timing, ev, &mut apply);
+                            Some(step)
+                        }
+                        _ => None,
+                    };
+                    if let Some(value) = value {
+                        shared.extra_values[extra].store(value, Ordering::Relaxed);
+                        shared.extra_dirty[extra].store(true, Ordering::Relaxed);
+                        continue;
+                    }
                 }
             }
             pad_hits(shared, bytes);
             pipeline.push_event(timing, Ev::midi(bytes), &mut apply);
         }
 
+        // Engine clock: 44100 Hz or the hardware's 44140.625 Hz (both prepared in initialize()).
+        if self.hw_clock_want != self.hardware_clock && pipeline.swap_stage() {
+            self.hardware_clock = self.hw_clock_want;
+            context.set_latency_samples(pipeline.latency());
+            shared.latency.store(pipeline.latency(), Ordering::Relaxed);
+        }
+
         // Render
         let frames = buffer.samples();
-        let sum_aux = params.sum_aux.value() || !self.has_aux;
+        let sum_aux = self.sum_aux_want || !self.has_aux;
         let main = buffer.as_slice();
         let mut aux_out = aux.outputs.first_mut().map(|b| b.as_slice());
         let mut peak = [0.0f32; 4];
@@ -369,14 +418,6 @@ fn apply_event<E: Engine>(e: &mut E, shared: &Shared, midi_applied: &Cell<bool>,
     let _ieee = fp::IeeeGuard::new();
     match ev {
         Ev::Midi { bytes, len } => {
-            // TEMPORARY WORKAROUND (remove once lxr-core handles it): CC 0 (bank change) loads
-            // kit slot `value` (`frontPanel_ccHandler` -> `preset_loadDrumsetRam`). The firmware
-            // has 64 slots and reads past `mainParameters` for values 64..=127; lxr-core (as of
-            // c1c8c37) panics there: `Lxr::midi(&[0xB0, 0, 93])`, index out of bounds at
-            // crates/lxr-core/src/preset/mod.rs:174. Such messages are dropped.
-            if len == 3 && bytes[0] & 0xf0 == 0xb0 && bytes[1] == 0 && bytes[2] >= engine::KIT_SLOTS {
-                return;
-            }
             for b in &bytes[..len as usize] {
                 e.midi_byte(*b);
             }

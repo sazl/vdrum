@@ -20,9 +20,9 @@ The plugin talks to the sound engine through the `Engine` trait in `src/engine.r
   would abort it. `LxrEngine` catches it, marks itself faulted, then renders silence and ignores
   input. `initialize()` replaces a faulted engine; the host parameters restore the kit. This path
   is not real-time safe (unwinding allocates), and it only runs after a bug.
-* **Temporary workaround.** MIDI CC 0 (bank change) values 64–127 are dropped before the engine.
-  The firmware has 64 kit slots and reads past them; `lxr-core` currently panics there. See
-  `apply_event` in `src/lib.rs`. Remove this once `lxr-core` handles it.
+* All MIDI from the host reaches the engine unfiltered, as on the hardware, except CCs that were
+  MIDI-learned. A test feeds every status byte with many data values, including CC 0 (bank
+  change) 64–127, through the plugin's event path. The engine does not fault.
 
 ### Performance
 
@@ -158,8 +158,12 @@ change is applied at the start of the next tick.
 * **MIDI learn.**
   * To learn: right-click a control, choose *MIDI learn*, then move a controller. The next CC on
     any channel is assigned.
+  * Every parameter can be learned. That covers all engine parameters, the six voice faders, and
+    the *Sum aux* and *Hardware clock* switches.
   * A learned (channel, CC) pair is taken out of the stream and is not passed to the engine. Its
-    7-bit value is scaled linearly onto the parameter's range.
+    7-bit value is scaled linearly onto the parameter's range: fader steps 0–99, and for the
+    switches values of 64 and above mean on. The host parameter follows via the editor (same
+    limitation as below).
   * The learn map is saved in the plugin state under the key `midi_learn` (parameter IDs, not
     indices).
   * The context menu can forget a learned CC; the MIDI learn section has *Forget all*.
@@ -245,8 +249,7 @@ These results are for the real engine (`lxr-core`), from `cargo xtask bundle vdr
 
 * **clap-validator 0.3.2** on `VDrum.clap`: 18 passed, 0 failed, 3 skipped (preset discovery is
   not implemented).
-  * Before the CC 0 workaround, the parameter fuzz test failed with the `lxr-core` panic
-    described above.
+  * Engine panics: none were logged, and the faulted safety net did not trigger.
 * **pluginval 1.0.4** on `VDrum.vst3`: strictness 10, editor tests included, run on Xvfb: SUCCESS.
   * The log still shows two panics on the editor thread when windows close: an X11 `BadDrawable`
     from `unwrap()` in `baseview::gl::GlContext::swap_buffers` (baseview `src/gl/x11.rs:237`).

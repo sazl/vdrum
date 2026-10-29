@@ -84,6 +84,48 @@ pub fn fader_text(step: i32) -> String {
     }
 }
 
+/// MIDI learn targets after the engine parameters (`0..N`): the six voice faders, then the two
+/// plugin switches.
+pub const LEARN_FADER: u16 = N as u16;
+pub const LEARN_SUM_AUX: u16 = N as u16 + 6;
+pub const LEARN_HW_CLOCK: u16 = N as u16 + 7;
+/// Number of plugin (non-engine) learn targets.
+pub const EXTRA_TARGETS: usize = 8;
+
+/// Stable ID of a learn target (for the saved learn map).
+pub fn learn_id(target: u16) -> Option<String> {
+    match target {
+        t if t < LEARN_FADER => lxr_params::info(t).map(|i| i.id.to_string()),
+        t if t < LEARN_SUM_AUX => Some(format!("{FADER_ID_PREFIX}{}", t - LEARN_FADER + 1)),
+        LEARN_SUM_AUX => Some(SUM_AUX_ID.to_string()),
+        LEARN_HW_CLOCK => Some(HARDWARE_CLOCK_ID.to_string()),
+        _ => None,
+    }
+}
+
+/// Inverse of [`learn_id`].
+pub fn learn_target_by_id(id: &str) -> Option<u16> {
+    if let Some(n) = id.strip_prefix(FADER_ID_PREFIX).and_then(|n| n.parse::<u16>().ok()) {
+        return (1..=6).contains(&n).then(|| LEARN_FADER + n - 1);
+    }
+    match id {
+        SUM_AUX_ID => Some(LEARN_SUM_AUX),
+        HARDWARE_CLOCK_ID => Some(LEARN_HW_CLOCK),
+        _ => lxr_params::by_id(id).map(|i| i.index),
+    }
+}
+
+/// Display name of a learn target.
+pub fn learn_name(target: u16) -> String {
+    match target {
+        t if t < LEARN_FADER => lxr_params::info(t).map(|i| i.name.to_string()).unwrap_or_default(),
+        t if t < LEARN_SUM_AUX => FADER_NAMES[(t - LEARN_FADER) as usize].to_string(),
+        LEARN_SUM_AUX => "Sum Aux Into Main".to_string(),
+        LEARN_HW_CLOCK => "Hardware Clock".to_string(),
+        _ => "?".to_string(),
+    }
+}
+
 /// A message from the GUI to the audio thread.
 #[derive(Clone, Copy)]
 #[allow(clippy::large_enum_variant)] // inline on purpose: no allocation or deallocation on the audio thread
@@ -126,6 +168,11 @@ pub struct Shared {
     pub host_rate: AtomicF32,
     pub latency: AtomicU32,
     pub has_aux: AtomicBool,
+    /// Values of the plugin learn targets (faders: step, switches: 0/1) set by a learned CC, and
+    /// the flags telling the GUI to copy them to the host parameters (indexed by
+    /// `target - LEARN_FADER`).
+    pub extra_values: [AtomicI32; EXTRA_TARGETS],
+    pub extra_dirty: [AtomicBool; EXTRA_TARGETS],
 }
 
 impl Shared {
@@ -143,6 +190,8 @@ impl Shared {
             restore: Mutex::new(Restore::default()),
             host_rate: AtomicF32::new(0.0),
             latency: AtomicU32::new(0),
+            extra_values: std::array::from_fn(|_| AtomicI32::new(0)),
+            extra_dirty: std::array::from_fn(|_| AtomicBool::new(false)),
             has_aux: AtomicBool::new(true),
         };
         let init = Kit::init();
@@ -391,8 +440,8 @@ unsafe impl Params for VDrumParams {
         for slot in 0..LEARN_SLOTS {
             let v = self.shared.learn[slot].load(Ordering::Relaxed);
             if v != 0 {
-                if let Some(info) = lxr_params::info(v - 1) {
-                    learn.push(LearnEntry { channel: (slot / 128) as u8, cc: (slot % 128) as u8, param: info.id.into() });
+                if let Some(id) = learn_id(v - 1) {
+                    learn.push(LearnEntry { channel: (slot / 128) as u8, cc: (slot % 128) as u8, param: id });
                 }
             }
         }
@@ -434,9 +483,9 @@ unsafe impl Params for VDrumParams {
                     slot.store(0, Ordering::Relaxed);
                 }
                 for e in entries {
-                    if let Some(info) = lxr_params::by_id(&e.param) {
+                    if let Some(target) = learn_target_by_id(&e.param) {
                         let slot = (e.channel as usize & 15) * 128 + (e.cc as usize & 127);
-                        self.shared.learn[slot].store(info.index + 1, Ordering::Relaxed);
+                        self.shared.learn[slot].store(target + 1, Ordering::Relaxed);
                     }
                 }
                 self.shared.learn_generation.fetch_add(1, Ordering::Relaxed);
@@ -480,6 +529,9 @@ mod tests {
         let sh = Arc::new(Shared::new());
         let p = VDrumParams::new(sh.clone());
         sh.learn[3 * 128 + 20].store(lxr_params::par::COARSE1 + 1, Ordering::Relaxed);
+        sh.learn[21].store(LEARN_FADER + 2 + 1, Ordering::Relaxed);
+        sh.learn[22].store(LEARN_SUM_AUX + 1, Ordering::Relaxed);
+        sh.learn[23].store(LEARN_HW_CLOCK + 1, Ordering::Relaxed);
         sh.values[lxr_params::par::VOL1 as usize].store(5, Ordering::Relaxed);
         sh.dirty[lxr_params::par::VOL1 as usize].store(true, Ordering::Relaxed);
         let f = p.serialize_fields();
@@ -487,6 +539,9 @@ mod tests {
         let p2 = VDrumParams::new(sh2.clone());
         p2.deserialize_fields(&f);
         assert_eq!(sh2.learned(3, 20), Some(lxr_params::par::COARSE1));
+        assert_eq!(sh2.learned(0, 21), Some(LEARN_FADER + 2));
+        assert_eq!(sh2.learned(0, 22), Some(LEARN_SUM_AUX));
+        assert_eq!(sh2.learned(0, 23), Some(LEARN_HW_CLOCK));
         let r = sh2.restore.lock().unwrap();
         let kit = r.kit.as_ref().unwrap();
         assert_eq!(kit.values[lxr_params::par::VOL1 as usize], 5);

@@ -251,23 +251,29 @@ fn save_kit_roundtrips_through_load_kit() {
 }
 
 #[test]
-fn engine_panic_marks_the_engine_faulted_and_silent() {
-    // Bank change to slot 93 (the plugin filters it out before the engine; see apply_event).
+fn every_midi_message_reaches_the_engine_without_faulting() {
+    // All status bytes and data values, including CC 0 (bank change) 64..=127, which reads past
+    // the 64 kit slots in the firmware.
+    let shared = Shared::new();
+    let mut e = crate::new_engine();
+    for status in (0x80u8..=0xef).step_by(1) {
+        for d0 in (0u8..128).step_by(if status & 0xf0 == 0xb0 { 1 } else { 17 }) {
+            for d1 in [0u8, 1, 63, 64, 93, 127] {
+                apply_event(&mut *e, &shared, &Cell::new(false), Ev::midi([status, d0, d1]));
+            }
+        }
+        e.tick();
+    }
+    assert!(!e.faulted());
+}
+
+#[test]
+fn faulted_engine_is_silent() {
     let mut e = LxrEngine::new();
+    e.1 = true;
     for b in [0x90, 36, 127] {
         e.midi_byte(b);
     }
-    for b in [0xb0, 0, 93] {
-        e.midi_byte(b);
-    }
-    if e.faulted() {
-        let b = e.tick();
-        assert!(b.dac1.iter().chain(b.dac2.iter()).all(|s| *s == 0));
-        e.set_parameter(lxr_params::par::COARSE1, 3); // ignored, no panic
-    }
-    // Through the plugin's event path it is dropped and the engine keeps running.
-    let shared = Shared::new();
-    let mut e = LxrEngine::new();
-    apply_event(&mut *e, &shared, &Cell::new(false), Ev::midi([0xb0, 0, 93]));
-    assert!(!e.faulted());
+    let b = e.tick();
+    assert!(b.dac1.iter().chain(b.dac2.iter()).all(|s| *s == 0));
 }

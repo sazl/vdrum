@@ -8,9 +8,6 @@
 use lxr_params::kit::{Kit, KIT_PARAMS};
 use lxr_params::{par, GLOBAL_PARAMS, NUM_PARAMS};
 
-/// Kit slots of the firmware (`NUM_KIT_SLOTS`, the size of `mainParameters`).
-pub const KIT_SLOTS: u8 = 64;
-
 /// Frames per engine tick.
 pub const TICK_FRAMES: usize = 64;
 /// The engine's nominal sample rate (pass-through at this host rate).
@@ -76,7 +73,7 @@ pub trait Engine: Send {
 /// marked faulted, renders silence and ignores all input from then on; `VDrum::initialize()`
 /// replaces a faulted engine (outside the audio thread). Unwinding allocates, so this is not
 /// real-time safe; it only runs on that bug path.
-pub struct LxrEngine(pub lxr_core::Lxr, bool);
+pub struct LxrEngine(pub lxr_core::Lxr, pub(crate) bool);
 
 impl LxrEngine {
     /// Runs an engine call unless the engine is faulted; marks it faulted if the call panics.

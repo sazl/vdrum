@@ -7,7 +7,10 @@
 //! that differ from their default are marked with an amber stripe.
 
 use crate::engine::track_trigger_note;
-use crate::params::{fader_text, is_list, plugin_default, value_text, Command, Shared, VDrumParams, FADER_MAX};
+use crate::params::{
+    fader_text, is_list, learn_name, plugin_default, value_text, Command, Shared, VDrumParams, FADER_MAX, LEARN_FADER,
+    LEARN_HW_CLOCK, LEARN_SUM_AUX,
+};
 use lxr_params::kit::Kit;
 use lxr_params::{fx_param_text, par, Dtype, ParamInfo, Section, Voice, MOD_TARGET_VOICE_OFFSETS, VOICE_PAGES};
 use nih_plug::prelude::*;
@@ -217,6 +220,25 @@ fn update(ctx: &egui::Context, setter: &ParamSetter, data: &mut Data, params: &V
         }
     }
 
+    // Plugin controls changed by a learned CC.
+    for (k, flag) in shared.extra_dirty.iter().enumerate() {
+        if flag.swap(false, Ordering::Relaxed) {
+            let v = shared.extra_values[k].load(Ordering::Relaxed);
+            let target = LEARN_FADER + k as u16;
+            if target < LEARN_SUM_AUX {
+                let p = &params.faders[k];
+                setter.begin_set_parameter(p);
+                setter.set_parameter(p, v);
+                setter.end_set_parameter(p);
+            } else {
+                let p = if target == LEARN_SUM_AUX { &params.sum_aux } else { &params.hardware_clock };
+                setter.begin_set_parameter(p);
+                setter.set_parameter(p, v != 0);
+                setter.end_set_parameter(p);
+            }
+        }
+    }
+
     let zoom = params.ui_scale.load(Ordering::Relaxed);
     if (ctx.zoom_factor() - zoom).abs() > 1e-3 {
         ctx.set_zoom_factor(zoom);
@@ -313,7 +335,7 @@ fn top_bar(ui: &mut Ui, data: &mut Data, params: &VDrumParams, shared: &Shared) 
         ui.separator();
         let target = shared.learn_target.load(Ordering::Relaxed);
         if target >= 0 {
-            let name = lxr_params::info(target as u16).map(|i| i.name).unwrap_or("?");
+            let name = learn_name(target as u16);
             ui.label(RichText::new(format!("MIDI learn: move a controller for {name}")).color(CHANGED));
             if ui.small_button("Cancel").clicked() {
                 shared.learn_target.store(-1, Ordering::Relaxed);
@@ -424,7 +446,7 @@ fn voice_card(ui: &mut Ui, setter: &ParamSetter, data: &mut Data, params: &VDrum
                 for item in &g.items {
                     match item {
                         Item::Param(idx, label) => param_cell(ui, setter, params, shared, *idx, ROW_W, label, false),
-                        Item::Fader(i) => fader_cell(ui, setter, params, *i, ROW_W),
+                        Item::Fader(i) => fader_cell(ui, setter, params, shared, *i, ROW_W),
                     }
                 }
             }
@@ -498,6 +520,8 @@ fn global_column(ui: &mut Ui, setter: &ParamSetter, data: &mut Data, params: &VD
             let has_aux = shared.has_aux.load(Ordering::Relaxed);
             let mut sum = params.sum_aux.value();
             let resp = ui.add_enabled(has_aux, egui::Checkbox::new(&mut sum, "Sum aux (DAC 2) into main"));
+            learn_marks(ui, resp.rect, shared, LEARN_SUM_AUX);
+            resp.context_menu(|ui| learn_menu(ui, shared, LEARN_SUM_AUX));
             if resp.changed() {
                 setter.begin_set_parameter(&params.sum_aux);
                 setter.set_parameter(&params.sum_aux, sum);
@@ -508,6 +532,8 @@ fn global_column(ui: &mut Ui, setter: &ParamSetter, data: &mut Data, params: &VD
                 "Run the engine at the LXR-02's real sample clock and resample to the host rate. \
                  Off: the engine runs at 44100 Hz and its samples pass through unmodified at a 44100 Hz host rate.",
             );
+            learn_marks(ui, resp.rect, shared, LEARN_HW_CLOCK);
+            resp.context_menu(|ui| learn_menu(ui, shared, LEARN_HW_CLOCK));
             if resp.changed() {
                 setter.begin_set_parameter(&params.hardware_clock);
                 setter.set_parameter(&params.hardware_clock, hw);
@@ -677,7 +703,39 @@ fn drag_value(ui: &Ui, resp: &egui::Response, v: i32, min: i32, max: i32) -> Opt
     None
 }
 
-fn fader_cell(ui: &mut Ui, setter: &ParamSetter, params: &VDrumParams, i: usize, width: f32) {
+/// Outline while a control waits for a CC, green dot when it has a learned CC.
+fn learn_marks(ui: &Ui, rect: Rect, shared: &Shared, target: u16) {
+    if shared.learn_target.load(Ordering::Relaxed) == target as i32 {
+        ui.painter().rect_stroke(rect, 2.0, Stroke::new(1.5_f32, CHANGED), StrokeKind::Inside);
+    }
+    if shared.learned_for(target).next().is_some() {
+        ui.painter().circle_filled(pos2(rect.max.x - 3.0, rect.min.y + 3.0), 2.2, Color32::from_rgb(110, 210, 140));
+    }
+}
+
+/// The MIDI learn entries of a control's context menu.
+fn learn_menu(ui: &mut Ui, shared: &Shared, target: u16) {
+    ui.label(RichText::new(learn_name(target)).strong());
+    if shared.learn_target.load(Ordering::Relaxed) == target as i32 {
+        if ui.button("Cancel MIDI learn").clicked() {
+            shared.learn_target.store(-1, Ordering::Relaxed);
+            ui.close_menu();
+        }
+    } else if ui.button("MIDI learn (move a controller)").clicked() {
+        shared.learn_target.store(target as i32, Ordering::Relaxed);
+        ui.close_menu();
+    }
+    let learned: Vec<(u8, u8)> = shared.learned_for(target).collect();
+    for (ch, cc) in &learned {
+        ui.label(format!("Learned: channel {} CC {cc}", ch + 1));
+    }
+    if !learned.is_empty() && ui.button("Forget learned controller").clicked() {
+        shared.forget(target);
+        ui.close_menu();
+    }
+}
+
+fn fader_cell(ui: &mut Ui, setter: &ParamSetter, params: &VDrumParams, shared: &Shared, i: usize, width: f32) {
     let p = &params.faders[i];
     let (rect, resp) = ui.allocate_exact_size(vec2(width, ROW_H), Sense::click_and_drag());
     let v = p.value();
@@ -697,7 +755,21 @@ fn fader_cell(ui: &mut Ui, setter: &ParamSetter, params: &VDrumParams, i: usize,
     }
     let v = p.value();
     paint_row(ui, rect, &resp, Some(v as f32 / FADER_MAX as f32), v != FADER_MAX, false, "Fader", &fader_text(v));
+    let target = LEARN_FADER + i as u16;
+    learn_marks(ui, rect, shared, target);
+    resp.context_menu(|ui| {
+        learn_menu(ui, shared, target);
+        if ui.button("Reset to top (0 dB)").clicked() {
+            setter.begin_set_parameter(p);
+            setter.set_parameter(p, FADER_MAX);
+            setter.end_set_parameter(p);
+            ui.close_menu();
+        }
+    });
     resp.on_hover_ui(|ui| {
+        for (ch, cc) in shared.learned_for(target) {
+            ui.label(format!("Learned: channel {} CC {cc}", ch + 1));
+        }
         ui.label(RichText::new(format!("{} Fader", Voice::VOICES[i].label())).strong());
         ui.label(format!("Gain: {}  (position {v} of {FADER_MAX})", fader_text(v)));
         ui.label("The hardware's volume fader for this voice (adc_checkFaders: gain = position²). Default: top (0 dB).");
@@ -765,35 +837,11 @@ fn param_cell(ui: &mut Ui, setter: &ParamSetter, params: &VDrumParams, shared: &
     let v = p.value();
     let frac = if list || max <= min { None } else { Some((v - min) as f32 / (max - min) as f32) };
     paint_row(ui, rect, &resp, frac, v != default, dim, label, &hw_text(info, v as u16));
-    let learning = shared.learn_target.load(Ordering::Relaxed) == idx as i32;
-    let has_learn = shared.learned_for(idx).next().is_some();
-    if learning {
-        ui.painter().rect_stroke(rect, 2.0, Stroke::new(1.5_f32, CHANGED), StrokeKind::Inside);
-    }
-    if has_learn {
-        ui.painter().circle_filled(pos2(rect.max.x - 3.0, rect.min.y + 3.0), 2.2, Color32::from_rgb(110, 210, 140));
-    }
+    learn_marks(ui, rect, shared, idx);
 
     // MIDI learn menu
     resp.context_menu(|ui| {
-        ui.label(RichText::new(info.name).strong());
-        if learning {
-            if ui.button("Cancel MIDI learn").clicked() {
-                shared.learn_target.store(-1, Ordering::Relaxed);
-                ui.close_menu();
-            }
-        } else if ui.button("MIDI learn (move a controller)").clicked() {
-            shared.learn_target.store(idx as i32, Ordering::Relaxed);
-            ui.close_menu();
-        }
-        let learned: Vec<(u8, u8)> = shared.learned_for(idx).collect();
-        for (ch, cc) in &learned {
-            ui.label(format!("Learned: channel {} CC {cc}", ch + 1));
-        }
-        if !learned.is_empty() && ui.button("Forget learned controller").clicked() {
-            shared.forget(idx);
-            ui.close_menu();
-        }
+        learn_menu(ui, shared, idx);
         if ui.button("Reset to default").clicked() {
             setter.begin_set_parameter(p);
             setter.set_parameter(p, default);
