@@ -1537,7 +1537,13 @@ impl Lxr {
         self.seq_sendMidi(m);
 
         // keep track of which notes are on so we can turn them off later
-        self.midi_chan_notes[channel as usize] = note;
+        if (channel as usize) < self.midi_chan_notes.len() {
+            self.midi_chan_notes[channel as usize] = note;
+        } else if let Some(a) = crate::midi::shipped_layout::shipped_offset(crate::memmap::ADDR_midi_chan_notes, channel as u32) {
+            // MIDI channel parameters set above 15 over MIDI: C writes past the array (shipped layout);
+            // bytes outside the modelled memory are dropped
+            self.global_set_byte(a, note);
+        }
         let bit: u32 = if (channel as u32) < 32 { 1u32 << channel } else { 0 };
         self.midi_notes_on |= bit as u16;
     }
@@ -1601,7 +1607,8 @@ impl Lxr {
             self.seq_patternSet.get_byte(off as u32)
         } else {
             let a = (ADDR_seq_patternSet as i64 + off) as u32;
-            self.global_get_byte(a).unwrap_or_else(|| panic!("seq_patternSet out-of-bounds read at {a:#x}"))
+            // memory the engine does not model reads 0 (see `memmap::cptr_byte`)
+            self.global_get_byte(a).unwrap_or(0)
         }
     }
 
@@ -1610,9 +1617,8 @@ impl Lxr {
             self.seq_patternSet.set_byte(off as u32, v)
         } else {
             let a = (ADDR_seq_patternSet as i64 + off) as u32;
-            if !self.global_set_byte(a, v) {
-                panic!("seq_patternSet out-of-bounds write at {a:#x}");
-            }
+            // stores to memory the engine does not model are dropped (see `memmap::cptr_set_byte`)
+            let _ = self.global_set_byte(a, v);
         }
     }
 
@@ -1650,9 +1656,15 @@ impl Lxr {
     }
 
     /// `seq_patternSet.seq_stepTiming[pat][track][step]` with C (unchecked, flat) indexing.
-    fn seq_stepTiming_read(&self, pat: u8, track: u8, step: i32) -> StepTiming {
+    pub fn seq_stepTiming_read(&self, pat: u8, track: u8, step: i32) -> StepTiming {
         let flat = (pat as i64 * 7 + track as i64) * 64 + step as i64;
         StepTiming { bits: self.ps_get(PS_STEPTIMING_OFF + flat) }
+    }
+
+    /// Write counterpart of `seq_stepTiming_read`.
+    pub fn seq_stepTiming_write(&mut self, pat: u8, track: u8, step: i32, t: StepTiming) {
+        let flat = (pat as i64 * 7 + track as i64) * 64 + step as i64;
+        self.ps_set(PS_STEPTIMING_OFF + flat, t.bits);
     }
 
     /// `seq_patternSet.seq_mainSteps[bar][pattern][voice]` with C (unchecked, flat) indexing.

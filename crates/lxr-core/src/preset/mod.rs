@@ -120,6 +120,9 @@ impl Lxr {
         } else if r#type == PRESET_PAT_TIMER {
             self.preset_patTimer = self.HAL_GetTick();
             self.preset_patDirty = 1;
+        } else if r#type == PRESET_STOP_PAT_TIMER {
+            // abort pattern save timer, since seq is running again...
+            self.preset_patDirty = 0;
         }
     }
 
@@ -160,6 +163,22 @@ impl Lxr {
         self.preset_sendDrumsetParameters();
     }
 
+    /// `mainParameters[slot][i]` with C (unchecked) indexing. Kit numbers 64..=255 (MIDI bank select / program
+    /// values above 63, which the firmware does not range check) read past the array: in the shipped image
+    /// that memory holds the UI globals (menu, screensaver, SD card, USB, newlib) and then heap/stack, none of
+    /// which the engine models. Bytes that land in a modelled global (shipped layout) are read from it,
+    /// all others read 0. NOT bit-exact for such kit numbers. Non-C helper, group P3.
+    pub fn preset_mainParametersByte(&self, slot: usize, i: usize) -> u8 {
+        if slot < self.mainParameters.len() {
+            return self.mainParameters[slot][i];
+        }
+        let off = (slot * END_OF_SOUND_PARAMETERS as usize + i) as u32;
+        crate::midi::shipped_layout::to_shipped(crate::memmap::ADDR_mainParameters)
+            .and_then(|s| crate::midi::shipped_layout::from_shipped(s + off))
+            .and_then(|a| self.global_get_byte(a))
+            .unwrap_or(0)
+    }
+
     /// C: `void preset_loadDrumsetRam(uint8_t presetNr, uint8_t isMorph, uint8_t sendImmediate)`
     ///
     /// Source: `Core/Src/Preset/presetManager.c:834`. Reference build: out-of-line in flash. Group P3.
@@ -171,8 +190,9 @@ impl Lxr {
             self.morphParameters = Some(presetNr as usize);
         } else {
             // copy parameters to edit buffer
-            let src = self.mainParameters[presetNr as usize];
-            self.activeParameters[..END_OF_SOUND_PARAMETERS as usize].copy_from_slice(&src);
+            for i in 0..END_OF_SOUND_PARAMETERS as usize {
+                self.activeParameters[i] = self.preset_mainParametersByte(presetNr as usize, i);
+            }
         }
         self.soundengine_process();
 
@@ -245,7 +265,7 @@ impl Lxr {
             };
 
             let target = match self.morphParameters {
-                Some(slot) => self.mainParameters[slot][morph_index as usize],
+                Some(slot) => self.preset_mainParametersByte(slot, morph_index as usize),
                 // NULL pointer: the firmware reads ITCM code at 0x00000000 + index (see `SHIPPED_ITCM_HEAD`)
                 None => SHIPPED_ITCM_HEAD[morph_index as usize],
             };

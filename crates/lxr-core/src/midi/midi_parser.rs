@@ -183,7 +183,8 @@ impl Lxr {
                     e.ptr = match crate::midi::shipped_layout::from_shipped(s2) {
                         Some(p) => p,
                         // outside the modelled objects (e.g. beyond the end of RAM): the pointer keeps the
-                        // shipped address; any access through it panics in `cptr_*` (a bus fault on the device)
+                        // shipped address; accesses through it read 0 / are dropped in `cptr_*` (on the device:
+                        // a bus fault or unmodelled memory)
                         None => s2,
                     };
                 }
@@ -621,7 +622,10 @@ impl Lxr {
             let step = self.activeParameters[PAR_ACTIVE_STEP as usize];
             let trackNr = self.menu_getActiveVoice();
             let patternNr = self.menu_getViewedPattern();
-            self.seq_patternSet.seq_subStepPattern[patternNr as usize][trackNr as usize][step as usize].note = note;
+            // C indexes unchecked (PAR_ACTIVE_STEP can be set to 0..127 over MIDI): flat helpers
+            let mut st = self.seq_step_read(patternNr, trackNr, step as i32);
+            st.note = note;
+            self.seq_step_write(patternNr, trackNr, step as i32, st);
             self.activeParameters[PAR_STEP_NOTE as usize] = note;
             self.menu_repaint();
         } else {

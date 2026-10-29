@@ -682,8 +682,8 @@ pub fn table_byte(p: CPtr) -> Option<u8> {
 }
 
 impl Lxr {
-    /// Byte at firmware address `p`, which must lie in an `Lxr` global (panics otherwise: the firmware
-    /// would read memory the port does not model).
+    /// Byte at firmware address `p`: an `Lxr` global, a DTCM table or the first 256 bytes of ITCM;
+    /// 0 for memory the port does not model.
     #[inline]
     fn cptr_byte(&self, p: CPtr) -> u8 {
         // NULL pointer targets (`parameterArray` entries that `parameterArray_init` leaves zero): address
@@ -693,13 +693,16 @@ impl Lxr {
         }
         match self.global_get_byte(p).or_else(|| table_byte(p)) {
             Some(b) => b,
-            None => panic!("cptr: read of unmapped firmware address {p:#010x}"),
+            // Memory the engine does not model (UI globals, heap/stack, or no memory at all: a pointer that
+            // out-of-range stores have corrupted can point anywhere, where the device may take a bus fault).
+            // Known divergence (docs/ENGINE_CONTRACT.md): reads 0, so that the engine never panics.
+            None => 0,
         }
     }
     #[inline]
     fn cptr_set_byte(&mut self, p: CPtr, v: u8) {
         if !self.global_set_byte(p, v) {
-            panic!("cptr: write to unmapped firmware address {p:#010x}");
+            // Known divergence (docs/ENGINE_CONTRACT.md): stores to memory the engine does not model are dropped.
         }
     }
     /// Reads the `f32` at firmware address `p` (a field of an `Lxr` global). Non-C helper, group P3

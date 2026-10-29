@@ -247,7 +247,12 @@ impl Lxr {
     /// Hardware / UI function outside the engine, called from engine code. Decide its behaviour
     /// (no-op, fixed value, or an emulation of its effect on engine state) when porting the caller.
     pub fn led_updateSeqLeds(&mut self) {
-        // LED state only (front panel AVR / LED driver): no-op.
+        // The LED updates are hardware; the one engine effect is kept (`ledHandler.c:417`):
+        // "a query seq track also updated track length".
+        if self.buttonHandler_getMode() != SELECT_MODE_PERF as _ {
+            let trackNr = self.menu_getActiveVoice();
+            self.activeParameters[PAR_TRACK_LENGTH as usize] = self.seq_getTrackLength(trackNr);
+        }
     }
 
     /// C: `void led_clearSequencerLeds()`

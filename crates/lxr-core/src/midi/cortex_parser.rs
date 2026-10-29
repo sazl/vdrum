@@ -68,15 +68,17 @@ impl Lxr {
                     let currentPattern = absPat.wrapping_sub(currentTrack.wrapping_mul(8));
                     let currentStep = (self.frontParser_sysexSeqStepNr as u32).wrapping_sub(absPat as u32 * 128) as u8;
                     let b = self.frontParser_sysexBuffer;
-                    let st = &mut self.seq_patternSet.seq_subStepPattern[currentPattern as usize][currentTrack as usize]
-                        [currentStep as usize];
-                    st.volume = b[0];
-                    st.prob = b[1];
-                    st.note = b[2];
-                    st.param1Nr = b[3];
-                    st.param1Val = b[4];
-                    st.param2Nr = b[5];
-                    st.param2Val = b[6];
+                    // C indexes unchecked: steps 64..127 land in the following track / pattern
+                    let st = Step {
+                        volume: b[0],
+                        prob: b[1],
+                        note: b[2],
+                        param1Nr: b[3],
+                        param1Val: b[4],
+                        param2Nr: b[5],
+                        param2Val: b[6],
+                    };
+                    self.seq_step_write(currentPattern, currentTrack, currentStep as i32, st);
                     self.frontParser_rxCnt = 0;
                     self.frontParser_sysexSeqStepNr = self.frontParser_sysexSeqStepNr.wrapping_add(1);
                 }
@@ -137,24 +139,28 @@ impl Lxr {
                 if val != 0 && val < 128 {
                     val += 1;
                 }
-                let st = &mut self.seq_patternSet.seq_subStepPattern[self.frontParser_shownPattern as usize]
-                    [self.frontParser_activeTrack as usize][self.seq_selectedStep as usize];
+                // C indexes unchecked (seq_selectedStep is 0..127): flat helpers
+                let (pat, track, step) =
+                    (self.frontParser_shownPattern, self.frontParser_activeTrack, self.seq_selectedStep as i32);
+                let mut st = self.seq_step_read(pat, track, step);
                 if self.cortex_midiMsg.status as i32 == FRONT_SET_P1_DEST {
                     st.param1Nr = val;
                 } else {
                     st.param2Nr = val;
                 }
+                self.seq_step_write(pat, track, step, st);
             }
             FRONT_SET_P1_VAL | FRONT_SET_P2_VAL => {
                 let stepNr = self.cortex_midiMsg.data1;
                 let value = self.cortex_midiMsg.data2;
-                let st = &mut self.seq_patternSet.seq_subStepPattern[self.frontParser_shownPattern as usize]
-                    [self.frontParser_activeTrack as usize][stepNr as usize];
+                let (pat, track) = (self.frontParser_shownPattern, self.frontParser_activeTrack);
+                let mut st = self.seq_step_read(pat, track, stepNr as i32);
                 if self.cortex_midiMsg.status as i32 == FRONT_SET_P1_VAL {
                     st.param1Val = value;
                 } else {
                     st.param2Val = value;
                 }
+                self.seq_step_write(pat, track, stepNr as i32, st);
             }
             FRONT_ARM_AUTOMATION_STEP => {
                 let stepNr = self.cortex_midiMsg.data1;
@@ -196,15 +202,15 @@ impl Lxr {
         match self.cortex_midiMsg.data1 as i32 {
             FRONT_SEQ_REC_ON_OFF => self.seq_setRecordingMode(d2),
             FRONT_SEQ_ERASE_ON_OFF => self.seq_setErasingMode(d2),
-            FRONT_SEQ_NOTE => self.seq_patternSet.seq_subStepPattern[sp][at][ast].note = d2,
-            FRONT_SEQ_VOLUME => {
-                let st = &mut self.seq_patternSet.seq_subStepPattern[sp][at][ast];
+            // [sp][at][ast] with C (unchecked, flat) indexing: the active step can be 0..127
+            FRONT_SEQ_NOTE => self.edit_step(sp, at, ast, |st| st.note = d2),
+            FRONT_SEQ_VOLUME => self.edit_step(sp, at, ast, |st| {
                 st.volume &= !0x7f;
                 st.volume |= d2 & 0x7f;
-            }
-            FRONT_SEQ_FLAM => self.seq_patternSet.seq_stepTiming[sp][at][ast].set_flam(d2),
-            FRONT_SEQ_SHIFT => self.seq_patternSet.seq_stepTiming[sp][at][ast].set_shift(d2),
-            FRONT_SEQ_PROB => self.seq_patternSet.seq_subStepPattern[sp][at][ast].prob = d2,
+            }),
+            FRONT_SEQ_FLAM => self.edit_timing(sp, at, ast, |tm| tm.set_flam(d2)),
+            FRONT_SEQ_SHIFT => self.edit_timing(sp, at, ast, |tm| tm.set_shift(d2)),
+            FRONT_SEQ_PROB => self.edit_step(sp, at, ast, |st| st.prob = d2),
             FRONT_SEQ_EUKLID_LENGTH => {
                 let length = (d2 >> 3) + 1;
                 self.euklid_setLength(at as u8, length);
@@ -253,16 +259,15 @@ impl Lxr {
             FRONT_SEQ_SET_ACTIVE_TRACK => self.frontParser_activeTrack = d2,
             FRONT_SEQ_REQUEST_STEP_PARAMS => {
                 // the replies go to frontPanel_parseData (uart_sendFrontpanelByte), which updates activeParameters
-                let st = self.seq_patternSet.seq_subStepPattern[sp][at][d2 as usize];
-                let tm = self.seq_patternSet.seq_stepTiming[sp][at][d2 as usize];
+                // the requested step (PAR_ACTIVE_STEP, 0..127) is not range checked: flat indexing
+                let st = self.req_step(d2);
                 let seq = FRONT_SEQ_CC as u8;
                 self.uart_sendFrontpanelByte(seq);
                 self.uart_sendFrontpanelByte(FRONT_SEQ_VOLUME as u8);
                 self.uart_sendFrontpanelByte(st.volume & STEP_VOLUME_MASK as u8);
                 self.uart_sendFrontpanelByte(seq);
                 self.uart_sendFrontpanelByte(FRONT_SEQ_NOTE as u8);
-                let st = self.seq_patternSet.seq_subStepPattern[self.frontParser_shownPattern as usize]
-                    [self.frontParser_activeTrack as usize][d2 as usize];
+                let st = self.req_step(d2);
                 self.uart_sendFrontpanelByte(st.note);
                 self.uart_sendFrontpanelByte(seq);
                 self.uart_sendFrontpanelByte(FRONT_SEQ_PROB as u8);
@@ -271,7 +276,6 @@ impl Lxr {
                 self.uart_sendFrontpanelByte(seq);
                 self.uart_sendFrontpanelByte(FRONT_SEQ_FLAM as u8);
                 let tm2 = self.req_timing(d2);
-                let _ = tm;
                 self.uart_sendFrontpanelByte(tm2.flam());
                 self.uart_sendFrontpanelByte(seq);
                 self.uart_sendFrontpanelByte(FRONT_SEQ_SHIFT as u8);
@@ -334,11 +338,21 @@ impl Lxr {
     /// `seq_patternSet.seq_subStepPattern[frontParser_shownPattern][frontParser_activeTrack][step]`, re-read
     /// (the firmware re-reads the globals after each `uart_sendFrontpanelByte`).
     fn req_step(&self, step: u8) -> Step {
-        self.seq_patternSet.seq_subStepPattern[self.frontParser_shownPattern as usize]
-            [self.frontParser_activeTrack as usize][step as usize]
+        self.seq_step_read(self.frontParser_shownPattern, self.frontParser_activeTrack, step as i32)
     }
     fn req_timing(&self, step: u8) -> StepTiming {
-        self.seq_patternSet.seq_stepTiming[self.frontParser_shownPattern as usize]
-            [self.frontParser_activeTrack as usize][step as usize]
+        self.seq_stepTiming_read(self.frontParser_shownPattern, self.frontParser_activeTrack, step as i32)
+    }
+    /// Read-modify-write of `seq_subStepPattern[sp][at][st]` with C (flat) indexing.
+    fn edit_step(&mut self, sp: usize, at: usize, st: usize, f: impl FnOnce(&mut Step)) {
+        let mut s = self.seq_step_read(sp as u8, at as u8, st as i32);
+        f(&mut s);
+        self.seq_step_write(sp as u8, at as u8, st as i32, s);
+    }
+    /// Read-modify-write of `seq_stepTiming[sp][at][st]` with C (flat) indexing.
+    fn edit_timing(&mut self, sp: usize, at: usize, st: usize, f: impl FnOnce(&mut StepTiming)) {
+        let mut t = self.seq_stepTiming_read(sp as u8, at as u8, st as i32);
+        f(&mut t);
+        self.seq_stepTiming_write(sp as u8, at as u8, st as i32, t);
     }
 }
