@@ -12,6 +12,7 @@ use crate::params::{
     LEARN_HW_CLOCK, LEARN_SUM_AUX,
 };
 use lxr_params::kit::Kit;
+use lxr_params::open_hat::{oh_index, OH_CHOKE, OH_SPECS, OH_VELOD};
 use lxr_params::{fx_param_text, par, Dtype, ParamInfo, Section, Voice, MOD_TARGET_VOICE_OFFSETS, VOICE_PAGES};
 use nih_plug::prelude::*;
 use nih_plug_egui::egui::{
@@ -90,7 +91,8 @@ pub struct Group {
 
 /// Where every parameter is shown.
 pub struct Layout {
-    /// The groups of each of the six voice cards.
+    /// The groups of each voice: Drum 1..3, Snare, Cymbal, closed hi-hat (the firmware's hi-hat
+    /// voice), open hi-hat (VDrum's separate voice). The two hi-hats share one card with a selector.
     pub voices: Vec<Vec<Group>>,
     pub fx: Vec<u16>,
     pub performance: Vec<u16>,
@@ -139,9 +141,26 @@ impl Layout {
     pub fn build() -> Layout {
         let exposed = |p: u16| lxr_params::info(p).is_some_and(|i| i.kind == lxr_params::ParamKind::Sound);
         let mut voices = Vec::new();
-        for v in 0..6 {
+        let mut hat_params: Vec<u16> = Vec::new();
+        for v in 0..7 {
             let mut params: Vec<u16> = Vec::new();
-            let pages: &[usize] = if v == 5 { &[5, 6] } else { &[v] };
+            if v == 6 {
+                // the open hi-hat: the twins of the hi-hat's rows (its decay where the open decay was),
+                // the choke after the decay
+                for &p in &hat_params {
+                    if let Some(k) = OH_SPECS.iter().position(|(_, t)| *t == Some(p)) {
+                        params.push(oh_index(k));
+                        if k == OH_VELOD {
+                            params.push(oh_index(OH_CHOKE));
+                        }
+                    }
+                }
+            }
+            let pages: &[usize] = match v {
+                5 => &[5, 6],
+                6 => &[],
+                _ => std::slice::from_ref(&[0, 1, 2, 3, 4][v]),
+            };
             #[allow(clippy::needless_range_loop)]
             for s in 0..Section::VOICE_SECTIONS.len() {
                 for &page in pages {
@@ -151,6 +170,12 @@ impl Layout {
                         }
                     }
                 }
+            }
+            if v == 5 {
+                // with the separate open hi-hat the firmware's open decay has no effect: the open
+                // hi-hat's card shows its own decay
+                hat_params = params.clone();
+                params.retain(|p| *p != par::VELOD6_OPEN);
             }
             let titles = group_titles(v);
             let mut groups: Vec<Group> = titles.iter().map(|t| Group { title: t, items: Vec::new() }).collect();
@@ -173,7 +198,7 @@ impl Layout {
         for info in lxr_params::sound_params() {
             if info.voice == Voice::Fx {
                 fx.push(info.index);
-            } else if !placed.contains(&info.index) {
+            } else if !placed.contains(&info.index) && info.index != par::VELOD6_OPEN {
                 performance.push(info.index);
             }
         }
@@ -190,6 +215,8 @@ struct Data {
     layout: Layout,
     name_buf: String,
     pad_seen: [u32; 7],
+    /// Which hi-hat the hi-hat card shows: 5 closed, 6 open.
+    hat_tab: usize,
     pad_lit: [f64; 7],
     file_reply: Arc<Mutex<Option<FileReply>>>,
     status: String,
@@ -204,6 +231,7 @@ pub fn create(params: Arc<VDrumParams>, shared: Arc<Shared>) -> Option<Box<dyn E
         layout: Layout::build(),
         name_buf: String::new(),
         pad_seen: [0; 7],
+        hat_tab: 5,
         pad_lit: [-10.0; 7],
         file_reply: Arc::new(Mutex::new(None)),
         status: String::new(),
@@ -325,6 +353,8 @@ fn update(ctx: &egui::Context, setter: &ParamSetter, data: &mut Data, params: &V
             ui.horizontal_top(|ui| {
                 ui.spacing_mut().item_spacing.x = CARD_GAP;
                 for v in 0..6 {
+                    // card 5: the hi-hat card, showing the closed or the open hi-hat
+                    let v = if v == 5 { data.hat_tab } else { v };
                     voice_card(ui, setter, data, params, shared, v);
                 }
                 global_column(ui, setter, data, params, shared);
@@ -364,7 +394,7 @@ fn top_bar(ui: &mut Ui, data: &mut Data, params: &VDrumParams, shared: &Shared, 
             shared.set_name(&k.name);
         }
         if !edit.has_focus() {
-            let k = Kit { name: shared.name_bytes(), values: [0; lxr_params::kit::KIT_PARAMS] };
+            let k = Kit::from_values(shared.name_bytes(), [0; lxr_params::kit::KIT_PARAMS]);
             data.name_buf = k.name_str();
         }
         if ui.button("Load…").on_hover_text("Load a kit file (.snd)").clicked() {
@@ -469,11 +499,27 @@ fn voice_card(ui: &mut Ui, setter: &ParamSetter, data: &mut Data, params: &VDrum
     card(ui, ROW_W, |ui| {
         ui.vertical(|ui| {
             // Header: name, trigger note(s), pads
-            let tracks: &[usize] = if v == 5 { &[5, 6] } else if v == 4 { &[4] } else { std::slice::from_ref(&[0, 1, 2, 3][v]) };
+            let hat = v >= 5;
+            let tracks: &[usize] = if hat { &[5, 6] } else { std::slice::from_ref(&[0, 1, 2, 3, 4][v]) };
             ui.horizontal(|ui| {
                 ui.vertical(|ui| {
                     ui.set_width(ROW_W - 32.0 * tracks.len() as f32 - 4.0);
-                    ui.label(RichText::new(Voice::VOICES[v].label()).size(TITLE_FONT).strong().color(Color32::WHITE));
+                    if hat {
+                        // the closed and the open hi-hat are separate voices; one card shows either
+                        ui.horizontal(|ui| {
+                            ui.spacing_mut().item_spacing.x = 2.0;
+                            for (tab, name) in [(5usize, "Closed"), (6, "Open")] {
+                                let sel = data.hat_tab == tab;
+                                let text = RichText::new(name).size(TITLE_FONT - 2.0).strong();
+                                let text = if sel { text.color(Color32::WHITE) } else { text.color(LABEL) };
+                                if ui.selectable_label(sel, text).on_hover_text(format!("Show the {} hi-hat's parameters", name.to_lowercase())).clicked() {
+                                    data.hat_tab = tab;
+                                }
+                            }
+                        });
+                    } else {
+                        ui.label(RichText::new(Voice::VOICES[v].label()).size(TITLE_FONT).strong().color(Color32::WHITE));
+                    }
                     let get = |p: u16| params.param(p).map(|x| x.value() as u16).unwrap_or(0);
                     let notes: Vec<String> = tracks
                         .iter()
@@ -645,14 +691,25 @@ fn meters(ui: &mut Ui, shared: &Shared) {
 /// The values a list parameter offers.
 fn options(info: &ParamInfo, params: &VDrumParams) -> Vec<u16> {
     if info.is_mod_target() {
-        let voice = if info.dtype == Dtype::TargetSelectionLfo {
+        let oh = lxr_params::open_hat::oh_k(info.index).is_some();
+        let voice = if oh && info.dtype == Dtype::TargetSelectionLfo {
+            // the open hi-hat's LFO voice (1..=7, 7 = the open hi-hat)
+            let p = oh_index(lxr_params::open_hat::OH_VOICE_LFO);
+            params.param(p).map(|p| p.value().clamp(1, 7) as u8 - 1).unwrap_or(0)
+        } else if oh {
+            6
+        } else if info.dtype == Dtype::TargetSelectionLfo {
             // The LFO's destination voice (PAR_VOICE_LFOx, 1..=6).
             let lfo = info.index - par::TARGET_LFO1;
             params.param(par::VOICE_LFO1 + lfo).map(|p| p.value().clamp(1, 6) as u8 - 1).unwrap_or(0)
         } else {
             info.voice.number().unwrap_or(0)
         };
-        let (lo, hi) = MOD_TARGET_VOICE_OFFSETS[voice.min(5) as usize];
+        let (lo, hi) = if voice == 6 {
+            (lxr_params::open_hat::OH_TARGET_BASE, lxr_params::open_hat::OH_MAX_TARGET)
+        } else {
+            MOD_TARGET_VOICE_OFFSETS[voice.min(5) as usize]
+        };
         let mut v: Vec<u16> = std::iter::once(0).chain(lo as u16..=hi as u16).collect();
         let cur = params.param(info.index).map(|p| p.value() as u16).unwrap_or(0);
         if !v.contains(&cur) {
@@ -824,7 +881,8 @@ fn fader_cell(ui: &mut Ui, setter: &ParamSetter, params: &VDrumParams, shared: &
         for (ch, cc) in shared.learned_for(target) {
             ui.label(format!("Learned: channel {} CC {cc}", ch + 1));
         }
-        ui.label(RichText::new(format!("{} Fader", Voice::VOICES[i].label())).strong());
+        let voice = Voice::VOICES.get(i).copied().unwrap_or(Voice::OpenHat);
+        ui.label(RichText::new(format!("{} Fader", voice.label())).strong());
         ui.label(format!("Gain: {}  (position {v} of {FADER_MAX})", fader_text(v)));
         ui.label("The hardware's volume fader for this voice (adc_checkFaders: gain = position²). Default: top (0 dB).");
         ui.label("Not part of the kit; saved with the plugin state and automatable.");
@@ -947,7 +1005,8 @@ mod tests {
                     match item {
                         Item::Param(idx, label) => {
                             // Voice cards only show parameters of their own voice, with a label.
-                            assert_eq!(lxr_params::info(*idx).unwrap().voice, Voice::VOICES[v], "{idx}");
+                            let voice = Voice::VOICES.get(v).copied().unwrap_or(Voice::OpenHat);
+                            assert_eq!(lxr_params::info(*idx).unwrap().voice, voice, "{idx}");
                             assert!(!label.is_empty());
                             assert!(!shown.contains(idx), "{idx} shown twice");
                             shown.push(*idx);
@@ -957,13 +1016,19 @@ mod tests {
                 }
             }
         }
-        assert_eq!(faders, vec![0, 1, 2, 3, 4, 5]);
+        assert_eq!(faders, vec![0, 1, 2, 3, 4, 5, 6]);
         shown.extend(&l.fx);
         shown.extend(&l.performance);
         shown.extend(MIDI_CHAN);
         shown.extend(MIDI_NOTE);
         shown.extend([par::BPM, par::MIDI_CHAN_GLOBAL]);
         for info in params.infos.iter() {
+            // the firmware's open decay has no effect with the separate open hi-hat (its decay is
+            // `velod7` on the open hi-hat's card); it stays a host parameter for old automation
+            if info.index == par::VELOD6_OPEN {
+                assert!(!shown.contains(&info.index));
+                continue;
+            }
             assert!(shown.contains(&info.index), "{} not shown", info.enum_name);
         }
     }
@@ -997,6 +1062,7 @@ mod tests {
             layout: Layout::build(),
             name_buf: String::new(),
             pad_seen: [0; 7],
+            hat_tab: 5,
             pad_lit: [-10.0; 7],
             file_reply: Arc::new(Mutex::new(None)),
             status: String::new(),

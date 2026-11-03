@@ -575,6 +575,8 @@ pub struct Lxr {
     /// `adc_buf_old[8..14]` of `Core/Src/IO/adcPots.c` (last accepted fader ADC readings, UI side; used by
     /// `set_fader_adc` for the hysteresis of `adc_checkFaders`).
     pub fader_adc_old: [u16; 6],
+    /// VDrum extensions (open hi-hat voice), see `crate::vdrum`. Off after `new()`.
+    pub vdrum: crate::vdrum::VdrumState,
 }
 
 impl Lxr {
@@ -717,6 +719,7 @@ impl Lxr {
             rng_state: crate::rng::RNG_SEED,
             blocks: 0,
             fader_adc_old: [0; 6],
+            vdrum: crate::vdrum::VdrumState::ZERO,
         }
     }
 
@@ -739,6 +742,8 @@ impl Lxr {
         }
         // preset_init -> preset_sendDrumsetParameters -> preset_morph started a non-blocking transfer
         s.drain_morph();
+        // VDrum extensions: only `s.vdrum` changes (hat split stays off)
+        s.vdrum_init();
         s
     }
 
@@ -870,8 +875,13 @@ impl Lxr {
     /// Sets fader `i` (0..6) to a 16 bit ADC reading (12 bits, left aligned) and runs `adc_checkFaders` over
     /// all six faders (`Core/Src/IO/adcPots.c:256`, hysteresis 40 on `adc >> 4`), which updates
     /// `adc_faderValues[i] = v*v` with `v = (adc >> 4) / 4096` (0 below 0.01) when the reading moved.
+    ///
+    /// VDrum extension: fader 6 is the open hi-hat's own fader (`crate::vdrum`, used with the hat split).
     pub fn set_fader_adc(&mut self, i: usize, adc: u16) {
-        assert!(i < 6, "fader index {i}");
+        assert!(i < 7, "fader index {i}");
+        if i == 6 {
+            return self.oh_set_fader_adc(adc);
+        }
         const HYSTERSIS: i32 = 40;
         let (new, old) = ((adc >> 4) as i32, (self.fader_adc_old[i] >> 4) as i32);
         if new > old + HYSTERSIS || old > new + HYSTERSIS {

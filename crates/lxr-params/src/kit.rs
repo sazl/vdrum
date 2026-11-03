@@ -10,15 +10,29 @@
 //!   to 0. A name that `preset_isNameEmpty()` considers empty becomes `"Empty"`.
 //! * File names: `preset_makeFileNameSave()`: two digit slot number, `-`, up to five characters of
 //!   the name (characters outside `[A-Za-z0-9 !#$%&()-@^_`{}~]` and blanks become `_`), `.snd`.
+//!
+//! VDrum extension: after the firmware's 255 bytes, VDrum writes an extension block with the parameters
+//! of its separate open hi-hat voice ([`crate::open_hat`]): the 4 bytes `VDX1`, one byte `n` (the number
+//! of values, [`OH_NUM_PARAMS`]) and `n` values. Reading a file without the block (a firmware kit) imports
+//! the open hi-hat from the shared hi-hat ([`oh_from_hat`]). The firmware reads only the first 255 bytes
+//! of a kit file (`preset_readDrumsetData()` reads `END_OF_SOUND_PARAMETERS` bytes after the name), so it
+//! ignores the block (not tested on a device).
 
+use crate::open_hat::{oh_from_hat, oh_normalize, OH_NUM_PARAMS};
 use crate::{par, END_OF_SOUND_PARAMETERS, INIT_KIT, MOD_TARGETS};
 
 /// Length of the kit name.
 pub const KIT_NAME_LEN: usize = 8;
 /// Number of parameter bytes in a kit.
 pub const KIT_PARAMS: usize = END_OF_SOUND_PARAMETERS as usize;
-/// Length of a complete kit file.
-pub const KIT_FILE_LEN: usize = KIT_NAME_LEN + KIT_PARAMS;
+/// Length of a firmware kit file (name and parameters).
+pub const KIT_FW_FILE_LEN: usize = KIT_NAME_LEN + KIT_PARAMS;
+/// Magic of VDrum's extension block.
+pub const KIT_EXT_MAGIC: [u8; 4] = *b"VDX1";
+/// Length of VDrum's extension block (magic, count, open hi-hat values).
+pub const KIT_EXT_LEN: usize = 4 + 1 + OH_NUM_PARAMS;
+/// Length of a VDrum kit file (firmware part and extension block).
+pub const KIT_FILE_LEN: usize = KIT_FW_FILE_LEN + KIT_EXT_LEN;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum KitError {
@@ -36,11 +50,14 @@ impl std::fmt::Display for KitError {
 
 impl std::error::Error for KitError {}
 
-/// A kit: name and the values of all sound parameters (`activeParameters[0..END_OF_SOUND_PARAMETERS]`).
+/// A kit: name and the values of all sound parameters (`activeParameters[0..END_OF_SOUND_PARAMETERS]`),
+/// and the values of VDrum's open hi-hat parameters.
 #[derive(Clone, PartialEq, Eq)]
 pub struct Kit {
     pub name: [u8; KIT_NAME_LEN],
     pub values: [u8; KIT_PARAMS],
+    /// Open hi-hat parameters ([`crate::open_hat`], index `k`).
+    pub oh: [u8; OH_NUM_PARAMS],
 }
 
 impl std::fmt::Debug for Kit {
@@ -82,9 +99,15 @@ impl Kit {
         }
         let mut values = [0u8; KIT_PARAMS];
         values[..KIT_PARAMS - 8].copy_from_slice(&INIT_KIT[8..KIT_PARAMS]);
-        let mut k = Kit { name, values };
+        let oh = oh_from_hat(&values);
+        let mut k = Kit { name, values, oh };
         k.normalize_mod_targets();
         k
+    }
+
+    /// A kit from firmware values; the open hi-hat is imported from the shared hi-hat.
+    pub fn from_values(name: [u8; KIT_NAME_LEN], values: [u8; KIT_PARAMS]) -> Kit {
+        Kit { name, values, oh: oh_from_hat(&values) }
     }
 
     /// Parse a kit file (`preset_loadDrumsetSD()` + `preset_readDrumsetData()`).
@@ -100,16 +123,36 @@ impl Kit {
         let mut values = [0u8; KIT_PARAMS];
         let n = (data.len() - KIT_NAME_LEN).min(KIT_PARAMS);
         values[..n].copy_from_slice(&data[KIT_NAME_LEN..KIT_NAME_LEN + n]);
-        let mut k = Kit { name, values };
+        let mut k = Kit { name, values, oh: [0; OH_NUM_PARAMS] };
         k.normalize_mod_targets();
+        // the open hi-hat: from the extension block, values it does not have from the shared hi-hat
+        let mut oh = oh_from_hat(&k.values);
+        let ext = data.get(KIT_FW_FILE_LEN..).unwrap_or(&[]);
+        if ext.len() >= 5 && ext[..4] == KIT_EXT_MAGIC {
+            let cnt = (ext[4] as usize).min(OH_NUM_PARAMS).min(ext.len() - 5);
+            oh[..cnt].copy_from_slice(&ext[5..5 + cnt]);
+        }
+        oh_normalize(&mut oh);
+        k.oh = oh;
         Ok(k)
     }
 
-    /// The kit file bytes (`preset_saveDrumsetSD()` without morphing).
-    pub fn to_file_bytes(&self) -> [u8; KIT_FILE_LEN] {
-        let mut out = [0u8; KIT_FILE_LEN];
+    /// The firmware part of the kit file (`preset_saveDrumsetSD()` without morphing).
+    pub fn to_firmware_bytes(&self) -> [u8; KIT_FW_FILE_LEN] {
+        let mut out = [0u8; KIT_FW_FILE_LEN];
         out[..KIT_NAME_LEN].copy_from_slice(&self.name);
         out[KIT_NAME_LEN..].copy_from_slice(&self.values);
+        out
+    }
+
+    /// The VDrum kit file bytes: the firmware part and the extension block.
+    pub fn to_file_bytes(&self) -> [u8; KIT_FILE_LEN] {
+        let mut out = [0u8; KIT_FILE_LEN];
+        out[..KIT_FW_FILE_LEN].copy_from_slice(&self.to_firmware_bytes());
+        let e = &mut out[KIT_FW_FILE_LEN..];
+        e[..4].copy_from_slice(&KIT_EXT_MAGIC);
+        e[4] = OH_NUM_PARAMS as u8;
+        e[5..].copy_from_slice(&self.oh);
         out
     }
 
@@ -205,11 +248,31 @@ mod tests {
         let mut k = Kit::init();
         k.set_name("My Kit 1");
         k.values[par::VOL1 as usize] = 99;
+        k.oh[crate::open_hat::OH_VELOD] = 3;
         let b = k.to_file_bytes();
-        assert_eq!(b.len(), 8 + 247);
+        assert_eq!(b.len(), 8 + 247 + 4 + 1 + 37);
         let k2 = Kit::from_file_bytes(&b).unwrap();
         assert_eq!(k, k2);
         assert_eq!(k.file_name(3), "03-My_Ki.snd");
+    }
+
+    #[test]
+    fn firmware_kit_imports_the_open_hat() {
+        let mut k = Kit::init();
+        k.values[par::VELOD6_OPEN as usize] = 99;
+        k.values[par::COARSE6 as usize] = 12;
+        let k2 = Kit::from_file_bytes(&k.to_firmware_bytes()).unwrap();
+        assert_eq!(k2.oh[crate::open_hat::OH_VELOD], 99);
+        assert_eq!(k2.oh[1], 12);
+        assert_eq!(k2.oh[crate::open_hat::OH_CHOKE], 1);
+        // a shorter extension block (older/newer VDrum): the rest is imported
+        let mut b = k.to_file_bytes().to_vec();
+        b.truncate(KIT_FW_FILE_LEN + 5 + 2);
+        b[KIT_FW_FILE_LEN + 4] = 2;
+        b[KIT_FW_FILE_LEN + 5 + 1] = 77; // coarse7
+        let k3 = Kit::from_file_bytes(&b).unwrap();
+        assert_eq!(k3.oh[1], 77);
+        assert_eq!(k3.oh[crate::open_hat::OH_VELOD], 99);
     }
 
     #[test]

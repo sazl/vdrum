@@ -5,8 +5,9 @@
 //! The engine runs the firmware's audio interrupt: one [`Engine::tick`] renders 64 stereo frames
 //! (`OUTPUT_DMA_SIZE`) at 44100 Hz for each of the two DACs, as signed 16 bit, L/R interleaved.
 
-use lxr_params::kit::{Kit, KIT_PARAMS};
-use lxr_params::{par, GLOBAL_PARAMS, NUM_PARAMS};
+use lxr_params::kit::{Kit, KIT_FW_FILE_LEN, KIT_PARAMS};
+use lxr_params::open_hat::{oh_index, oh_k};
+use lxr_params::{par, GLOBAL_PARAMS, NUM_ALL_PARAMS, NUM_PARAMS, OH_NUM_PARAMS};
 
 /// Frames per engine tick.
 pub const TICK_FRAMES: usize = 64;
@@ -39,16 +40,19 @@ pub trait Engine: Send {
     fn midi_byte(&mut self, b: u8);
     /// Render one tick (64 frames per DAC). Must not allocate or lock.
     fn tick(&mut self) -> Block;
-    /// Set a parameter (`ParamEnums` index) as the front panel does (`activeParameters` semantics).
+    /// Set a parameter (`ParamEnums` index, or an open hi-hat parameter from `NUM_PARAMS` on) as the
+    /// front panel does (`activeParameters` semantics).
     fn set_parameter(&mut self, param: u16, value: u16);
-    /// The current value of a parameter (`ParamEnums` index).
+    /// The current value of a parameter (`ParamEnums` index or open hi-hat parameter).
     fn get_parameter(&self, param: u16) -> u16;
-    /// Load a kit from `.snd` file bytes (8 byte name + parameter bytes).
+    /// Load a kit from `.snd` file bytes (8 byte name + parameter bytes, optionally VDrum's extension
+    /// block with the open hi-hat; see `lxr_params::kit`).
     fn load_kit(&mut self, kit: &[u8]);
-    /// The current kit as `.snd` file bytes.
+    /// The current kit as VDrum `.snd` file bytes.
     fn save_kit(&self) -> Vec<u8>;
-    /// Move voice fader `i` (0..6: Drum 1..3, Snare, Cymbal, Hi-hat) to a 16 bit ADC reading (12
-    /// bits, left aligned), as the hardware's `adc_checkFaders` reads it. The default ignores it.
+    /// Move voice fader `i` (0..7: Drum 1..3, Snare, Cymbal, Hi-hat, Open Hi-hat) to a 16 bit ADC
+    /// reading (12 bits, left aligned), as the hardware's `adc_checkFaders` reads it. The default
+    /// ignores it.
     fn set_fader_adc(&mut self, _i: usize, _adc: u16) {}
     /// Whether the engine stopped after an internal error (it then renders silence and ignores
     /// input until the plugin replaces it in `initialize()`).
@@ -60,6 +64,8 @@ pub trait Engine: Send {
 /// The `lxr-core` port: the LXR-02 sound engine (`docs/ENGINE_CONTRACT.md`), wrapped so that the
 /// trait methods do not collide with `Lxr`'s own.
 ///
+/// * The open hi-hat is a separate voice (`lxr_core::vdrum::open_hat`, hat split on). Its parameters
+///   are indices `NUM_PARAMS..NUM_ALL_PARAMS` and fader 6.
 /// * `set_parameter` is the menu path (`menu_encoderChangeParameter`), `get_parameter` reads
 ///   `activeParameters[]` (the edit buffer). Out-of-range indices are ignored / read as 0 instead
 ///   of panicking on the audio thread, and values are truncated to the firmware's `uint8_t`.
@@ -90,7 +96,9 @@ impl LxrEngine {
 impl Engine for LxrEngine {
     fn new() -> Box<Self> {
         // `Lxr` itself is about 14 kB; its large buffers are boxed by `Lxr::new_zeroed`.
-        Box::new(LxrEngine(lxr_core::Lxr::new(), false))
+        let mut l = lxr_core::Lxr::new();
+        l.set_hat_split(true);
+        Box::new(LxrEngine(l, false))
     }
 
     fn midi_byte(&mut self, b: u8) {
@@ -108,28 +116,44 @@ impl Engine for LxrEngine {
     fn set_parameter(&mut self, param: u16, value: u16) {
         if param < NUM_PARAMS {
             self.guarded(|e| e.set_parameter(param, value.min(255) as u8));
+        } else if let Some(k) = oh_k(param) {
+            self.guarded(|e| e.oh_set_parameter(k, value.min(255) as u8));
         }
     }
 
     fn get_parameter(&self, param: u16) -> u16 {
+        if let Some(k) = oh_k(param) {
+            return self.0.oh_get_parameter(k) as u16;
+        }
         self.0.activeParameters.get(param as usize).map_or(0, |v| *v as u16)
     }
 
     fn load_kit(&mut self, kit: &[u8]) {
-        if (8..=8 + KIT_PARAMS).contains(&kit.len()) {
-            self.guarded(|e| e.load_kit(kit));
+        if kit.len() < 8 {
+            return;
+        }
+        if let Ok(k) = Kit::from_file_bytes(kit) {
+            // the firmware part as the firmware reads it (the bytes present, up to 255)
+            let fw = &kit[..kit.len().min(KIT_FW_FILE_LEN)];
+            self.guarded(|e| {
+                e.load_kit(fw);
+                e.oh_set_parameters(&k.oh);
+            });
         }
     }
 
     fn save_kit(&self) -> Vec<u8> {
-        let mut v = Vec::with_capacity(8 + KIT_PARAMS);
-        v.extend_from_slice(&self.0.savefileNames[0][0]);
-        v.extend_from_slice(&self.0.activeParameters[..KIT_PARAMS]);
-        v
+        let mut values = [0u8; KIT_PARAMS];
+        values.copy_from_slice(&self.0.activeParameters[..KIT_PARAMS]);
+        let mut k = Kit::from_values(self.0.savefileNames[0][0], values);
+        for (i, v) in k.oh.iter_mut().enumerate() {
+            *v = self.0.oh_get_parameter(i);
+        }
+        k.to_file_bytes().to_vec()
     }
 
     fn set_fader_adc(&mut self, i: usize, adc: u16) {
-        if i < 6 {
+        if i < 7 {
             self.guarded(|e| e.set_fader_adc(i, adc));
         }
     }
@@ -144,7 +168,7 @@ impl Engine for LxrEngine {
 /// a decaying sine per triggered track on DAC 1, and the same at half level on DAC 2. It is not the
 /// LXR-02 sound engine.
 pub struct StubEngine {
-    params: [u16; NUM_PARAMS as usize],
+    params: [u16; NUM_ALL_PARAMS as usize],
     name: [u8; 8],
     // MIDI parser state
     status: u8,
@@ -263,7 +287,7 @@ impl StubEngine {
 impl Engine for StubEngine {
     fn new() -> Box<Self> {
         let mut e = Box::new(StubEngine {
-            params: [0; NUM_PARAMS as usize],
+            params: [0; NUM_ALL_PARAMS as usize],
             name: [0; 8],
             status: 0,
             data: [0; 2],
@@ -344,13 +368,19 @@ impl Engine for StubEngine {
             for (i, v) in k.values.iter().enumerate() {
                 self.params[i] = *v as u16;
             }
+            for (i, v) in k.oh.iter().enumerate() {
+                self.params[oh_index(i) as usize] = *v as u16;
+            }
         }
     }
 
     fn save_kit(&self) -> Vec<u8> {
-        let mut k = Kit { name: self.name, values: [0; KIT_PARAMS] };
+        let mut k = Kit::from_values(self.name, [0; KIT_PARAMS]);
         for (i, v) in k.values.iter_mut().enumerate() {
             *v = self.params[i] as u8;
+        }
+        for i in 0..OH_NUM_PARAMS {
+            k.oh[i] = self.params[oh_index(i) as usize] as u8;
         }
         k.to_file_bytes().to_vec()
     }
@@ -374,7 +404,7 @@ mod tests {
         }
         assert_eq!(e.get_parameter(128), 77);
         let k = e.save_kit();
-        assert_eq!(k.len(), 255);
+        assert_eq!(k.len(), lxr_params::kit::KIT_FILE_LEN);
         let mut e2 = StubEngine::new();
         e2.load_kit(&k);
         assert_eq!(e2.get_parameter(par::COARSE1), 100);

@@ -12,7 +12,7 @@ pub mod pipeline;
 mod real_engine_tests;
 
 use engine::{tracks_for_note, Block, Engine};
-use lxr_params::{GLOBAL_PARAMS, PARAMS};
+use lxr_params::{oh_params, GLOBAL_PARAMS, PARAMS};
 use nih_plug::midi::MidiResult;
 use nih_plug::prelude::*;
 use params::{scale_cc, Command, Shared, VDrumParams, N};
@@ -54,7 +54,7 @@ pub struct VDrum {
     /// Last seen host value of every host parameter slot.
     last_host: Vec<i32>,
     /// Last seen value of the fader parameters.
-    last_fader: [i32; 6],
+    last_fader: [i32; params::NUM_FADERS],
     has_aux: bool,
     /// Whether the pipeline currently runs the engine at the hardware clock rate.
     hardware_clock: bool,
@@ -100,7 +100,7 @@ impl Default for VDrum {
 /// is flagged so that the GUI copies it to the host parameter.
 fn sync_mirror<E: Engine>(engine: &E, shared: &Shared, mark_dirty: bool) {
     let _ieee = fp::IeeeGuard::new();
-    for p in PARAMS.iter().chain(GLOBAL_PARAMS.iter()) {
+    for p in PARAMS.iter().chain(GLOBAL_PARAMS.iter()).chain(oh_params().iter()) {
         let i = p.index as usize;
         let v = engine.get_parameter(p.index);
         if shared.values[i].swap(v, Ordering::Relaxed) != v && mark_dirty {
@@ -341,7 +341,7 @@ impl Plugin for VDrum {
                             self.hw_clock_want = v >= 64;
                             Some(self.hw_clock_want as i32)
                         }
-                        _ if extra < 6 => {
+                        _ if extra < params::NUM_FADERS => {
                             let step = (v as i32 * params::FADER_MAX + 63) / 127;
                             let ev = Ev::Fader { index: extra as u8, adc: params::fader_adc(step) };
                             pipeline.push_event(timing, ev, &mut apply);

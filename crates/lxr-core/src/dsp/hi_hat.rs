@@ -86,28 +86,19 @@ impl Default for HiHatVoice {
     }
 }
 
-// ---- functions that use globals (methods on `Lxr`)
-impl Lxr {
-    /// C: `void HiHat_setPan(const uint8_t pan)`
-    ///
-    /// Source: `Core/Src/Soundengine/DSPAudio/HiHat.c:27`. Reference build: out-of-line in flash. Group P4.
-    /// Globals: `hatVoice`.
-    pub fn HiHat_setPan(&mut self, pan: u8) {
-        self.hatVoice.pan = pan;
-    }
+// ---- voice-level parts of the HiHat functions (no globals)
+//
+// `HiHat_init`, `HiHat_trigger` and `HiHat_calcAsync` only touch `hatVoice` apart from the LFO / modulator
+// calls kept in the methods below. These parts take the voice as a parameter so that VDrum's separate
+// open hi-hat voice (`crate::vdrum`) runs the same code; the floating-point operations are unchanged.
 
-    /// C: `void HiHat_init()`
-    ///
-    /// Source: `Core/Src/Soundengine/DSPAudio/HiHat.c:35`. Reference build: out-of-line in flash. Group P4.
-    /// Globals: `hatVoice`.
-    pub fn HiHat_init(&mut self) {
-        let v = &mut self.hatVoice;
+/// The `hatVoice` part of `HiHat_init` (everything except `lfo_init`).
+pub fn hihat_init_voice(v: &mut HiHatVoice) {
         initOnePole(&mut v.FaderVolumeFilter);
         setOnePoleCoef(&mut v.FaderVolumeFilter, 0.1);
 
         SnapEg_init(&mut v.snapEg);
-        self.HiHat_setPan(0);
-        let v = &mut self.hatVoice;
+        v.pan = 0; // HiHat_setPan(0)
         v.vol = 0.8;
 
         transient_init(&mut v.transGen);
@@ -143,7 +134,70 @@ impl Lxr {
         slopeEg2_init(&mut v.oscVolEg);
 
         SVF_init(&mut v.filter);
+}
 
+/// The `hatVoice` part of `HiHat_trigger` after the LFO retrigger and the velocity modulator update,
+/// including the inlined `HiHat_updatePan`. `velo` is `vel * (1/127.f)`.
+pub fn hihat_trigger_voice(v: &mut HiHatVoice, velo: f32, isOpen: u8, note: u8) {
+    let mut offset = 1.0f32;
+    if v.transGen.waveform == 1 {
+        offset -= v.transGen.volume;
+    }
+    v.osc.phase = trigger_phase(v.osc.waveform, offset);
+
+    v.modOsc.phase = 0;
+    v.modOsc2.phase = 0;
+
+    osc_setBaseNote(&mut v.osc, note);
+    osc_setBaseNote(&mut v.modOsc, note);
+    osc_setBaseNote(&mut v.modOsc2, note);
+
+    v.isOpen = isOpen;
+    v.oscVolEg.decay = (if isOpen != 0 { v.decayOpen } else { v.decayClosed }) as f64;
+
+    slopeEg2_trigger(&mut v.oscVolEg);
+    v.velo = velo;
+    transient_trigger(&mut v.transGen);
+
+    SnapEg_trigger(&mut v.snapEg);
+
+    let (l, r) = triggered_pan(v.pan);
+    v.triggeredPanL = l;
+    v.triggeredPanR = r;
+}
+
+/// `HiHat_calcAsync` on a given voice.
+pub fn hihat_calc_async(v: &mut HiHatVoice) {
+    //calc the osc  vol eg
+    v.egValueOscVol = slopeEg2_calc(&mut v.oscVolEg) as f32;
+
+    //calc snap EG if transient sample 0 is activated
+    if v.transGen.waveform == 0 {
+        let snapVal = SnapEg_calc(&mut v.snapEg, v.transGen.pitch);
+        v.osc.pitchMod = vfma(1.0, v.transGen.volume, snapVal);
+    }
+
+    osc_setFreq(&mut v.osc);
+    osc_setFreq(&mut v.modOsc);
+    osc_setFreq(&mut v.modOsc2);
+}
+
+// ---- functions that use globals (methods on `Lxr`)
+impl Lxr {
+    /// C: `void HiHat_setPan(const uint8_t pan)`
+    ///
+    /// Source: `Core/Src/Soundengine/DSPAudio/HiHat.c:27`. Reference build: out-of-line in flash. Group P4.
+    /// Globals: `hatVoice`.
+    pub fn HiHat_setPan(&mut self, pan: u8) {
+        self.hatVoice.pan = pan;
+    }
+
+    /// C: `void HiHat_init()`
+    ///
+    /// Source: `Core/Src/Soundengine/DSPAudio/HiHat.c:35`. Reference build: out-of-line in flash. Group P4.
+    /// Globals: `hatVoice`.
+    pub fn HiHat_init(&mut self) {
+        hihat_init_voice(&mut self.hatVoice);
         self.lfo_init(|s| &mut s.hatVoice.lfo);
     }
 
@@ -168,30 +222,7 @@ impl Lxr {
         let velo = vel as i32 as f32 * RECIP_127;
         self.modNode_updateValue(|s| &mut s.velocityModulators[5], velo);
 
-        let v = &mut self.hatVoice;
-        let mut offset = 1.0f32;
-        if v.transGen.waveform == 1 {
-            offset -= v.transGen.volume;
-        }
-        v.osc.phase = trigger_phase(v.osc.waveform, offset);
-
-        v.modOsc.phase = 0;
-        v.modOsc2.phase = 0;
-
-        osc_setBaseNote(&mut v.osc, note);
-        osc_setBaseNote(&mut v.modOsc, note);
-        osc_setBaseNote(&mut v.modOsc2, note);
-
-        v.isOpen = isOpen;
-        v.oscVolEg.decay = (if isOpen != 0 { v.decayOpen } else { v.decayClosed }) as f64;
-
-        slopeEg2_trigger(&mut v.oscVolEg);
-        v.velo = velo;
-        transient_trigger(&mut v.transGen);
-
-        SnapEg_trigger(&mut v.snapEg);
-
-        self.HiHat_updatePan();
+        hihat_trigger_voice(&mut self.hatVoice, velo, isOpen, note);
     }
 
     /// C: `IN_ITCM_RAM void HiHat_calcAsync( )`
@@ -199,19 +230,7 @@ impl Lxr {
     /// Source: `Core/Src/Soundengine/DSPAudio/HiHat.c:128`. Reference build: out-of-line in ITCM. Group P4.
     /// Globals: `hatVoice`.
     pub fn HiHat_calcAsync(&mut self) {
-        let v = &mut self.hatVoice;
-        //calc the osc  vol eg
-        v.egValueOscVol = slopeEg2_calc(&mut v.oscVolEg) as f32;
-
-        //calc snap EG if transient sample 0 is activated
-        if v.transGen.waveform == 0 {
-            let snapVal = SnapEg_calc(&mut v.snapEg, v.transGen.pitch);
-            v.osc.pitchMod = vfma(1.0, v.transGen.volume, snapVal);
-        }
-
-        osc_setFreq(&mut v.osc);
-        osc_setFreq(&mut v.modOsc);
-        osc_setFreq(&mut v.modOsc2);
+        hihat_calc_async(&mut self.hatVoice);
     }
 
     /// C: `void HiHat_calcSyncBlock(int16_t* buf, const uint8_t size)`

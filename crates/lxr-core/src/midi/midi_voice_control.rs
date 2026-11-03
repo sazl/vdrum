@@ -29,7 +29,13 @@ impl Lxr {
             self.Snare_trigger(vel, note);
         } else if voice < 5 {
             self.Cymbal_trigger(vel, note);
+        } else if voice == 6 && self.vdrum.hat_split {
+            // VDrum extension: the open hi-hat is its own voice (crate::vdrum::open_hat)
+            self.oh_trigger(vel, note);
         } else {
+            if voice == 5 && self.vdrum.hat_split {
+                self.oh_choke_by_closed();
+            }
             self.HiHat_trigger(vel, voice.wrapping_sub(5), note);
         }
 

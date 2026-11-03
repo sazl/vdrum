@@ -95,6 +95,15 @@ impl Lxr {
         let mut vm = self.hatVoice.lfo.modTarget;
         self.modNode_setOriginalValueChanged(&mut vm, idx);
         self.hatVoice.lfo.modTarget = vm;
+        if self.vdrum.hat_split {
+            // VDrum extension: the open hi-hat's modulators
+            let mut vm = self.vdrum.ohVoice.lfo.modTarget;
+            self.modNode_setOriginalValueChanged(&mut vm, idx);
+            self.vdrum.ohVoice.lfo.modTarget = vm;
+            let mut vm = self.vdrum.ohVelocityModulator;
+            self.modNode_setOriginalValueChanged(&mut vm, idx);
+            self.vdrum.ohVelocityModulator = vm;
+        }
     }
 
     /// C: `IN_ITCM_RAM void modNode_resetTargets()`
@@ -118,6 +127,13 @@ impl Lxr {
         self.paramArray_setParameter(n.destination, n.originalValue);
         let n = self.hatVoice.lfo.modTarget;
         self.paramArray_setParameter(n.destination, n.originalValue);
+        if self.vdrum.hat_split {
+            // VDrum extension: the open hi-hat's modulators
+            let n = self.vdrum.ohVelocityModulator;
+            self.paramArray_setParameter(n.destination, n.originalValue);
+            let n = self.vdrum.ohVoice.lfo.modTarget;
+            self.paramArray_setParameter(n.destination, n.originalValue);
+        }
     }
 
     /// C: `IN_ITCM_RAM void modNode_reassignVeloMod()`
@@ -135,6 +151,16 @@ impl Lxr {
             let newValue = modNode_calcNewValue(n.amount, n.lastVal, self.activeParameters[n.destination as usize]);
             self.midiParser_ccHandler(modNode_ccMsg(n.destination), 0, 1, newValue);
         }
+        if self.vdrum.hat_split {
+            // VDrum extension: the open hi-hat's velocity modulator
+            let n = self.vdrum.ohVelocityModulator;
+            if n.destination >= crate::vdrum::OH_DEST_BASE {
+                self.oh_mod_update(n.destination, n.amount, n.lastVal);
+            } else if self.parameterArray[n.destination as usize].ptr != 0 {
+                let newValue = modNode_calcNewValue(n.amount, n.lastVal, self.activeParameters[n.destination as usize]);
+                self.midiParser_ccHandler(modNode_ccMsg(n.destination), 0, 1, newValue);
+            }
+        }
     }
 
     /// C: `void modNode_setDestination(ModulationNode* vm, uint16_t dest)`
@@ -148,6 +174,11 @@ impl Lxr {
     pub fn modNode_setDestination(&mut self, vm: impl Fn(&mut Lxr) -> &mut ModulationNode + Copy, dest: u16) {
             self.modNode_resetTargets();
         vm(self).destination = dest;
+        if dest >= crate::vdrum::OH_DEST_BASE {
+            // VDrum extension: an open hi-hat parameter (restored from `vdrum.ohParams`, not `originalValue`)
+            vm(self).originalValue = ptrValue::ZERO;
+            return;
+        }
         let p = self.parameterArray[dest as usize];
         if p.ptr == 0 {
             return;
@@ -181,6 +212,11 @@ impl Lxr {
     pub fn modNode_updateValue(&mut self, vm: impl Fn(&mut Lxr) -> &mut ModulationNode + Copy, val: f32) {
             vm(self).lastVal = val;
         let dest = vm(self).destination;
+        if dest >= crate::vdrum::OH_DEST_BASE {
+            // VDrum extension: an open hi-hat parameter
+            let amount = vm(self).amount;
+            return self.oh_mod_update(dest, amount, val);
+        }
         if self.parameterArray[dest as usize].ptr == 0 {
             return;
         }

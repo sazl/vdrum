@@ -135,13 +135,13 @@ pub fn midiParser_cc2voiceNr(cc: u8) -> u8 {
 /// `uint8_t wave = N * value.flt; wave = wave >= N ? N-1 : wave;` as compiled: `vcvt.u32.f32` (truncating,
 /// saturating), low byte, then the clamp to `max` (= N-1).
 #[inline(always)]
-fn float_to_clamped_u8(n: f32, flt: f32, max: u8) -> u8 {
+pub(crate) fn float_to_clamped_u8(n: f32, flt: f32, max: u8) -> u8 {
     let w = ((n * flt) as u32) as u8;
     if w > max { max } else { w }
 }
 
 /// `FILTER_SHAPER` (-0.9f) as passed to `valueShaperF2F`.
-const FILTER_SHAPER: f32 = -0.9;
+pub(crate) const FILTER_SHAPER: f32 = -0.9;
 
 /// Copies an `OscInfo` out of `$place`, updates `midiFreq` and calls `osc_recalcFreq`.
 macro_rules! set_midi_freq {
