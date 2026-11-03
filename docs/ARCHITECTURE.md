@@ -25,6 +25,7 @@ CI, where the shipped image is not available.
 | `crates/lxr-emu` | Unicorn (QEMU) based Cortex-M7 emulator that runs firmware code: function calls (`Firmware::call`) and the whole engine (`EmuEngine`) with the same interface as `lxr-core`. |
 | `crates/lxr-difftest` | Differential tests: lxr-core vs lxr-emu, per function and per scenario, bitwise. |
 | `crates/lcxl3` | Message codec for the DAW mode of the Novation Launch Control XL 3 (Programmer's Reference Guide v1.0): pure encode/decode functions, no I/O. |
+| `crates/vdrum-surface` | The Launch Control XL 3 surface as a state machine without I/O: modes, control mappings (design revision 2), fader pickup, held buttons, LED and screen frames. |
 | `plugin/` | nih-plug plugin (CLAP, VST3, standalone) and GUI; AU via clap-wrapper on macOS. |
 | `xtask/` | `cargo xtask bundle vdrum --release` (nih-plug bundler). |
 
