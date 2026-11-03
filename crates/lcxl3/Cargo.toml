@@ -1,0 +1,9 @@
+[package]
+name = "lcxl3"
+description = "Message codec for the DAW mode of the Novation Launch Control XL 3 (encode and decode, no I/O)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
