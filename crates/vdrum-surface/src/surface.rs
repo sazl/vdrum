@@ -3,13 +3,47 @@
 
 use crate::frame::{dim, Frame, Popup};
 use crate::layout::{Binding, Cell, Layout, Mode, Rgb, Section, Setting, TRACK_TITLES};
-use crate::model::{options, scale, unscale, Action, Model, FADER_MAX};
+use crate::model::{options, scale, unscale, Action, Model, Switch, FADER_MAX};
+use lxr_params::par;
 use lcxl3::{Button, Control, Input};
 
 /// Hold time for "hold 1 s" actions, in milliseconds.
 pub const HOLD_MS: u64 = 1000;
 /// How long a pad stays lit after its track was triggered, in milliseconds.
 pub const FLASH_MS: u64 = 120;
+/// Changes of one parameter closer together than this are one undo step, in milliseconds.
+pub const UNDO_MERGE_MS: u64 = 1000;
+/// Undo steps kept.
+pub const UNDO_DEPTH: usize = 256;
+/// `audio_outN` value of the FX bus.
+pub const AUDIO_OUT_FX: u16 = 6;
+
+/// One parameter change made from the controller (for undo and redo).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct Change {
+    idx: u16,
+    old: u16,
+    new: u16,
+    at: u64,
+}
+
+/// Voices whose parameters can be copied onto each other: drums 1 to 3, snare, cymbal, the two
+/// hi-hats.
+pub fn copy_group(track: u8) -> u8 {
+    match track {
+        0..=2 => 0,
+        3 => 1,
+        4 => 2,
+        _ => 3,
+    }
+}
+
+/// The FX type's own type parameter (distortion type, ring modulator waveform, compressor ratio,
+/// delay type), if the type has one.
+pub fn fx_sub_param(fx_type: u16) -> Option<u16> {
+    let page = lxr_params::FX_PAGE.get(fx_type as usize)?;
+    page.get(3).map(|(p, _)| *p).filter(|p| ![par::FX_P1, par::FX_P2, par::FX_P3, par::FX_P4].contains(p))
+}
 
 /// Settings the user changes in the Global mode (plugin side).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -117,6 +151,19 @@ pub struct Surface {
     /// Last seen hit counter and time of the last hit, per track.
     hit_seen: [u32; 7],
     hit_at: [Option<u64>; 7],
+    /// Time of the input being handled.
+    now: u64,
+    /// Copied voice: its copy group and the values by control.
+    clipboard: Option<(u8, Vec<(Control, u16)>)>,
+    /// Audio output of each track before it was sent to the FX bus.
+    fx_prev_out: [u16; 7],
+    /// FX type before the FX was switched off.
+    fx_prev_type: u16,
+    /// Page up/down showed a kit that Play would load.
+    browsing: bool,
+    comparing: bool,
+    history: Vec<Change>,
+    redo: Vec<Change>,
 }
 
 impl Default for Surface {
@@ -143,7 +190,62 @@ impl Surface {
             settings: Settings::default(),
             hit_seen: [0; 7],
             hit_at: [None; 7],
+            now: 0,
+            clipboard: None,
+            fx_prev_out: [0; 7],
+            fx_prev_type: 1,
+            browsing: false,
+            comparing: false,
+            history: Vec::new(),
+            redo: Vec::new(),
         }
+    }
+
+    /// Show a message in the popup (for results the plugin reports, such as kit names).
+    pub fn notify(&mut self, title: &str, name: &str, value: &str) {
+        self.show_text(title, name, value);
+    }
+
+    /// Whether a kit shown by Page up/down is waiting for Play.
+    pub fn browsing(&self) -> bool {
+        self.browsing
+    }
+
+    /// Set a parameter from the controller, keeping the undo history.
+    fn set(&mut self, idx: u16, value: u16, model: &dyn Model, out: &mut Vec<Action>) {
+        let old = model.param(idx);
+        if old == value {
+            return;
+        }
+        out.push(Action::SetParam { idx, value });
+        self.redo.clear();
+        match self.history.last_mut() {
+            Some(c) if c.idx == idx && self.now.saturating_sub(c.at) < UNDO_MERGE_MS => {
+                c.new = value;
+                c.at = self.now;
+            }
+            _ => {
+                self.history.push(Change { idx, old, new: value, at: self.now });
+                if self.history.len() > UNDO_DEPTH {
+                    self.history.remove(0);
+                }
+            }
+        }
+    }
+
+    fn undo(&mut self, redo: bool, out: &mut Vec<Action>) {
+        let (from, to) = if redo { (&mut self.redo, &mut self.history) } else { (&mut self.history, &mut self.redo) };
+        let Some(mut c) = from.pop() else {
+            self.show_text("Edit", if redo { "Redo" } else { "Undo" }, "nothing to do");
+            return;
+        };
+        let value = if redo { c.new } else { c.old };
+        out.push(Action::SetParam { idx: c.idx, value });
+        c.at = 0;
+        to.push(c);
+        let name = lxr_params::info(c.idx).map(|i| i.name).unwrap_or("?");
+        let text = lxr_params::info(c.idx).map(|i| lxr_params::format_value(i, value.min(255) as u8)).unwrap_or_default();
+        self.show_text(if redo { "Redo" } else { "Undo" }, name, text.trim());
     }
 
     pub fn mode(&self) -> Mode {
@@ -187,6 +289,15 @@ impl Surface {
     /// Handle one decoded message from the device at time `now` (milliseconds, any origin).
     pub fn handle(&mut self, input: &Input, now: u64, model: &dyn Model) -> Vec<Action> {
         let mut out = Vec::new();
+        self.now = now;
+        let browse_key = matches!(
+            input,
+            Input::Button { button: Button::PageUp | Button::PageDown | Button::Play, .. }
+                | Input::Button { pressed: false, .. }
+        );
+        if !browse_key && !matches!(input, Input::Other | Input::Touch { .. } | Input::Feature { .. }) {
+            self.browsing = false;
+        }
         match *input {
             Input::Relative { row, col, delta } => {
                 let c = Control::Encoder { row, col };
@@ -261,11 +372,17 @@ impl Surface {
                     return;
                 }
                 let new = opts[(pos + steps).clamp(0, opts.len() as i32 - 1) as usize];
-                if new != cur {
-                    out.push(Action::SetParam { idx, value: new });
-                }
-                self.show_param(cell, idx, new);
+                self.set(idx, new, model, out);
+                self.show_param(cell, idx, new, model);
             }
+            Binding::FxSubType => match fx_sub_param(model.param(par::FX_TYPE)) {
+                Some(idx) => {
+                    let label = lxr_params::info(idx).map(|i| i.name).unwrap_or("FX sub-type");
+                    let sub = Cell { label: label.trim_start_matches("FX ").to_string(), ..cell.clone() };
+                    self.encoder(c, &Cell { binding: Binding::Param(idx), ..sub }, delta, model, out);
+                }
+                None => self.show(cell, "none for this FX".to_string()),
+            },
             Binding::Setting(s) => self.setting(cell, s, delta, out),
             _ => {}
         }
@@ -299,10 +416,8 @@ impl Surface {
         }
         match cell.binding {
             Binding::Param(idx) => {
-                if value != cur {
-                    out.push(Action::SetParam { idx, value });
-                }
-                self.show_param(cell, idx, value);
+                self.set(idx, value, model, out);
+                self.show_param(cell, idx, value, model);
             }
             Binding::VoiceFader(track) => {
                 if value != cur {
@@ -354,9 +469,18 @@ impl Surface {
                     self.set_mode(Mode::Perform);
                 }
             }
+            Button::PageUp | Button::PageDown => {
+                if pressed {
+                    self.browsing = true;
+                    out.push(Action::KitBrowse(if button == Button::PageUp { -1 } else { 1 }));
+                }
+            }
             Button::Play => {
                 if pressed {
-                    if let Some(track) = self.mode.track() {
+                    if self.browsing {
+                        self.browsing = false;
+                        out.push(Action::KitLoadBrowsed);
+                    } else if let Some(track) = self.mode.track() {
                         out.push(Action::Trigger { track, velocity: self.pad_velocity() });
                     }
                 }
@@ -390,22 +514,111 @@ impl Surface {
                 let cur = model.param(idx);
                 let pos = opts.iter().position(|v| *v == cur).unwrap_or(0);
                 let new = opts[(pos + 1) % opts.len()];
-                out.push(Action::SetParam { idx, value: new });
-                self.show_param(cell, idx, new);
+                self.set(idx, new, model, out);
+                self.show_param(cell, idx, new, model);
             }
             Binding::Pad(track) => out.push(Action::Trigger { track, velocity: self.pad_velocity() }),
             Binding::Accent => self.accent = true,
+            Binding::CopyVoice => {
+                if let Some(t) = self.mode.track() {
+                    let values = self
+                        .layout
+                        .iter()
+                        .filter_map(|(c, cell)| match cell.binding {
+                            Binding::Param(i) if i != crate::layout::p("hat_choke") => Some((*c, model.param(i))),
+                            _ => None,
+                        })
+                        .collect();
+                    self.clipboard = Some((copy_group(t), values));
+                    self.show(cell, "copied; hold Paste 1 s".to_string());
+                }
+            }
+            Binding::PasteVoice => self.show(cell, "hold 1 s".to_string()),
+            Binding::ToFx(t) => {
+                let idx = crate::layout::voice_param(t, "out");
+                let cur = model.param(idx);
+                let new = if cur == AUDIO_OUT_FX {
+                    self.fx_prev_out[t as usize]
+                } else {
+                    self.fx_prev_out[t as usize] = cur;
+                    AUDIO_OUT_FX
+                };
+                self.set(idx, new, model, out);
+                self.show_param(cell, idx, new, model);
+            }
+            Binding::FxOnOff => {
+                let cur = model.param(par::FX_TYPE);
+                let new = if cur == 0 {
+                    self.fx_prev_type.max(1)
+                } else {
+                    self.fx_prev_type = cur;
+                    0
+                };
+                self.set(par::FX_TYPE, new, model, out);
+                self.show_param(cell, par::FX_TYPE, new, model);
+            }
+            Binding::SumAux | Binding::HwClock => {
+                let sw = if cell.binding == Binding::SumAux { Switch::SumAux } else { Switch::HwClock };
+                let on = !model.switch(sw);
+                out.push(Action::SetSwitch(sw, on));
+                self.show(cell, if on { "on" } else { "off" }.to_string());
+            }
+            Binding::InitKit | Binding::SaveKit => self.show(cell, "hold 1 s".to_string()),
+            Binding::Compare => {
+                self.comparing = true;
+                out.push(Action::Compare(true));
+                self.show(cell, "saved kit (release: back)".to_string());
+            }
+            Binding::Undo => self.undo(false, out),
+            Binding::Redo => self.undo(true, out),
+            Binding::Panic => {
+                out.push(Action::Panic);
+                self.show(cell, "all voices off".to_string());
+            }
             _ => {}
         }
     }
 
-    fn release(&mut self, cell: &Cell, _model: &dyn Model, _out: &mut [Action]) {
-        if cell.binding == Binding::Accent {
-            self.accent = false;
+    fn release(&mut self, cell: &Cell, _model: &dyn Model, out: &mut Vec<Action>) {
+        match cell.binding {
+            Binding::Accent => self.accent = false,
+            Binding::Compare if self.comparing => {
+                self.comparing = false;
+                out.push(Action::Compare(false));
+                self.show(cell, "back to the edited kit".to_string());
+            }
+            _ => {}
         }
     }
 
-    fn hold_fired(&mut self, _cell: &Cell, _model: &dyn Model, _out: &mut Vec<Action>) {}
+    fn hold_fired(&mut self, cell: &Cell, model: &dyn Model, out: &mut Vec<Action>) {
+        match cell.binding {
+            Binding::PasteVoice => {
+                let Some(t) = self.mode.track() else { return };
+                match self.clipboard.clone() {
+                    Some((g, values)) if g == copy_group(t) => {
+                        for (c, v) in values {
+                            if let Some(Binding::Param(idx)) = self.layout.get(c).map(|x| x.binding) {
+                                self.set(idx, v, model, out);
+                            }
+                        }
+                        self.show(cell, "pasted".to_string());
+                    }
+                    Some(_) => self.show(cell, "different voice type".to_string()),
+                    None => self.show(cell, "nothing copied".to_string()),
+                }
+            }
+            Binding::InitKit => {
+                out.push(Action::InitKit);
+                self.show(cell, "init kit loaded".to_string());
+            }
+            Binding::SaveKit => {
+                out.push(Action::SaveKit);
+                self.show(cell, "saving".to_string());
+            }
+            _ => {}
+        }
+    }
 
     fn setting(&mut self, cell: &Cell, s: Setting, delta: i32, out: &mut Vec<Action>) {
         use lcxl3::encode::set_feature;
@@ -464,12 +677,13 @@ impl Surface {
         }
     }
 
-    fn show_param(&mut self, cell: &Cell, idx: u16, value: u16) {
+    fn show_param(&mut self, cell: &Cell, idx: u16, value: u16, model: &dyn Model) {
         let text = match lxr_params::info(idx) {
             Some(info) => lxr_params::format_value(info, value.min(255) as u8).trim().to_string(),
             None => value.to_string(),
         };
-        self.show(cell, text);
+        let label = fx_label(idx, model).unwrap_or_else(|| cell.label.clone());
+        self.show(&Cell { label, ..cell.clone() }, text);
     }
 
     fn title(&self, cell: &Cell) -> String {
@@ -488,6 +702,15 @@ impl Surface {
     fn show_text(&mut self, title: &str, name: &str, value: &str) {
         self.popup_gen = self.popup_gen.wrapping_add(1);
         self.popup = Some(Popup { gen: self.popup_gen, fields: [title.to_string(), name.to_string(), value.to_string()] });
+    }
+
+    /// The label of a control in the current mode (FX parameters are named after the FX type).
+    pub fn label(&self, c: Control, model: &dyn Model) -> Option<String> {
+        let cell = self.layout.get(c)?;
+        Some(match cell.binding {
+            Binding::Param(idx) => fx_label(idx, model).unwrap_or_else(|| cell.label.clone()),
+            _ => cell.label.clone(),
+        })
     }
 
     /// The LEDs and screen contents for the current state at time `now`.
@@ -540,7 +763,33 @@ impl Surface {
                     dim(col)
                 }
             }
+            Binding::ToFx(t) => on_off(col, model.param(crate::layout::voice_param(t, "out")) == AUDIO_OUT_FX),
+            Binding::FxOnOff => on_off(col, model.param(par::FX_TYPE) != 0),
+            Binding::SumAux => on_off(col, model.switch(Switch::SumAux)),
+            Binding::HwClock => on_off(col, model.switch(Switch::HwClock)),
+            Binding::Undo => on_off(col, !self.history.is_empty()),
+            Binding::Redo => on_off(col, !self.redo.is_empty()),
+            Binding::Compare => on_off(col, self.comparing),
+            Binding::PasteVoice => on_off(col, self.clipboard.as_ref().is_some_and(|(g, _)| Some(*g) == self.mode.track().map(copy_group))),
             _ => col,
         }
     }
+}
+
+fn on_off(col: Rgb, on: bool) -> Rgb {
+    if on {
+        col
+    } else {
+        dim(col)
+    }
+}
+
+/// The name of FX parameter 1..4 for the current FX type (they mean different things per type).
+fn fx_label(idx: u16, model: &dyn Model) -> Option<String> {
+    if ![par::FX_P1, par::FX_P2, par::FX_P3, par::FX_P4].contains(&idx) {
+        return None;
+    }
+    let text = lxr_params::fx_param_text(model.param(par::FX_TYPE).min(255) as u8, idx)?;
+    let (_, _, long) = lxr_params::text_names(text);
+    Some(format!("FX {}", long.trim()))
 }

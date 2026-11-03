@@ -17,5 +17,5 @@ pub mod surface;
 
 pub use frame::{DeviceState, Frame, Popup};
 pub use layout::{Binding, Cell, Layout, Mode, Section};
-pub use model::{Action, Model};
+pub use model::{Action, Model, Switch};
 pub use surface::{Settings, Surface};

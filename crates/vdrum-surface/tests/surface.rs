@@ -6,6 +6,7 @@ use std::cell::RefCell;
 use std::collections::{BTreeSet, HashMap};
 use vdrum_surface::layout::{b, f, k, t, voice_param};
 use vdrum_surface::*;
+use vdrum_surface::layout;
 
 /// A plugin stand-in: parameter values, faders, hit counters.
 #[derive(Default)]
@@ -13,6 +14,7 @@ struct Fake {
     params: RefCell<HashMap<u16, u16>>,
     faders: RefCell<[i32; 7]>,
     hits: RefCell<[u32; 7]>,
+    switches: RefCell<[bool; 2]>,
 }
 
 impl Fake {
@@ -32,6 +34,7 @@ impl Fake {
                 }
                 Action::SetVoiceFader { track, step } => self.faders.borrow_mut()[*track as usize] = *step,
                 Action::Trigger { track, .. } => self.hits.borrow_mut()[*track as usize] += 1,
+                Action::SetSwitch(sw, on) => self.switches.borrow_mut()[(*sw == Switch::HwClock) as usize] = *on,
                 _ => {}
             }
         }
@@ -50,6 +53,9 @@ impl Model for Fake {
     }
     fn hits(&self, t: u8) -> u32 {
         self.hits.borrow()[t as usize]
+    }
+    fn switch(&self, sw: Switch) -> bool {
+        self.switches.borrow()[(sw == Switch::HwClock) as usize]
     }
 }
 
@@ -320,4 +326,166 @@ fn settings_round_trip_as_text() {
     let s = Settings { pad_velocity: 64, list_speed: 5, fader_pickup: false, host_clock: false, ..Settings::default() };
     assert_eq!(Settings::from_text(&s.to_text()), s);
     assert_eq!(Settings::from_text("pad_velocity=0;bogus=1;list_speed=x"), Settings { pad_velocity: 1, ..Settings::default() });
+}
+
+fn tick(s: &mut Surface, m: &Fake, now: u64) -> Vec<Action> {
+    let a = s.tick(now, m);
+    m.apply(&a);
+    a
+}
+
+#[test]
+fn copy_and_paste_a_voice_between_voices_of_the_same_kind() {
+    let m = Fake::new();
+    let mut s = Surface::new();
+    let (c1, c2) = (voice_param(0, "coarse"), voice_param(1, "coarse"));
+    let (d1, d2) = (voice_param(0, "decay"), voice_param(1, "decay"));
+    m.params.borrow_mut().insert(c1, 11);
+    m.params.borrow_mut().insert(d1, 22);
+    press(&mut s, &m, Button::Top(1), 0); // copy Drum 1
+    release(&mut s, &m, Button::Top(1), 10);
+    s.set_mode(Mode::Voice(1));
+    press(&mut s, &m, Button::Top(2), 100); // paste: needs 1 s
+    assert!(tick(&mut s, &m, 500).is_empty());
+    let a = tick(&mut s, &m, 1100);
+    assert!(a.contains(&Action::SetParam { idx: c2, value: 11 }));
+    assert_eq!((m.param(c2), m.param(d2)), (11, 22));
+    assert!(tick(&mut s, &m, 3000).is_empty(), "fires once per hold");
+    release(&mut s, &m, Button::Top(2), 3000);
+    // not onto the snare
+    s.set_mode(Mode::Voice(3));
+    press(&mut s, &m, Button::Top(2), 4000);
+    assert!(tick(&mut s, &m, 5100).is_empty());
+    assert_eq!(s.frame(5100, &m).popup.unwrap().fields[2], "different voice type");
+}
+
+#[test]
+fn hats_copy_onto_each_other_but_not_the_shared_choke() {
+    let m = Fake::new();
+    let mut s = Surface::new();
+    s.set_mode(Mode::Voice(5));
+    let choke = layout::p("hat_choke");
+    m.params.borrow_mut().insert(voice_param(5, "fine"), 3);
+    press(&mut s, &m, Button::Top(1), 0);
+    m.params.borrow_mut().insert(choke, 0);
+    s.set_mode(Mode::Voice(6));
+    press(&mut s, &m, Button::Top(2), 0);
+    let a = tick(&mut s, &m, 1000);
+    assert_eq!(m.param(voice_param(6, "fine")), 3);
+    assert!(!a.iter().any(|x| matches!(x, Action::SetParam { idx, .. } if *idx == choke)));
+}
+
+#[test]
+fn mix_fx_sends_tracks_to_the_fx_and_back() {
+    let m = Fake::new();
+    let mut s = Surface::new();
+    s.set_mode(Mode::MixFx);
+    let out3 = voice_param(2, "out");
+    m.params.borrow_mut().insert(out3, 2);
+    press(&mut s, &m, Button::Top(2), 0);
+    assert_eq!(m.param(out3), 6);
+    press(&mut s, &m, Button::Top(2), 0);
+    assert_eq!(m.param(out3), 2, "previous output restored");
+    // FX on/off restores the type
+    m.params.borrow_mut().insert(par::FX_TYPE, 3);
+    press(&mut s, &m, Button::Top(7), 0);
+    assert_eq!(m.param(par::FX_TYPE), 0);
+    press(&mut s, &m, Button::Top(7), 0);
+    assert_eq!(m.param(par::FX_TYPE), 3);
+}
+
+#[test]
+fn fx_sub_type_and_parameter_names_follow_the_fx_type() {
+    let m = Fake::new();
+    let mut s = Surface::new();
+    s.set_mode(Mode::MixFx);
+    m.params.borrow_mut().insert(par::FX_TYPE, 3); // compressor: ratio
+    for _ in 0..3 {
+        turn(&mut s, &m, 0, 5, 1);
+    }
+    assert_eq!(m.param(par::FX_RATIO), 1);
+    m.params.borrow_mut().insert(par::FX_TYPE, 4); // delay: delay type
+    for _ in 0..3 {
+        turn(&mut s, &m, 0, 5, 1);
+    }
+    assert_eq!(m.param(par::FX_DELAY_TYPE), 1);
+    m.params.borrow_mut().insert(par::FX_TYPE, 0);
+    assert!(turn(&mut s, &m, 0, 5, 1).is_empty());
+    // P1 is named after the FX type
+    m.params.borrow_mut().insert(par::FX_TYPE, 3);
+    let n3 = s.label(k(1, 1), &m).unwrap();
+    m.params.borrow_mut().insert(par::FX_TYPE, 4);
+    let n4 = s.label(k(1, 1), &m).unwrap();
+    assert_ne!(n3, n4);
+    assert!(n3.starts_with("FX ") && n3 != "FX P1", "{n3}");
+}
+
+#[test]
+fn undo_and_redo_controller_changes() {
+    let m = Fake::new();
+    let mut s = Surface::new();
+    let fine = voice_param(0, "fine");
+    let v0 = m.param(fine);
+    // two turns within a second: one step
+    s.handle(&Input::Relative { row: 0, col: 0, delta: 1 }, 0, &m).iter().for_each(|a| m.apply(std::slice::from_ref(a)));
+    s.handle(&Input::Relative { row: 0, col: 0, delta: 1 }, 500, &m).iter().for_each(|a| m.apply(std::slice::from_ref(a)));
+    s.handle(&Input::Relative { row: 0, col: 0, delta: 1 }, 3000, &m).iter().for_each(|a| m.apply(std::slice::from_ref(a)));
+    assert_eq!(m.param(fine), v0 + 3);
+    s.set_mode(Mode::Global);
+    press(&mut s, &m, Button::Top(5), 4000); // undo
+    assert_eq!(m.param(fine), v0 + 2);
+    press(&mut s, &m, Button::Top(5), 4100);
+    assert_eq!(m.param(fine), v0);
+    press(&mut s, &m, Button::Top(5), 4200);
+    assert_eq!(m.param(fine), v0, "nothing left");
+    press(&mut s, &m, Button::Top(6), 4300); // redo
+    assert_eq!(m.param(fine), v0 + 2);
+    // a new change clears redo
+    s.set_mode(Mode::Voice(0));
+    turn(&mut s, &m, 0, 1, 1);
+    s.set_mode(Mode::Global);
+    press(&mut s, &m, Button::Top(6), 9000);
+    assert_eq!(m.param(fine), v0 + 2);
+}
+
+#[test]
+fn page_buttons_browse_kits_and_play_loads() {
+    let m = Fake::new();
+    let mut s = Surface::new();
+    assert_eq!(press(&mut s, &m, Button::PageDown, 0), vec![Action::KitBrowse(1)]);
+    release(&mut s, &m, Button::PageDown, 0);
+    assert_eq!(press(&mut s, &m, Button::PageUp, 0), vec![Action::KitBrowse(-1)]);
+    assert!(s.browsing());
+    assert_eq!(press(&mut s, &m, Button::Play, 0), vec![Action::KitLoadBrowsed]);
+    // any other control cancels
+    press(&mut s, &m, Button::PageDown, 0);
+    turn(&mut s, &m, 0, 0, 1);
+    assert!(!s.browsing());
+    assert_eq!(press(&mut s, &m, Button::Play, 0), vec![Action::Trigger { track: 0, velocity: 100 }]);
+}
+
+#[test]
+fn global_kit_actions_compare_panic_and_switches() {
+    let m = Fake::new();
+    let mut s = Surface::new();
+    s.set_mode(Mode::Global);
+    press(&mut s, &m, Button::Top(2), 0); // init: hold
+    assert!(tick(&mut s, &m, 900).is_empty());
+    assert_eq!(tick(&mut s, &m, 1000), vec![Action::InitKit]);
+    release(&mut s, &m, Button::Top(2), 1000);
+    press(&mut s, &m, Button::Top(3), 2000); // save: hold
+    release(&mut s, &m, Button::Top(3), 2500);
+    assert!(tick(&mut s, &m, 3500).is_empty(), "released early");
+    press(&mut s, &m, Button::Top(3), 4000);
+    assert_eq!(tick(&mut s, &m, 5000), vec![Action::SaveKit]);
+    assert_eq!(press(&mut s, &m, Button::Top(4), 0), vec![Action::Compare(true)]);
+    assert_eq!(release(&mut s, &m, Button::Top(4), 0), vec![Action::Compare(false)]);
+    assert_eq!(press(&mut s, &m, Button::Top(7), 0), vec![Action::Panic]);
+    assert_eq!(press(&mut s, &m, Button::Top(0), 0), vec![Action::SetSwitch(Switch::SumAux, true)]);
+    assert_eq!(press(&mut s, &m, Button::Top(0), 0), vec![Action::SetSwitch(Switch::SumAux, false)]);
+    assert_eq!(press(&mut s, &m, Button::Top(1), 0), vec![Action::SetSwitch(Switch::HwClock, true)]);
+    let fr = s.frame(0, &m);
+    let led = |c| fr.leds.iter().find(|(x, _)| *x == c).unwrap().1;
+    assert_eq!(led(t(2)), Section::Global.colour(), "HW clock on");
+    assert_eq!(led(t(1)), vdrum_surface::frame::dim(Section::Global.colour()), "sum aux off");
 }

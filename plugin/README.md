@@ -283,6 +283,16 @@ logic in `crates/vdrum-surface`, messages in `crates/lcxl3`).
 * **Host parameters.** Controller changes are flagged like changes from MIDI (see below): the
   editor copies them to the host parameters, and the saved state includes them while the editor is
   closed. The voice faders are saved separately (`faders`) for the same reason.
+* **Kit files.** The controller works on the kit file last loaded or saved (in the editor or on
+  the controller; the path is saved with the plugin state as `kit-path`).
+  * Page up/down shows the previous/next `.snd` file of that folder; Play loads it, any other
+    control cancels.
+  * *Save kit* (Global, hold 1 s) overwrites that file with the current kit.
+  * *Compare* (Global, hold) plays the kit as last loaded or saved and returns to the edited kit on
+    release. Both kit loads reach the host parameters like any kit load.
+* **Undo/redo** covers parameter changes made on the controller (256 steps; changes to one
+  parameter within 1 s are one step).
+* **Panic** silences the seven voices at once (`Lxr::vdrum_all_sound_off`); FX tails continue.
 * **Settings.** The controller settings of the Global mode (pad velocity, list speed, fader mode,
   clock, device brightness, popup time, encoder curve) are saved with the plugin state
   (`lcxl3-settings`).

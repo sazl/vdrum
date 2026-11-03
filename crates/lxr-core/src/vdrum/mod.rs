@@ -7,6 +7,7 @@
 //! (`>= open_hat::OH_DEST_BASE`), so they do not change the firmware path.
 //!
 //! * [`open_hat`]: the open hi-hat as a separate (seventh) voice with its own parameters.
+//! * [`Lxr::vdrum_all_sound_off`]: silences every voice (the controller's panic action).
 
 pub mod open_hat;
 
@@ -56,5 +57,26 @@ impl VdrumState {
 impl Default for VdrumState {
     fn default() -> Self {
         Self::ZERO
+    }
+}
+
+impl Lxr {
+    /// Silences every voice at once: the amplitude envelopes of the seven voices (and the transient
+    /// generators) drop to zero, as the open hi-hat choke does. FX bus tails and the sequencer are not
+    /// affected. Only called by VDrum's controller; the firmware has no equivalent.
+    pub fn vdrum_all_sound_off(&mut self) {
+        fn off(eg: &mut SlopeEg2, snap: &mut SnapEg) {
+            eg.value = 0.0;
+            eg.state = EG_D as u8;
+            eg.repeatCnt = 0;
+            snap.value = 0.0;
+        }
+        for v in self.voiceArray.iter_mut() {
+            off(&mut v.oscVolEg, &mut v.snapEg);
+        }
+        off(&mut self.snareVoice.oscVolEg, &mut self.snareVoice.snapEg);
+        off(&mut self.cymbalVoice.oscVolEg, &mut self.cymbalVoice.snapEg);
+        off(&mut self.hatVoice.oscVolEg, &mut self.hatVoice.snapEg);
+        off(&mut self.vdrum.ohVoice.oscVolEg, &mut self.vdrum.ohVoice.snapEg);
     }
 }

@@ -293,6 +293,22 @@ impl Plugin for VDrum {
                 Command::Fader(i, step) => {
                     pipeline.push_event(0, Ev::Fader { index: i, adc: params::fader_adc(step) }, &mut apply);
                 }
+                Command::Panic => {
+                    let _ieee = fp::IeeeGuard::new();
+                    pipeline.engine.all_sound_off();
+                }
+                Command::Switch(hw, on) => {
+                    let target = if hw { params::LEARN_HW_CLOCK } else { params::LEARN_SUM_AUX };
+                    if hw {
+                        self.hw_clock_want = on;
+                    } else {
+                        self.sum_aux_want = on;
+                    }
+                    // The editor copies it to the host parameter, as for a learned CC.
+                    let k = (target - params::LEARN_FADER) as usize;
+                    shared.extra_values[k].store(on as i32, Ordering::Relaxed);
+                    shared.extra_dirty[k].store(true, Ordering::Relaxed);
+                }
             }
         }
 
@@ -382,6 +398,9 @@ impl Plugin for VDrum {
             pad_hits(shared, bytes);
             pipeline.push_event(timing, Ev::midi(bytes), &mut apply);
         }
+
+        shared.sum_aux_on.store(self.sum_aux_want, Ordering::Relaxed);
+        shared.hw_clock_on.store(self.hw_clock_want, Ordering::Relaxed);
 
         // Engine clock: 44100 Hz or the hardware's 44140.625 Hz (both prepared in initialize()).
         if self.hw_clock_want != self.hardware_clock && pipeline.swap_stage() {

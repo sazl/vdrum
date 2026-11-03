@@ -330,6 +330,7 @@ fn update(ctx: &egui::Context, setter: &ParamSetter, data: &mut Data, params: &V
             Ok(bytes) => match Kit::from_file_bytes(&bytes) {
                 Ok(kit) => {
                     shared.set_name(&kit.name);
+                    shared.set_kit_file(Some(path.clone()), kit.to_file_bytes().to_vec());
                     let _ = shared.commands.push(Command::LoadKit(kit.to_file_bytes()));
                     data.status = format!("Loaded {}", path.display());
                 }
@@ -338,8 +339,12 @@ fn update(ctx: &egui::Context, setter: &ParamSetter, data: &mut Data, params: &V
             Err(e) => data.status = format!("{}: {e}", path.display()),
         },
         Some(FileReply::Save(path)) => {
-            data.status = match std::fs::write(&path, params.kit().to_file_bytes()) {
-                Ok(()) => format!("Saved {}", path.display()),
+            let bytes = params.kit().to_file_bytes();
+            data.status = match std::fs::write(&path, bytes) {
+                Ok(()) => {
+                    shared.set_kit_file(Some(path.clone()), bytes.to_vec());
+                    format!("Saved {}", path.display())
+                }
                 Err(e) => format!("{}: {e}", path.display()),
             }
         }
