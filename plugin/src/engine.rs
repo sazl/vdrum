@@ -60,6 +60,10 @@ pub enum SeqEv {
     Tempo(u16),
     /// Back to the engine's own clock (`PAR_BPM`).
     InternalClock,
+    /// Muted sequencer tracks (bit `t` = track `t`).
+    Mutes(u8),
+    /// Restart every LFO at its phase offset.
+    LfoReset,
 }
 
 /// A sound engine. `lxr-core` (the port) and `lxr-emu` (the firmware in an emulator) implement this
@@ -340,6 +344,12 @@ impl Engine for LxrEngine {
             }
             SeqEv::InternalClock => {
                 self.guarded(|e| e.vdrum_seq_internal_clock());
+            }
+            SeqEv::Mutes(m) => {
+                self.guarded(|e| e.vdrum_seq_set_mutes(m));
+            }
+            SeqEv::LfoReset => {
+                self.guarded(|e| e.vdrum_lfo_reset_phases());
             }
         }
     }

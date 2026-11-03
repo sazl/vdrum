@@ -184,6 +184,23 @@ impl Lxr {
         }
     }
 
+    /// Mutes the sequencer tracks in `mask` (bit `t` = track `t`) without the note off of
+    /// `seq_setMute`, so a muted voice finishes its decay.
+    pub fn vdrum_seq_set_mutes(&mut self, mask: u8) {
+        self.seq_mutedTracks = mask & 0x7f;
+    }
+
+    /// Restarts every voice's LFO at its phase offset (as a retrigger does).
+    pub fn vdrum_lfo_reset_phases(&mut self) {
+        for v in 0..3 {
+            self.voiceArray[v].lfo.phase = self.voiceArray[v].lfo.phaseOffset;
+        }
+        self.snareVoice.lfo.phase = self.snareVoice.lfo.phaseOffset;
+        self.cymbalVoice.lfo.phase = self.cymbalVoice.lfo.phaseOffset;
+        self.hatVoice.lfo.phase = self.hatVoice.lfo.phaseOffset;
+        self.vdrum.ohVoice.lfo.phase = self.vdrum.ohVoice.lfo.phaseOffset;
+    }
+
     /// Starts (from step 1) or stops the sequencer on its own clock.
     pub fn vdrum_seq_run(&mut self, on: bool) {
         if on {

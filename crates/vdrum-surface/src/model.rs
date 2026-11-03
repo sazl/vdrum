@@ -31,6 +31,14 @@ pub trait Model {
     fn seq_status(&self) -> SeqStatus {
         SeqStatus::default()
     }
+    /// Muted tracks (bit `t` = track `t`).
+    fn mutes(&self) -> u8 {
+        0
+    }
+    /// The tempo in bpm (host tempo, or the engine's own).
+    fn tempo(&self) -> f64 {
+        120.0
+    }
 }
 
 /// The plugin's output switches (host parameters).
@@ -72,6 +80,10 @@ pub enum Action {
     Seq(SeqEdit),
     /// Run the sequencer from the host transport (true) or its own tempo.
     SeqHostClock(bool),
+    /// Mute tracks (bit `t` = track `t`): their triggers from any source are dropped.
+    SetMutes(u8),
+    /// Restart every LFO at its phase offset.
+    LfoReset,
 }
 
 /// The values the controller can choose for a parameter: `min..=max`, except for modulation
