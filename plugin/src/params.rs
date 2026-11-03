@@ -10,7 +10,8 @@ use nih_plug::prelude::*;
 use nih_plug_egui::EguiState;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU16, AtomicU32, AtomicU8, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI32, AtomicI8, AtomicU16, AtomicU32, AtomicU8, Ordering};
+use vdrum_surface::{SeqData, SeqStatus};
 use std::sync::{Arc, Mutex};
 
 /// Parameter indices: the firmware's (`0..NUM_PARAMS`) and the open hi-hat's (`NUM_PARAMS..`).
@@ -145,6 +146,8 @@ pub enum Command {
     Panic,
     /// Set the *Sum aux* (false) or *Hardware clock* (true) switch.
     Switch(bool, bool),
+    /// A sequencer operation (from the controller; [`Shared::seq`] is already changed).
+    Seq(crate::engine::SeqEv),
 }
 
 /// The kit file the user works on: where it was loaded from or saved to, and its contents then
@@ -163,6 +166,47 @@ pub struct Restore {
     /// Voice fader steps as saved (they may differ from the host parameters when the controller
     /// moved them while the editor was closed).
     pub faders: Option<[i32; NUM_FADERS]>,
+}
+
+/// The sequencer's playback state as the audio thread last reported it.
+pub struct SeqStatusAtomics {
+    pub running: AtomicBool,
+    pub pattern: AtomicU8,
+    pub pending: AtomicU8,
+    pub step: [AtomicI8; 7],
+    pub late: AtomicBool,
+}
+
+impl SeqStatusAtomics {
+    fn new() -> Self {
+        SeqStatusAtomics {
+            running: AtomicBool::new(false),
+            pattern: AtomicU8::new(0),
+            pending: AtomicU8::new(0),
+            step: std::array::from_fn(|_| AtomicI8::new(-1)),
+            late: AtomicBool::new(false),
+        }
+    }
+
+    pub fn store(&self, s: &SeqStatus) {
+        self.running.store(s.running, Ordering::Relaxed);
+        self.pattern.store(s.pattern, Ordering::Relaxed);
+        self.pending.store(s.pending, Ordering::Relaxed);
+        for (a, v) in self.step.iter().zip(s.step) {
+            a.store(v, Ordering::Relaxed);
+        }
+        self.late.store(s.late, Ordering::Relaxed);
+    }
+
+    pub fn load(&self) -> SeqStatus {
+        SeqStatus {
+            running: self.running.load(Ordering::Relaxed),
+            pattern: self.pattern.load(Ordering::Relaxed),
+            pending: self.pending.load(Ordering::Relaxed),
+            step: std::array::from_fn(|i| self.step[i].load(Ordering::Relaxed)),
+            late: self.late.load(Ordering::Relaxed),
+        }
+    }
 }
 
 /// Lock-free state shared by the audio thread and the GUI.
@@ -204,6 +248,12 @@ pub struct Shared {
     /// Current states of the *Sum aux* and *Hardware clock* switches (set by the audio thread).
     pub sum_aux_on: AtomicBool,
     pub hw_clock_on: AtomicBool,
+    /// The sequencer's pattern data: the controller edits it (and sends the same change to the
+    /// engine), the plugin state saves it, `initialize()` loads it into the engine.
+    pub seq: Mutex<SeqData>,
+    /// The sequencer follows the host transport (true) or runs on the engine's own clock.
+    pub seq_host_clock: AtomicBool,
+    pub seq_status: SeqStatusAtomics,
 }
 
 impl Shared {
@@ -217,7 +267,7 @@ impl Shared {
             meters: std::array::from_fn(|_| AtomicF32::new(0.0)),
             pad_hits: std::array::from_fn(|_| AtomicU32::new(0)),
             name: std::array::from_fn(|_| AtomicU8::new(0)),
-            commands: ArrayQueue::new(256),
+            commands: ArrayQueue::new(1024),
             restore: Mutex::new(Restore::default()),
             host_rate: AtomicF32::new(0.0),
             latency: AtomicU32::new(0),
@@ -229,6 +279,9 @@ impl Shared {
             kit_file: Mutex::new(KitFile::default()),
             sum_aux_on: AtomicBool::new(false),
             hw_clock_on: AtomicBool::new(false),
+            seq: Mutex::new(SeqData::default()),
+            seq_host_clock: AtomicBool::new(true),
+            seq_status: SeqStatusAtomics::new(),
         };
         let init = Kit::init();
         s.set_name(&init.name);
@@ -529,6 +582,11 @@ unsafe impl Params for VDrumParams {
                 m.insert("lcxl3-settings".into(), s.clone());
             }
         }
+        if let Ok(d) = self.shared.seq.lock() {
+            if *d != SeqData::default() {
+                m.insert("sequencer".into(), d.to_text());
+            }
+        }
         if let Some(p) = self.shared.kit_file.lock().ok().and_then(|f| f.path.clone()) {
             if let Ok(s) = serde_json::to_string(&p) {
                 m.insert("kit-path".into(), s);
@@ -603,6 +661,14 @@ unsafe impl Params for VDrumParams {
             if let Ok(mut cur) = self.shared.surface_settings.lock() {
                 *cur = s.clone();
             }
+            let host = vdrum_surface::Settings::from_text(s).host_clock;
+            self.shared.seq_host_clock.store(host, Ordering::Relaxed);
+        }
+        // A state without sequencer data has empty patterns; `initialize()` loads them into the
+        // engine.
+        let seq = serialized.get("sequencer").and_then(|s| SeqData::from_text(s)).unwrap_or_default();
+        if let Ok(mut d) = self.shared.seq.lock() {
+            *d = seq;
         }
         if let Some(k) = &restore.kit {
             self.shared.set_name(&k.name);
@@ -737,5 +803,27 @@ mod tests {
         assert_eq!(r.kit.as_ref().unwrap().values[lxr_params::par::COARSE1 as usize], 99);
         assert_eq!(r.faders.unwrap()[3], 12);
         assert_eq!(*sh2.surface_settings.lock().unwrap(), "pad_velocity=50");
+    }
+
+    #[test]
+    fn sequencer_data_and_clock_are_saved() {
+        use vdrum_surface::SeqEdit;
+        let sh = Arc::new(Shared::new());
+        let p = VDrumParams::new(sh.clone());
+        assert!(!p.serialize_fields().contains_key("sequencer"), "empty patterns are not saved");
+        sh.seq.lock().unwrap().apply(&SeqEdit::Euclid { pat: 2, track: 1, fills: 5, rotate: 1 });
+        *sh.surface_settings.lock().unwrap() = "host_clock=0".into();
+        let f = p.serialize_fields();
+        let sh2 = Arc::new(Shared::new());
+        let p2 = VDrumParams::new(sh2.clone());
+        sh2.seq.lock().unwrap().apply(&SeqEdit::Euclid { pat: 0, track: 0, fills: 1, rotate: 0 });
+        p2.deserialize_fields(&f);
+        assert_eq!(*sh2.seq.lock().unwrap(), *sh.seq.lock().unwrap());
+        assert!(!sh2.seq_host_clock.load(Ordering::Relaxed));
+        // a state without sequencer data clears the patterns
+        let mut f2 = f.clone();
+        f2.remove("sequencer");
+        p2.deserialize_fields(&f2);
+        assert_eq!(*sh2.seq.lock().unwrap(), SeqData::default());
     }
 }

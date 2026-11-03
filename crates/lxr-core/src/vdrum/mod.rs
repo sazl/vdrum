@@ -8,8 +8,10 @@
 //!
 //! * [`open_hat`]: the open hi-hat as a separate (seventh) voice with its own parameters.
 //! * [`Lxr::vdrum_all_sound_off`]: silences every voice (the controller's panic action).
+//! * [`seq`]: pattern writes and host transport for the plugin's sequencer.
 
 pub mod open_hat;
+pub mod seq;
 
 use crate::prelude::*;
 pub use open_hat::*;

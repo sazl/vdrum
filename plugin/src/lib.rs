@@ -12,7 +12,7 @@ pub mod pipeline;
 #[cfg(test)]
 mod real_engine_tests;
 
-use engine::{tracks_for_note, Block, Engine};
+use engine::{tracks_for_note, Block, Engine, SeqEv};
 use lxr_params::{oh_params, GLOBAL_PARAMS, PARAMS};
 use nih_plug::midi::MidiResult;
 use nih_plug::prelude::*;
@@ -69,7 +69,19 @@ pub struct VDrum {
     meter_state: [f32; 4],
     /// The Launch Control XL 3 controller thread (started in `initialize()`).
     controller: Option<controller::Controller>,
+    /// Sequencer clock: host transport (true) or the engine's own, as last applied.
+    seq_host_clock: Option<bool>,
+    /// The host transport is playing and the sequencer follows it.
+    seq_playing: bool,
+    /// Position (16th notes) of the next host pulse.
+    seq_next: i64,
+    /// Tempo last sent to the engine.
+    seq_tempo: u16,
 }
+
+/// Most 16th-note pulses scheduled in one buffer (a 8192 frame buffer at 300 bpm and 44.1 kHz
+/// holds 4).
+const MAX_PULSES: usize = 64;
 
 impl Default for VDrum {
     fn default() -> Self {
@@ -92,6 +104,10 @@ impl Default for VDrum {
             meter_decay_per_sample: 0.9999,
             meter_state: [0.0; 4],
             controller: None,
+            seq_host_clock: None,
+            seq_playing: false,
+            seq_next: 0,
+            seq_tempo: 0,
         };
         if let Some(e) = s.engine.as_deref() {
             sync_mirror(e, &s.shared, false);
@@ -215,6 +231,14 @@ impl Plugin for VDrum {
                 self.shared.extra_dirty[i].store(true, Ordering::Relaxed);
             }
         }
+        // The sequencer's pattern data (restored with the state, or edited before).
+        match self.shared.seq.lock() {
+            Ok(d) => engine.seq_load(&d),
+            Err(e) => engine.seq_load(&e.into_inner()),
+        }
+        self.seq_host_clock = None;
+        self.seq_playing = false;
+        self.seq_tempo = 0;
         drop(ieee);
         sync_mirror(&*engine, &self.shared, false);
         // Host parameters that differ from the engine are updated by the GUI.
@@ -297,6 +321,7 @@ impl Plugin for VDrum {
                     let _ieee = fp::IeeeGuard::new();
                     pipeline.engine.all_sound_off();
                 }
+                Command::Seq(ev) => pipeline.push_event(0, Ev::Seq(ev), &mut apply),
                 Command::Switch(hw, on) => {
                     let target = if hw { params::LEARN_HW_CLOCK } else { params::LEARN_SUM_AUX };
                     if hw {
@@ -343,9 +368,70 @@ impl Plugin for VDrum {
             }
         }
 
+        // Sequencer clock: host transport, or the engine's own (PAR_BPM).
+        let frames = buffer.samples();
+        let mut pulses = [0u32; MAX_PULSES];
+        let mut n_pulses = 0;
+        let host_clock = shared.seq_host_clock.load(Ordering::Relaxed);
+        if self.seq_host_clock != Some(host_clock) {
+            if host_clock {
+                pipeline.push_event(0, Ev::Seq(SeqEv::Run(false)), &mut apply);
+            } else {
+                pipeline.push_event(0, Ev::Seq(SeqEv::HostStop), &mut apply);
+                pipeline.push_event(0, Ev::Seq(SeqEv::InternalClock), &mut apply);
+                self.seq_playing = false;
+            }
+            self.seq_host_clock = Some(host_clock);
+        }
+        if host_clock {
+            let tr = context.transport();
+            match (tr.playing, tr.pos_beats(), tr.tempo) {
+                (true, Some(beats), Some(tempo)) if tempo > 0.0 && tr.sample_rate > 0.0 => {
+                    let pos = beats * 4.0;
+                    let per_sample = tempo / 15.0 / tr.sample_rate as f64;
+                    let bpm = tempo.round().clamp(1.0, 999.0) as u16;
+                    if bpm != self.seq_tempo {
+                        self.seq_tempo = bpm;
+                        pipeline.push_event(0, Ev::Seq(SeqEv::Tempo(bpm)), &mut apply);
+                    }
+                    let next = (pos - 1e-6).ceil() as i64;
+                    if !self.seq_playing {
+                        self.seq_playing = true;
+                        self.seq_next = next;
+                        pipeline.push_event(0, Ev::Seq(SeqEv::HostStart(next.max(0) as u32)), &mut apply);
+                    } else if pos < (self.seq_next - 1) as f64 - 0.01 || pos > self.seq_next as f64 + 0.01 {
+                        // the host jumped (loop, locate)
+                        self.seq_next = next;
+                        pipeline.push_event(0, Ev::Seq(SeqEv::HostAlign(next.max(0) as u32)), &mut apply);
+                    }
+                    let end = pos + per_sample * frames as f64;
+                    while (self.seq_next as f64) < end {
+                        if self.seq_next >= 0 && n_pulses < MAX_PULSES {
+                            let off = ((self.seq_next as f64 - pos) / per_sample).ceil().max(0.0) as u32;
+                            pulses[n_pulses] = off.min(frames.saturating_sub(1) as u32);
+                            n_pulses += 1;
+                        }
+                        self.seq_next += 1;
+                    }
+                }
+                _ => {
+                    if self.seq_playing {
+                        self.seq_playing = false;
+                        pipeline.push_event(0, Ev::Seq(SeqEv::HostStop), &mut apply);
+                    }
+                }
+            }
+        }
+        // Pulses go into the event queue in time order with the host's MIDI events.
+        let mut pulse_i = 0;
+
         // MIDI from the host
         while let Some(event) = context.next_event() {
             let timing = event.timing();
+            while pulse_i < n_pulses && pulses[pulse_i] <= timing {
+                pipeline.push_event(pulses[pulse_i], Ev::Seq(SeqEv::HostPulse), &mut apply);
+                pulse_i += 1;
+            }
             let Some(MidiResult::Basic(bytes)) = event.as_midi() else {
                 continue;
             };
@@ -399,6 +485,10 @@ impl Plugin for VDrum {
             pipeline.push_event(timing, Ev::midi(bytes), &mut apply);
         }
 
+        for &p in &pulses[pulse_i..n_pulses] {
+            pipeline.push_event(p, Ev::Seq(SeqEv::HostPulse), &mut apply);
+        }
+
         shared.sum_aux_on.store(self.sum_aux_want, Ordering::Relaxed);
         shared.hw_clock_on.store(self.hw_clock_want, Ordering::Relaxed);
 
@@ -410,7 +500,6 @@ impl Plugin for VDrum {
         }
 
         // Render
-        let frames = buffer.samples();
         let sum_aux = self.sum_aux_want || !self.has_aux;
         let main = buffer.as_slice();
         let mut aux_out = aux.outputs.first_mut().map(|b| b.as_slice());
@@ -446,6 +535,8 @@ impl Plugin for VDrum {
             },
         );
 
+        shared.seq_status.store(&pipeline.engine.seq_status());
+
         let decay = self.meter_decay_per_sample.powi(frames as i32);
         for ((m, p), out) in self.meter_state.iter_mut().zip(peak).zip(&shared.meters) {
             *m = p.max(*m * decay);
@@ -478,6 +569,7 @@ fn apply_event<E: Engine>(e: &mut E, shared: &Shared, midi_applied: &Cell<bool>,
             }
         }
         Ev::Fader { index, adc } => e.set_fader_adc(index as usize, adc),
+        Ev::Seq(ev) => e.seq(ev),
     }
 }
 

@@ -23,7 +23,8 @@ use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 use lxr_params::kit::Kit;
 use std::path::{Path, PathBuf};
-use vdrum_surface::{Action, DeviceState, Model, Settings, Surface, Switch};
+use crate::engine::SeqEv;
+use vdrum_surface::{Action, DeviceState, Model, SeqData, SeqEdit, SeqStatus, Settings, Surface, Switch};
 
 /// Interval between device scans, in milliseconds.
 pub const SCAN_MS: u64 = 2000;
@@ -102,6 +103,40 @@ impl Model for SharedModel<'_> {
             Switch::HwClock => self.0.hw_clock_on.load(Ordering::Relaxed),
         }
     }
+    fn seq(&self) -> Box<dyn std::ops::Deref<Target = SeqData> + '_> {
+        // A poisoned lock still holds valid data (edits are applied whole).
+        Box::new(self.0.seq.lock().unwrap_or_else(|e| e.into_inner()))
+    }
+    fn seq_status(&self) -> SeqStatus {
+        self.0.seq_status.load()
+    }
+}
+
+/// The engine operations that bring the engine's copy of the sequencer data up to date after
+/// `edit` was applied to `d`.
+pub fn seq_events(d: &SeqData, edit: &SeqEdit) -> Vec<SeqEv> {
+    match *edit {
+        SeqEdit::Step { pat, track, step, .. } => vec![SeqEv::Step { pat, track, step, data: d.step(pat, track, step) }],
+        SeqEdit::Euclid { pat, track, .. } => vec![SeqEv::Bits { pat, track, bits: d.track(pat, track).bits() }],
+        SeqEdit::Length { pat, track, .. } => {
+            let t = d.track(pat, track);
+            let mut v = vec![SeqEv::Length { pat, track, length: t.length }];
+            if t.fills > 0 {
+                v.push(SeqEv::Bits { pat, track, bits: t.bits() });
+            }
+            v
+        }
+        SeqEdit::Shuffle { pat, .. } => {
+            let value = d.patterns.get(pat as usize).map_or(0, |p| p.shuffle);
+            vec![SeqEv::Shuffle { pat, value }]
+        }
+        SeqEdit::Density { track, .. } => {
+            let value = d.density.get(track as usize).copied().unwrap_or(d.density_all);
+            vec![SeqEv::Density { track, value }]
+        }
+        SeqEdit::NextPattern(p) => vec![SeqEv::NextPattern(p.min(63))],
+        SeqEdit::Run(on) => vec![SeqEv::Run(on)],
+    }
 }
 
 /// Carries out a surface action. Device messages are returned for the caller to send.
@@ -146,6 +181,21 @@ pub fn apply(shared: &Shared, action: Action) -> Option<Vec<u8>> {
             let k = Kit::init();
             shared.set_name(&k.name);
             let _ = shared.commands.push(Command::LoadKit(k.to_file_bytes()));
+            None
+        }
+        Action::Seq(edit) => {
+            let evs = {
+                let mut d = shared.seq.lock().unwrap_or_else(|e| e.into_inner());
+                d.apply(&edit);
+                seq_events(&d, &edit)
+            };
+            for ev in evs {
+                let _ = shared.commands.push(Command::Seq(ev));
+            }
+            None
+        }
+        Action::SeqHostClock(host) => {
+            shared.seq_host_clock.store(host, Ordering::Relaxed);
             None
         }
         // Handled by `Session` (file system and state).
@@ -454,6 +504,18 @@ mod tests {
         assert!(matches!(shared.commands.pop(), Some(Command::Midi(m)) if m == [0x90 | ch, note, 90]));
 
         assert_eq!(apply(&shared, Action::Device(vec![1, 2, 3])), Some(vec![1, 2, 3]));
+
+        // sequencer edits change the shared copy and send the engine the resulting data
+        apply(&shared, Action::Seq(SeqEdit::Euclid { pat: 1, track: 2, fills: 4, rotate: 0 }));
+        assert_eq!(SharedModel(&shared).seq().track(1, 2).bits(), 0x1111);
+        assert!(matches!(shared.commands.pop(), Some(Command::Seq(SeqEv::Bits { pat: 1, track: 2, bits: 0x1111 }))));
+        apply(&shared, Action::Seq(SeqEdit::Length { pat: 1, track: 2, length: 8 }));
+        assert!(matches!(shared.commands.pop(), Some(Command::Seq(SeqEv::Length { length: 8, .. }))));
+        assert!(matches!(shared.commands.pop(), Some(Command::Seq(SeqEv::Bits { bits: 0x55, .. }))));
+        apply(&shared, Action::Seq(SeqEdit::Density { track: 7, value: 120 }));
+        assert!(matches!(shared.commands.pop(), Some(Command::Seq(SeqEv::Density { track: 7, value: 100 }))));
+        apply(&shared, Action::SeqHostClock(false));
+        assert!(!shared.seq_host_clock.load(Ordering::Relaxed));
         // out of range: ignored
         apply(&shared, Action::SetParam { idx: 9999, value: 1 });
         assert!(shared.commands.pop().is_none());

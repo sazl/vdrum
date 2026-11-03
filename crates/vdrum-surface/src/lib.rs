@@ -13,9 +13,11 @@
 pub mod frame;
 pub mod layout;
 pub mod model;
+pub mod seq;
 pub mod surface;
 
 pub use frame::{DeviceState, Frame, Popup};
 pub use layout::{Binding, Cell, Layout, Mode, Section};
 pub use model::{Action, Model, Switch};
+pub use seq::{SeqData, SeqEdit, SeqStatus, StepData};
 pub use surface::{Settings, Surface};

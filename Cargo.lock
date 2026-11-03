@@ -3697,6 +3697,8 @@ version = "0.1.0"
 dependencies = [
  "lcxl3",
  "lxr-params",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! What the surface reads from the plugin, and what it asks the plugin to do.
 
+use crate::seq::{SeqData, SeqEdit, SeqStatus};
 use lxr_params::{Dtype, ParamInfo};
 
 /// Highest step of a voice fader (the plugin's `FADER_MAX`).
@@ -19,6 +20,16 @@ pub trait Model {
     /// The state of one of the plugin's switches.
     fn switch(&self, _s: Switch) -> bool {
         false
+    }
+    /// The sequencer's pattern data. Do not call another `Model` method while holding it (the
+    /// plugin's implementation holds a lock).
+    fn seq(&self) -> Box<dyn std::ops::Deref<Target = SeqData> + '_> {
+        static EMPTY: std::sync::OnceLock<SeqData> = std::sync::OnceLock::new();
+        Box::new(EMPTY.get_or_init(SeqData::default))
+    }
+    /// The sequencer's playback state.
+    fn seq_status(&self) -> SeqStatus {
+        SeqStatus::default()
     }
 }
 
@@ -57,6 +68,10 @@ pub enum Action {
     Panic,
     /// Set one of the plugin's switches.
     SetSwitch(Switch, bool),
+    /// Change the sequencer's data or transport.
+    Seq(SeqEdit),
+    /// Run the sequencer from the host transport (true) or its own tempo.
+    SeqHostClock(bool),
 }
 
 /// The values the controller can choose for a parameter: `min..=max`, except for modulation
