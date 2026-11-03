@@ -200,6 +200,8 @@ change is applied at the start of the next tick.
   * `kit`: the `.snd` bytes (8-byte name plus 247 parameters), hex encoded;
   * `globals`: the global settings by ID;
   * `midi_learn`;
+  * `faders`: the voice fader steps;
+  * `lcxl3-settings`: the Launch Control XL 3 controller settings;
   * the editor size and zoom.
 * **Restoring state.** The kit and the globals are authoritative. They are loaded into the engine
   in `initialize()`.
@@ -252,6 +254,30 @@ change is applied at the start of the next tick.
   hand.
 * **Vendored GUI crates.** `third_party/egui-baseview` and `third_party/nih_plug_egui` are copies of
   the revisions nih-plug pins, with fixes for zoom and resizing (see `third_party/README.md`).
+
+## Launch Control XL 3
+
+The plugin drives a Novation Launch Control XL 3 in its DAW mode (`src/controller.rs`, surface
+logic in `crates/vdrum-surface`, messages in `crates/lcxl3`).
+
+* **Thread.** `initialize()` starts a controller thread. It looks for the device every 2 s, opens
+  its DAW ports with `midir`, switches it into DAW mode (relative encoders, own popups) and runs the
+  surface. When the plugin is unloaded, it returns the device to standalone mode.
+* **Ports.** The ports are picked by name: names containing `LCXL3` or "Launch Control XL" and
+  "3", preferring one with "DAW", otherwise the device's second port. `VDRUM_LCXL3_PORT=<text>`
+  picks the ports whose names contain `<text>` instead. `VDRUM_LCXL3=0` disables the controller.
+  The port names have not been checked on a real device.
+* **One owner.** Only one plugin instance per process drives the device. Instances in other
+  processes (another host) are not coordinated.
+* **Audio thread.** The controller never touches the engine. Parameter changes, fader moves and
+  pad triggers go through the editor's lock-free command queue. LEDs and the screen read the
+  shared parameter mirror, so they follow host automation, editor edits and kit loads.
+* **Host parameters.** Controller changes are flagged like changes from MIDI (see below): the
+  editor copies them to the host parameters, and the saved state includes them while the editor is
+  closed. The voice faders are saved separately (`faders`) for the same reason.
+* **Settings.** The controller settings of the Global mode (pad velocity, list speed, fader mode,
+  clock, device brightness, popup time, encoder curve) are saved with the plugin state
+  (`lcxl3-settings`).
 
 ## Validation (Linux, x86_64)
 

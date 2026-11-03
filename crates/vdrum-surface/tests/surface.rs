@@ -314,3 +314,10 @@ fn spare_controls_are_dark_and_toggles_dim_when_off() {
     assert_eq!(led(t(7)), Some(if on { col } else { vdrum_surface::frame::dim(col) }));
     assert!(led(f(1)).is_none(), "faders have no LED");
 }
+
+#[test]
+fn settings_round_trip_as_text() {
+    let s = Settings { pad_velocity: 64, list_speed: 5, fader_pickup: false, host_clock: false, ..Settings::default() };
+    assert_eq!(Settings::from_text(&s.to_text()), s);
+    assert_eq!(Settings::from_text("pad_velocity=0;bogus=1;list_speed=x"), Settings { pad_velocity: 1, ..Settings::default() });
+}

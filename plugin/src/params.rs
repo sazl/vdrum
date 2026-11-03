@@ -137,6 +137,10 @@ pub enum Command {
     Midi([u8; 3]),
     /// Load a kit (`.snd` file bytes).
     LoadKit([u8; KIT_FILE_LEN]),
+    /// Set a parameter (from the controller; the value is already in [`Shared::values`]).
+    Param(u16, u16),
+    /// Move a voice fader to a step 0..=[`FADER_MAX`] (from the controller).
+    Fader(u8, i32),
 }
 
 /// State restored from the host, applied in `initialize()`.
@@ -144,6 +148,9 @@ pub enum Command {
 pub struct Restore {
     pub kit: Option<Kit>,
     pub globals: Vec<(u16, u16)>,
+    /// Voice fader steps as saved (they may differ from the host parameters when the controller
+    /// moved them while the editor was closed).
+    pub faders: Option<[i32; NUM_FADERS]>,
 }
 
 /// Lock-free state shared by the audio thread and the GUI.
@@ -176,6 +183,11 @@ pub struct Shared {
     /// `target - LEARN_FADER`).
     pub extra_values: [AtomicI32; EXTRA_TARGETS],
     pub extra_dirty: [AtomicBool; EXTRA_TARGETS],
+    /// Current step of every voice fader (host parameter, learned CC or controller).
+    pub fader_values: [AtomicI32; NUM_FADERS],
+    /// The Launch Control XL 3 surface settings (`vdrum_surface::Settings` as text), saved with the
+    /// plugin state.
+    pub surface_settings: Mutex<String>,
 }
 
 impl Shared {
@@ -196,6 +208,8 @@ impl Shared {
             extra_values: std::array::from_fn(|_| AtomicI32::new(0)),
             extra_dirty: std::array::from_fn(|_| AtomicBool::new(false)),
             has_aux: AtomicBool::new(true),
+            fader_values: std::array::from_fn(|_| AtomicI32::new(FADER_MAX)),
+            surface_settings: Mutex::new(String::new()),
         };
         let init = Kit::init();
         s.set_name(&init.name);
@@ -207,6 +221,12 @@ impl Shared {
 
     pub fn value(&self, idx: u16) -> u16 {
         self.values[idx as usize].load(Ordering::Relaxed)
+    }
+
+    /// The kit name as text (trailing spaces and NULs removed).
+    pub fn kit_name(&self) -> String {
+        let b = self.name_bytes();
+        String::from_utf8_lossy(&b).trim_end_matches(['\0', ' ']).to_string()
     }
 
     pub fn name_bytes(&self) -> [u8; 8] {
@@ -459,6 +479,15 @@ unsafe impl Params for VDrumParams {
         if let Ok(s) = serde_json::to_string(&learn) {
             m.insert("midi_learn".into(), s);
         }
+        let faders: Vec<i32> = self.shared.fader_values.iter().map(|f| f.load(Ordering::Relaxed)).collect();
+        if let Ok(s) = serde_json::to_string(&faders) {
+            m.insert("faders".into(), s);
+        }
+        if let Ok(s) = self.shared.surface_settings.lock() {
+            if !s.is_empty() {
+                m.insert("lcxl3-settings".into(), s.clone());
+            }
+        }
         m
     }
 
@@ -510,6 +539,18 @@ unsafe impl Params for VDrumParams {
                     }
                 }
                 self.shared.learn_generation.fetch_add(1, Ordering::Relaxed);
+            }
+        }
+        if let Some(s) = serialized.get("faders") {
+            if let Ok(v) = serde_json::from_str::<Vec<i32>>(s) {
+                if v.len() == NUM_FADERS {
+                    restore.faders = Some(std::array::from_fn(|i| v[i].clamp(0, FADER_MAX)));
+                }
+            }
+        }
+        if let Some(s) = serialized.get("lcxl3-settings") {
+            if let Ok(mut cur) = self.shared.surface_settings.lock() {
+                *cur = s.clone();
             }
         }
         if let Some(k) = &restore.kit {
@@ -626,5 +667,24 @@ mod tests {
         let w = lxr_params::info(lxr_params::par::OSC_WAVE_DRUM1).unwrap();
         assert_eq!(scale_cc(w, 127), w.max);
         assert_eq!(scale_cc(w, 0), w.min);
+    }
+
+    #[test]
+    fn controller_state_is_saved_with_the_editor_closed() {
+        let sh = Arc::new(Shared::new());
+        let p = VDrumParams::new(sh.clone());
+        // what the controller does: mirror + dirty flag, fader value, settings
+        sh.values[lxr_params::par::COARSE1 as usize].store(99, Ordering::Relaxed);
+        sh.dirty[lxr_params::par::COARSE1 as usize].store(true, Ordering::Relaxed);
+        sh.fader_values[3].store(12, Ordering::Relaxed);
+        *sh.surface_settings.lock().unwrap() = "pad_velocity=50".into();
+        let f = p.serialize_fields();
+        let sh2 = Arc::new(Shared::new());
+        let p2 = VDrumParams::new(sh2.clone());
+        p2.deserialize_fields(&f);
+        let r = sh2.restore.lock().unwrap();
+        assert_eq!(r.kit.as_ref().unwrap().values[lxr_params::par::COARSE1 as usize], 99);
+        assert_eq!(r.faders.unwrap()[3], 12);
+        assert_eq!(*sh2.surface_settings.lock().unwrap(), "pad_velocity=50");
     }
 }

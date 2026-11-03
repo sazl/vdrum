@@ -3677,8 +3677,10 @@ name = "vdrum"
 version = "0.1.0"
 dependencies = [
  "crossbeam-queue",
+ "lcxl3",
  "lxr-core",
  "lxr-params",
+ "midir",
  "nih_plug",
  "nih_plug_egui",
  "rfd",
@@ -3686,6 +3688,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "vdrum-surface",
 ]
 
 [[package]]
