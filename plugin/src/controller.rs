@@ -21,7 +21,9 @@ use std::sync::mpsc::{channel, Receiver};
 use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
-use vdrum_surface::{Action, DeviceState, Model, Settings, Surface};
+use lxr_params::kit::Kit;
+use std::path::{Path, PathBuf};
+use vdrum_surface::{Action, DeviceState, Model, Settings, Surface, Switch};
 
 /// Interval between device scans, in milliseconds.
 pub const SCAN_MS: u64 = 2000;
@@ -94,6 +96,12 @@ impl Model for SharedModel<'_> {
     fn hits(&self, t: u8) -> u32 {
         self.0.pad_hits.get(t as usize).map_or(0, |h| h.load(Ordering::Relaxed))
     }
+    fn switch(&self, s: Switch) -> bool {
+        match s {
+            Switch::SumAux => self.0.sum_aux_on.load(Ordering::Relaxed),
+            Switch::HwClock => self.0.hw_clock_on.load(Ordering::Relaxed),
+        }
+    }
 }
 
 /// Carries out a surface action. Device messages are returned for the caller to send.
@@ -126,7 +134,49 @@ pub fn apply(shared: &Shared, action: Action) -> Option<Vec<u8>> {
             None
         }
         Action::Device(m) => Some(m),
+        Action::Panic => {
+            let _ = shared.commands.push(Command::Panic);
+            None
+        }
+        Action::SetSwitch(sw, on) => {
+            let _ = shared.commands.push(Command::Switch(sw == Switch::HwClock, on));
+            None
+        }
+        Action::InitKit => {
+            let k = Kit::init();
+            shared.set_name(&k.name);
+            let _ = shared.commands.push(Command::LoadKit(k.to_file_bytes()));
+            None
+        }
+        // Handled by `Session` (file system and state).
+        Action::KitBrowse(_) | Action::KitLoadBrowsed | Action::SaveKit | Action::Compare(_) => None,
     }
+}
+
+/// The kit files (`.snd`) in a folder, sorted by name.
+pub fn kit_files(folder: &Path) -> Vec<PathBuf> {
+    let mut v: Vec<PathBuf> = std::fs::read_dir(folder)
+        .map(|d| {
+            d.filter_map(|e| e.ok().map(|e| e.path()))
+                .filter(|p| p.is_file() && p.extension().is_some_and(|x| x.eq_ignore_ascii_case("snd")))
+                .collect()
+        })
+        .unwrap_or_default();
+    v.sort();
+    v
+}
+
+fn load_kit_file(shared: &Shared, path: &Path) -> Result<String, String> {
+    let bytes = std::fs::read(path).map_err(|e| e.to_string())?;
+    let kit = Kit::from_file_bytes(&bytes).map_err(|e| e.to_string())?;
+    shared.set_name(&kit.name);
+    shared.set_kit_file(Some(path.to_path_buf()), kit.to_file_bytes().to_vec());
+    let _ = shared.commands.push(Command::LoadKit(kit.to_file_bytes()));
+    Ok(kit.name_str())
+}
+
+fn file_label(p: &Path) -> String {
+    p.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default()
 }
 
 /// Picks the input/output port to use from the ports' names: names containing `filter` if given,
@@ -206,13 +256,17 @@ pub struct Session {
     pub surface: Surface,
     device: DeviceState,
     next_frame: u64,
+    /// The kit shown by Page up/down.
+    browsed: Option<PathBuf>,
+    /// The edited kit while *Compare* plays the saved one.
+    compare_stash: Option<Kit>,
 }
 
 impl Session {
     pub fn new(shared: &Shared) -> Session {
         let mut surface = Surface::new();
         surface.settings = load_settings(shared);
-        Session { surface, device: DeviceState::default(), next_frame: 0 }
+        Session { surface, device: DeviceState::default(), next_frame: 0, browsed: None, compare_stash: None }
     }
 
     /// The messages to send when the device was found.
@@ -224,6 +278,77 @@ impl Session {
     /// The messages to send before the device is released.
     pub fn disconnect(&mut self) -> Vec<Vec<u8>> {
         self.device.disconnect()
+    }
+
+    /// Carries out a surface action; returns device messages to send.
+    pub fn perform(&mut self, shared: &Shared, action: Action) -> Option<Vec<u8>> {
+        let kit_path = || shared.kit_file.lock().ok().and_then(|f| f.path.clone());
+        match action {
+            Action::KitBrowse(dir) => {
+                let Some(cur) = self.browsed.clone().or_else(kit_path) else {
+                    self.surface.notify("Kit browse", "no kit folder", "load a kit in the editor");
+                    return None;
+                };
+                let folder = cur.parent().map(Path::to_path_buf).unwrap_or_default();
+                let files = kit_files(&folder);
+                if files.is_empty() {
+                    self.surface.notify("Kit browse", "no kits", &folder.display().to_string());
+                    return None;
+                }
+                let n = files.len() as i32;
+                let i = match files.iter().position(|f| *f == cur) {
+                    Some(i) => (i as i32 + dir as i32).rem_euclid(n),
+                    None => 0,
+                } as usize;
+                self.surface.notify("Kit browse", &file_label(&files[i]), "Play loads");
+                self.browsed = Some(files[i].clone());
+                None
+            }
+            Action::KitLoadBrowsed => {
+                if let Some(p) = self.browsed.take() {
+                    match load_kit_file(shared, &p) {
+                        Ok(name) => self.surface.notify("Kit loaded", &file_label(&p), &name),
+                        Err(e) => self.surface.notify("Kit not loaded", &file_label(&p), &e),
+                    }
+                }
+                None
+            }
+            Action::SaveKit => {
+                let Some(p) = kit_path() else {
+                    self.surface.notify("Save kit", "no kit file", "save once in the editor");
+                    return None;
+                };
+                let bytes = shared.kit().to_file_bytes();
+                match std::fs::write(&p, bytes) {
+                    Ok(()) => {
+                        shared.set_kit_file(Some(p.clone()), bytes.to_vec());
+                        self.surface.notify("Kit saved", &file_label(&p), "");
+                    }
+                    Err(e) => self.surface.notify("Kit not saved", &file_label(&p), &e.to_string()),
+                }
+                None
+            }
+            Action::Compare(true) => {
+                let saved = shared.kit_file.lock().ok().and_then(|f| f.saved.clone());
+                match saved.and_then(|b| Kit::from_file_bytes(&b).ok()) {
+                    Some(k) => {
+                        self.compare_stash = Some(shared.kit());
+                        shared.set_name(&k.name);
+                        let _ = shared.commands.push(Command::LoadKit(k.to_file_bytes()));
+                    }
+                    None => self.surface.notify("Compare", "no saved kit", "load or save a kit first"),
+                }
+                None
+            }
+            Action::Compare(false) => {
+                if let Some(k) = self.compare_stash.take() {
+                    shared.set_name(&k.name);
+                    let _ = shared.commands.push(Command::LoadKit(k.to_file_bytes()));
+                }
+                None
+            }
+            a => apply(shared, a),
+        }
     }
 
     /// Handles the messages received from the device and the passage of time (`t` in
@@ -238,11 +363,11 @@ impl Session {
                 self.device.invalidate();
             }
             for a in self.surface.handle(&input, t, &model) {
-                out.extend(apply(shared, a));
+                out.extend(self.perform(shared, a));
             }
         }
         for a in self.surface.tick(t, &model) {
-            out.extend(apply(shared, a));
+            out.extend(self.perform(shared, a));
         }
         save_settings(shared, &self.surface.settings);
         if t >= self.next_frame {
@@ -332,6 +457,58 @@ mod tests {
         // out of range: ignored
         apply(&shared, Action::SetParam { idx: 9999, value: 1 });
         assert!(shared.commands.pop().is_none());
+    }
+
+    #[test]
+    fn kit_browsing_saving_and_compare() {
+        let dir = std::env::temp_dir().join(format!("vdrum-kits-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut a = Kit::init();
+        a.set_name("KIT A");
+        a.values[par::COARSE1 as usize] = 10;
+        let mut b = Kit::init();
+        b.set_name("KIT B");
+        b.values[par::COARSE1 as usize] = 20;
+        std::fs::write(dir.join("01-A.snd"), a.to_file_bytes()).unwrap();
+        std::fs::write(dir.join("02-B.SND"), b.to_file_bytes()).unwrap();
+        std::fs::write(dir.join("notes.txt"), b"x").unwrap();
+        assert_eq!(kit_files(&dir).len(), 2);
+
+        let shared = Shared::new();
+        let mut s = Session::new(&shared);
+        // no kit file yet
+        s.perform(&shared, Action::KitBrowse(1));
+        assert!(s.browsed.is_none());
+        shared.set_kit_file(Some(dir.join("01-A.snd")), a.to_file_bytes().to_vec());
+        s.perform(&shared, Action::KitBrowse(1));
+        assert_eq!(s.browsed.as_deref(), Some(dir.join("02-B.SND").as_path()));
+        s.perform(&shared, Action::KitBrowse(1)); // wraps
+        assert_eq!(s.browsed.as_deref(), Some(dir.join("01-A.snd").as_path()));
+        s.perform(&shared, Action::KitBrowse(-1));
+        s.perform(&shared, Action::KitLoadBrowsed);
+        assert_eq!(shared.kit_name(), "KIT B");
+        assert!(matches!(shared.commands.pop(), Some(Command::LoadKit(k)) if k[..] == b.to_file_bytes()[..]));
+        assert_eq!(shared.kit_file.lock().unwrap().path.as_deref(), Some(dir.join("02-B.SND").as_path()));
+
+        // save writes the mirror's kit to the current file
+        shared.values[par::COARSE1 as usize].store(33, Ordering::Relaxed);
+        s.perform(&shared, Action::SaveKit);
+        let saved = Kit::from_file_bytes(&std::fs::read(dir.join("02-B.SND")).unwrap()).unwrap();
+        assert_eq!(saved.values[par::COARSE1 as usize], 33);
+
+        // compare plays the saved kit and returns to the edited one
+        shared.values[par::COARSE1 as usize].store(44, Ordering::Relaxed);
+        s.perform(&shared, Action::Compare(true));
+        assert!(matches!(shared.commands.pop(), Some(Command::LoadKit(k)) if Kit::from_file_bytes(&k).unwrap().values[par::COARSE1 as usize] == 33));
+        s.perform(&shared, Action::Compare(false));
+        assert!(matches!(shared.commands.pop(), Some(Command::LoadKit(k)) if Kit::from_file_bytes(&k).unwrap().values[par::COARSE1 as usize] == 44));
+
+        s.perform(&shared, Action::Panic);
+        assert!(matches!(shared.commands.pop(), Some(Command::Panic)));
+        s.perform(&shared, Action::SetSwitch(Switch::HwClock, true));
+        assert!(matches!(shared.commands.pop(), Some(Command::Switch(true, true))));
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

@@ -16,6 +16,19 @@ pub trait Model {
     fn kit_name(&self) -> String;
     /// A counter that increases every time track `t` is triggered, from any source.
     fn hits(&self, t: u8) -> u32;
+    /// The state of one of the plugin's switches.
+    fn switch(&self, _s: Switch) -> bool {
+        false
+    }
+}
+
+/// The plugin's output switches (host parameters).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum Switch {
+    /// Sum the aux output (DAC 2) into the main output.
+    SumAux,
+    /// Run the engine at the hardware's sample rate.
+    HwClock,
 }
 
 /// A request from the surface to the plugin.
@@ -29,6 +42,21 @@ pub enum Action {
     Trigger { track: u8, velocity: u8 },
     /// A message for the device itself (feature controls).
     Device(Vec<u8>),
+    /// Show the next (+1) or previous (-1) kit of the current kit's folder; the plugin reports the
+    /// name with [`crate::Surface::notify`].
+    KitBrowse(i8),
+    /// Load the kit shown by [`Action::KitBrowse`].
+    KitLoadBrowsed,
+    /// Load the init kit.
+    InitKit,
+    /// Save the kit to its file.
+    SaveKit,
+    /// Start (true) or end comparing with the kit as last loaded or saved.
+    Compare(bool),
+    /// Silence every voice.
+    Panic,
+    /// Set one of the plugin's switches.
+    SetSwitch(Switch, bool),
 }
 
 /// The values the controller can choose for a parameter: `min..=max`, except for modulation

@@ -54,6 +54,8 @@ pub trait Engine: Send {
     /// reading (12 bits, left aligned), as the hardware's `adc_checkFaders` reads it. The default
     /// ignores it.
     fn set_fader_adc(&mut self, _i: usize, _adc: u16) {}
+    /// Silence every voice (the controller's panic action). The default does nothing.
+    fn all_sound_off(&mut self) {}
     /// Whether the engine stopped after an internal error (it then renders silence and ignores
     /// input until the plugin replaces it in `initialize()`).
     fn faulted(&self) -> bool {
@@ -156,6 +158,10 @@ impl Engine for LxrEngine {
         if i < 7 {
             self.guarded(|e| e.set_fader_adc(i, adc));
         }
+    }
+
+    fn all_sound_off(&mut self) {
+        self.guarded(|e| e.vdrum_all_sound_off());
     }
 
     fn faulted(&self) -> bool {

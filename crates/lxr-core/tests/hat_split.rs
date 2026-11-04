@@ -175,3 +175,24 @@ fn mod_target_table_fits_in_a_byte() {
     }
 }
 
+
+#[test]
+fn all_sound_off_silences_every_voice() {
+    on_big_stack(|| {
+        let mut l = Box::new(Lxr::new());
+        l.set_hat_split(true);
+        for v in 0..7u8 {
+            l.voiceControl_noteOn(v, 60, 127);
+        }
+        let mut x = Vec::new();
+        render(&mut l, 3, &mut x);
+        assert!(energy(&x) > 0.0);
+        l.vdrum_all_sound_off();
+        // the filters and the FX bus (off in the init kit) ring out within a block
+        let mut y = Vec::new();
+        render(&mut l, 1, &mut y);
+        let mut z = Vec::new();
+        render(&mut l, 20, &mut z);
+        assert_eq!(energy(&z), 0.0);
+    });
+}

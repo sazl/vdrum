@@ -141,6 +141,18 @@ pub enum Command {
     Param(u16, u16),
     /// Move a voice fader to a step 0..=[`FADER_MAX`] (from the controller).
     Fader(u8, i32),
+    /// Silence every voice (controller panic).
+    Panic,
+    /// Set the *Sum aux* (false) or *Hardware clock* (true) switch.
+    Switch(bool, bool),
+}
+
+/// The kit file the user works on: where it was loaded from or saved to, and its contents then
+/// (for the controller's kit browsing, *Save kit* and *Compare*).
+#[derive(Clone, Default)]
+pub struct KitFile {
+    pub path: Option<std::path::PathBuf>,
+    pub saved: Option<Vec<u8>>,
 }
 
 /// State restored from the host, applied in `initialize()`.
@@ -188,6 +200,10 @@ pub struct Shared {
     /// The Launch Control XL 3 surface settings (`vdrum_surface::Settings` as text), saved with the
     /// plugin state.
     pub surface_settings: Mutex<String>,
+    pub kit_file: Mutex<KitFile>,
+    /// Current states of the *Sum aux* and *Hardware clock* switches (set by the audio thread).
+    pub sum_aux_on: AtomicBool,
+    pub hw_clock_on: AtomicBool,
 }
 
 impl Shared {
@@ -210,6 +226,9 @@ impl Shared {
             has_aux: AtomicBool::new(true),
             fader_values: std::array::from_fn(|_| AtomicI32::new(FADER_MAX)),
             surface_settings: Mutex::new(String::new()),
+            kit_file: Mutex::new(KitFile::default()),
+            sum_aux_on: AtomicBool::new(false),
+            hw_clock_on: AtomicBool::new(false),
         };
         let init = Kit::init();
         s.set_name(&init.name);
@@ -221,6 +240,28 @@ impl Shared {
 
     pub fn value(&self, idx: u16) -> u16 {
         self.values[idx as usize].load(Ordering::Relaxed)
+    }
+
+    /// The engine's current kit, from the parameter mirror.
+    pub fn kit(&self) -> Kit {
+        let mut k = Kit::from_values(self.name_bytes(), [0; KIT_PARAMS]);
+        for (i, v) in k.values.iter_mut().enumerate() {
+            *v = self.value(i as u16).min(255) as u8;
+        }
+        for (k_, v) in k.oh.iter_mut().enumerate() {
+            *v = self.value(lxr_params::open_hat::oh_index(k_)).min(255) as u8;
+        }
+        k
+    }
+
+    /// Remember the kit file the user loaded or saved.
+    pub fn set_kit_file(&self, path: Option<std::path::PathBuf>, bytes: Vec<u8>) {
+        if let Ok(mut f) = self.kit_file.lock() {
+            if path.is_some() {
+                f.path = path;
+            }
+            f.saved = Some(bytes);
+        }
     }
 
     /// The kit name as text (trailing spaces and NULs removed).
@@ -488,6 +529,11 @@ unsafe impl Params for VDrumParams {
                 m.insert("lcxl3-settings".into(), s.clone());
             }
         }
+        if let Some(p) = self.shared.kit_file.lock().ok().and_then(|f| f.path.clone()) {
+            if let Ok(s) = serde_json::to_string(&p) {
+                m.insert("kit-path".into(), s);
+            }
+        }
         m
     }
 
@@ -546,6 +592,11 @@ unsafe impl Params for VDrumParams {
                 if v.len() == NUM_FADERS {
                     restore.faders = Some(std::array::from_fn(|i| v[i].clamp(0, FADER_MAX)));
                 }
+            }
+        }
+        if let Some(p) = serialized.get("kit-path").and_then(|s| serde_json::from_str::<std::path::PathBuf>(s).ok()) {
+            if let Ok(mut f) = self.shared.kit_file.lock() {
+                f.path = Some(p);
             }
         }
         if let Some(s) = serialized.get("lcxl3-settings") {
