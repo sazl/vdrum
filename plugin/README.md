@@ -321,9 +321,12 @@ change is applied at the start of the next tick.
   11 LFO + Mod, 12 Morph + Macro and 16 Global (`src/editor/panel.rs`). The selected tab is saved
   with the editor state (`editor-tab`).
   * A mode tab draws the controller's front panel from the surface view (see *Launch Control XL 3*,
-    *Editor view*): the screen, three rows of encoders with a value arc in their LED colour, the
-    faders, the 16 buttons and the side buttons with their LED colours. Proportions follow
-    `docs/lcxl3-daw-mode/source/render.py`; the photo-based PNGs in `docs/` are not used.
+    *Editor view*), styled after the hardware: a dark panel, the screen, knob caps with a value arc
+    in their LED colour and a pointer, recessed fader slots with scale marks and ribbed caps, and
+    buttons lit in their LED colour (dark when the LED is off). Each encoder and fader has a label
+    chip in its section colour. Proportions follow `docs/lcxl3-daw-mode/source/render.py`. No image
+    files are used: the photo behind the PNGs in `docs/` is not in the repository and its rights
+    are unclear.
   * Faders show a marker at the parameter value and the cap at the hardware position; a fader that
     has moved but not picked up the value has a grey cap labelled "pickup".
   * Clicking a mode tab sets the controller's mode. Clicking *Params* leaves it unchanged.

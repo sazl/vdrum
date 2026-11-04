@@ -245,7 +245,9 @@ pub fn front_panel(ui: &mut Ui, setter: &ParamSetter, params: &VDrumParams, shar
     let avail = ui.available_rect_before_wrap();
     let (area, _) = ui.allocate_exact_size(avail.size(), Sense::hover());
     let painter = ui.painter_at(area);
-    painter.rect_filled(area, 6.0, Color32::from_rgb(30, 31, 36));
+    painter.rect_filled(area, 10.0, Color32::from_rgb(14, 14, 16));
+    painter.rect(area.shrink(3.0), 9.0, PANEL_FILL, sk(1.5, PANEL_EDGE), StrokeKind::Inside);
+    painter.line_segment([pos2(area.min.x + 14.0, area.min.y + 5.0), pos2(area.max.x - 14.0, area.min.y + 5.0)], sk(1.0, Color32::from_white_alpha(18)));
     let Some(view) = view else {
         painter.text(area.center(), Align2::CENTER_CENTER, "Waiting for the controller surface…", FontId::proportional(14.0), Color32::GRAY);
         return;
@@ -255,10 +257,11 @@ pub fn front_panel(ui: &mut Ui, setter: &ParamSetter, params: &VDrumParams, shar
 
     // screen
     let screen = map.r(150.0, 190.0, 176.0, 106.0);
-    painter.rect(screen, 4.0, Color32::BLACK, sk(1.0, Color32::from_gray(90)), StrokeKind::Inside);
+    painter.rect(screen.expand(4.0), 6.0, Color32::from_rgb(10, 10, 12), sk(1.0, Color32::from_gray(60)), StrokeKind::Inside);
+    painter.rect_filled(screen, 2.0, Color32::BLACK);
     for (i, line) in view.screen.iter().enumerate() {
         let y = screen.min.y + screen.height() * (0.2 + 0.3 * i as f32);
-        painter.text(pos2(screen.center().x, y), Align2::CENTER_CENTER, line, map.font(17.0), Color32::from_gray(235));
+        painter.text(pos2(screen.center().x, y), Align2::CENTER_CENTER, line, FontId::monospace(map.font(15.0).size), Color32::from_rgb(225, 232, 245));
     }
 
     // encoders
@@ -410,74 +413,140 @@ fn control_extras(resp: &egui::Response, cv: Option<&ControlView>, acts: &mut Ve
     resp.clone().on_hover_text(tip);
 }
 
+/// Colours of the drawn hardware.
+const PANEL_FILL: Color32 = Color32::from_rgb(24, 25, 28);
+const PANEL_EDGE: Color32 = Color32::from_rgb(58, 60, 66);
+const CAP_DARK: Color32 = Color32::from_rgb(22, 22, 25);
+const CAP_RING: Color32 = Color32::from_rgb(52, 53, 58);
+const SLOT: Color32 = Color32::from_rgb(8, 8, 10);
+const TICK: Color32 = Color32::from_rgb(70, 72, 78);
+const BTN_OFF: Color32 = Color32::from_rgb(34, 35, 39);
+
+/// A label chip in the section colour (as the printed labels of the design images).
+fn label_chip(p: &egui::Painter, map: &Map, rect: Rect, text: &str, colour: (u8, u8, u8)) {
+    p.rect_filled(rect, rect.height() * 0.3, rgb(colour));
+    p.text(rect.center(), Align2::CENTER_CENTER, text, map.font(14.0), text_on(colour));
+}
+
 fn draw_encoder(p: &egui::Painter, map: &Map, rect: Rect, cv: Option<&ControlView>, hot: bool) {
-    let Some(v) = cv.filter(|v| !v.label.is_empty()) else {
-        p.rect_stroke(rect, 5.0, sk(1.0, Color32::from_gray(50)), StrokeKind::Inside);
+    let v = cv.filter(|v| !v.label.is_empty());
+    let c = pos2(rect.center().x, rect.min.y + rect.height() * 0.57);
+    let r = (rect.height() * 0.19).min(rect.width() * 0.2);
+    // knob cap: outer skirt, ring, top
+    p.circle_filled(c + vec2(0.0, r * 0.08), r * 1.08, Color32::from_rgb(10, 10, 12));
+    p.circle_filled(c, r, CAP_RING);
+    p.circle_filled(c, r * 0.82, CAP_DARK);
+    let Some(v) = v else {
+        p.circle_stroke(c, r, sk(1.0, Color32::from_gray(40)));
         return;
     };
-    p.rect_filled(rect, 5.0, Color32::from_rgb(18, 19, 22));
-    p.rect_stroke(rect, 5.0, sk(if hot { 2.0 } else { 1.0 }, rgb(v.colour)), StrokeKind::Inside);
-    p.text(pos2(rect.center().x, rect.min.y + rect.height() * 0.2), Align2::CENTER_CENTER, &v.label, map.font(15.0), Color32::from_gray(235));
-    // knob with a value arc in the LED colour
-    let c = pos2(rect.center().x, rect.min.y + rect.height() * 0.55);
-    let r = (rect.height() * 0.22).min(rect.width() * 0.2);
-    p.circle_stroke(c, r, sk(2.0, Color32::from_gray(60)));
-    if let Some(f) = v.frac {
-        let start = std::f32::consts::PI * 0.75;
-        let sweep = std::f32::consts::PI * 1.5 * f.clamp(0.0, 1.0);
-        let n = 24;
-        let pts: Vec<Pos2> = (0..=n).map(|i| {
-            let a = start + sweep * i as f32 / n as f32;
-            c + vec2(a.cos(), a.sin()) * r
-        }).collect();
-        p.add(egui::Shape::line(pts, sk(3.0, rgb(v.led))));
-        let a = start + sweep;
-        p.line_segment([c, c + vec2(a.cos(), a.sin()) * r], sk(1.5, Color32::from_gray(220)));
-    } else {
-        p.circle_filled(c, r * 0.5, rgb(v.led));
+    let chip = Rect::from_min_size(pos2(rect.min.x + 2.0, rect.min.y), vec2(rect.width() - 4.0, rect.height() * 0.24));
+    label_chip(p, map, chip, &v.label, v.colour);
+    // value arc around the cap, in the LED colour
+    let ring = r * 1.22;
+    let start = std::f32::consts::PI * 0.75;
+    let full = std::f32::consts::PI * 1.5;
+    let arc = |from: f32, to: f32| -> Vec<Pos2> {
+        let n = 32;
+        (0..=n).map(|i| {
+            let a = start + full * (from + (to - from) * i as f32 / n as f32);
+            c + vec2(a.cos(), a.sin()) * ring
+        }).collect()
+    };
+    p.add(egui::Shape::line(arc(0.0, 1.0), sk(3.0, Color32::from_gray(45))));
+    let pointer = match v.frac {
+        Some(f) => {
+            let f = f.clamp(0.0, 1.0);
+            if f > 0.0 {
+                p.add(egui::Shape::line(arc(0.0, f), sk(3.0, rgb(v.led))));
+            }
+            start + full * f
+        }
+        None => {
+            // no value: the LED lights the cap's centre
+            p.circle_filled(c, r * 0.3, rgb(v.led));
+            start
+        }
+    };
+    if v.frac.is_some() {
+        let d = vec2(pointer.cos(), pointer.sin());
+        p.line_segment([c + d * r * 0.25, c + d * r * 0.8], sk(2.0, Color32::from_gray(225)));
+    }
+    if hot {
+        p.circle_stroke(c, r * 1.42, sk(1.5, Color32::from_gray(200)));
     }
     if let Some(val) = &v.value {
-        p.text(pos2(rect.center().x, rect.max.y - rect.height() * 0.14), Align2::CENTER_CENTER, val, map.font(14.0), rgb(v.colour));
+        p.text(pos2(rect.center().x, rect.max.y - rect.height() * 0.04), Align2::CENTER_BOTTOM, val, map.font(13.0), Color32::from_gray(225));
     }
 }
 
 fn draw_fader(p: &egui::Painter, map: &Map, col: u8, track: Rect, cv: Option<&ControlView>, hot: bool) {
-    let label_pos = pos2(track.center().x, track.min.y - 14.0 * map.sy.max(0.3) * 2.0);
-    let colour = cv.map_or(Color32::from_gray(60), |v| rgb(v.colour));
-    p.rect_filled(Rect::from_center_size(track.center(), vec2(4.0, track.height())), 2.0, Color32::from_gray(55));
-    let Some(v) = cv.filter(|v| !v.label.is_empty()) else { return };
-    p.text(label_pos, Align2::CENTER_CENTER, &v.label, map.font(15.0), Color32::from_gray(235));
+    let _ = col;
+    let slot = Rect::from_center_size(track.center(), vec2(6.0, track.height()));
+    // scale marks on both sides
+    for i in 0..=10 {
+        let y = track.max.y - track.height() * i as f32 / 10.0;
+        let w = if i % 5 == 0 { 9.0 } else { 6.0 };
+        p.line_segment([pos2(slot.min.x - 5.0 - w, y), pos2(slot.min.x - 5.0, y)], sk(1.0, TICK));
+        p.line_segment([pos2(slot.max.x + 5.0, y), pos2(slot.max.x + 5.0 + w, y)], sk(1.0, TICK));
+    }
+    p.rect(slot, 3.0, SLOT, sk(1.0, Color32::from_gray(48)), StrokeKind::Outside);
+    let Some(v) = cv.filter(|v| !v.label.is_empty()) else {
+        let cap = Rect::from_center_size(pos2(track.center().x, track.max.y), vec2(track.width() * 1.2, 20.0));
+        p.rect(cap, 3.0, CAP_DARK, sk(1.0, Color32::from_gray(40)), StrokeKind::Inside);
+        return;
+    };
+    let chip_h = 22.0 * map.sy.max(0.3) * 1.6;
+    let chip = Rect::from_center_size(pos2(track.center().x, track.min.y - 15.0 - chip_h * 0.5), vec2(track.width() * 3.2, chip_h));
+    label_chip(p, map, chip, &v.label, v.colour);
     if let Some(val) = &v.value {
-        p.text(pos2(track.center().x, track.max.y + 26.0 * map.sy.max(0.3)), Align2::CENTER_CENTER, val, map.font(14.0), colour);
+        p.text(pos2(track.center().x, track.max.y + 15.0), Align2::CENTER_TOP, val, map.font(13.0), Color32::from_gray(225));
     }
     let y_of = |raw: f32| track.max.y - raw / 127.0 * track.height();
     let (hw, picked) = v.fader.unwrap_or((None, true));
-    // the parameter's value
+    // the parameter's value: a lit marker beside the slot
     if let Some(f) = v.frac {
         let y = y_of(f * 127.0);
-        p.line_segment([pos2(track.min.x - 6.0, y), pos2(track.max.x + 6.0, y)], sk(2.0, colour));
+        p.line_segment([pos2(slot.min.x - 16.0, y), pos2(slot.max.x + 16.0, y)], sk(2.0, rgb(v.colour)));
     }
     // the cap at the hardware position (at the value once picked up, or never moved)
     let cap_raw = match (hw, picked) {
         (Some(h), false) => h as f32,
         _ => v.frac.map_or(0.0, |f| f * 127.0),
     };
-    let cap = Rect::from_center_size(pos2(track.center().x, y_of(cap_raw)), vec2(track.width(), 10.0));
-    p.rect(cap, 2.0, if picked { colour } else { Color32::from_gray(140) }, sk(if hot { 2.0 } else { 1.0 }, Color32::from_gray(230)), StrokeKind::Inside);
-    if !picked && hw.is_some() {
-        p.text(pos2(track.max.x + 4.0, cap.center().y), Align2::LEFT_CENTER, "pickup", map.font(11.0), Color32::from_gray(160));
+    let cap = Rect::from_center_size(pos2(track.center().x, y_of(cap_raw)), vec2(track.width() * 1.2, 22.0));
+    p.rect_filled(cap.translate(vec2(0.0, 3.0)), 3.0, Color32::from_rgba_unmultiplied(0, 0, 0, 140));
+    p.rect(cap, 3.0, if picked { Color32::from_rgb(40, 41, 46) } else { Color32::from_rgb(70, 70, 74) }, sk(if hot { 2.0 } else { 1.0 }, if hot { Color32::from_gray(220) } else { Color32::from_gray(85) }), StrokeKind::Inside);
+    // ribs and the centre line (section colour once picked up)
+    for dy in [-6.0, 6.0] {
+        p.line_segment([pos2(cap.min.x + 4.0, cap.center().y + dy), pos2(cap.max.x - 4.0, cap.center().y + dy)], sk(1.0, Color32::from_gray(62)));
     }
-    let _ = col;
+    let centre = if picked { rgb(v.colour) } else { Color32::from_gray(160) };
+    p.line_segment([pos2(cap.min.x + 3.0, cap.center().y), pos2(cap.max.x - 3.0, cap.center().y)], sk(2.0, centre));
+    if !picked && hw.is_some() {
+        p.text(pos2(cap.max.x + 4.0, cap.center().y), Align2::LEFT_CENTER, "pickup", map.font(11.0), Color32::from_gray(170));
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
 fn draw_button(p: &egui::Painter, map: &Map, rect: Rect, cv: Option<&ControlView>, led: Option<(u8, u8, u8)>, label: &str, held: bool, hot: bool) {
     let led = led.unwrap_or((0, 0, 0));
-    let fill = if held { Color32::WHITE } else { rgb(led) };
+    let lit = led != (0, 0, 0);
     let unused = cv.is_some_and(|v| v.label.is_empty());
-    p.rect(rect, 5.0, if unused { Color32::from_rgb(18, 19, 22) } else { fill }, sk(if hot { 2.0 } else { 1.0 }, Color32::from_gray(200)), StrokeKind::Inside);
+    // shadow, body, top highlight
+    p.rect_filled(rect.translate(vec2(0.0, 2.0)), 6.0, Color32::from_rgb(8, 8, 10));
+    let fill = if unused || !lit { BTN_OFF } else { rgb(led) };
+    let stroke = if held {
+        sk(2.5, Color32::WHITE)
+    } else if hot {
+        sk(1.5, Color32::from_gray(210))
+    } else {
+        sk(1.0, Color32::from_gray(if lit { 120 } else { 62 }))
+    };
+    p.rect(rect, 6.0, fill, stroke, StrokeKind::Inside);
+    p.line_segment([pos2(rect.min.x + 6.0, rect.min.y + 2.5), pos2(rect.max.x - 6.0, rect.min.y + 2.5)], sk(1.0, Color32::from_white_alpha(if lit { 70 } else { 25 })));
     if !unused {
-        let tc = if held { Color32::BLACK } else { text_on(led) };
+        let tc = if !lit { Color32::from_gray(215) } else { text_on(led) };
         p.text(rect.center(), Align2::CENTER_CENTER, label, map.font(14.0), tc);
     }
 }
