@@ -235,6 +235,7 @@ fn load_kit_file(shared: &Shared, path: &Path) -> Result<String, String> {
     let bytes = std::fs::read(path).map_err(|e| e.to_string())?;
     let kit = Kit::from_file_bytes(&bytes).map_err(|e| e.to_string())?;
     shared.set_name(&kit.name);
+    shared.deselect_library();
     shared.set_kit_file(Some(path.to_path_buf()), kit.to_file_bytes().to_vec());
     let _ = shared.commands.push(Command::LoadKit(kit.to_file_bytes()));
     Ok(kit.name_str())
@@ -321,8 +322,10 @@ pub struct Session {
     pub surface: Surface,
     device: DeviceState,
     next_frame: u64,
-    /// The kit shown by Page up/down.
+    /// The kit file shown by Page up/down (library empty).
     browsed: Option<PathBuf>,
+    /// The library slot shown by Page up/down.
+    browsed_slot: Option<usize>,
     /// The edited kit while *Compare* plays the saved one.
     compare_stash: Option<Kit>,
 }
@@ -334,7 +337,7 @@ impl Session {
         if let Ok(s) = shared.surface_state.lock() {
             surface.load_state(&s);
         }
-        Session { surface, device: DeviceState::default(), next_frame: 0, browsed: None, compare_stash: None }
+        Session { surface, device: DeviceState::default(), next_frame: 0, browsed: None, browsed_slot: None, compare_stash: None }
     }
 
     /// The messages to send when the device was found.
@@ -353,6 +356,18 @@ impl Session {
         let kit_path = || shared.kit_file.lock().ok().and_then(|f| f.path.clone());
         match action {
             Action::KitBrowse(dir) => {
+                // the library's filled slots when there are any, otherwise the kit files in the
+                // folder of the current kit file
+                let lib = shared.library.lock().ok().filter(|l| !l.is_empty()).map(|l| {
+                    l.step(self.browsed_slot.or(l.selected), dir as i32).map(|s| (s, l.slots[s].as_ref().map(|e| e.kit.name_str()).unwrap_or_default()))
+                });
+                if let Some(found) = lib {
+                    if let Some((s, name)) = found {
+                        self.surface.notify("Kit browse", &format!("Kit {s:02} · {}", name.trim_end()), "Play loads");
+                        self.browsed_slot = Some(s);
+                    }
+                    return None;
+                }
                 let Some(cur) = self.browsed.clone().or_else(kit_path) else {
                     self.surface.notify("Kit browse", "no kit folder", "load a kit in the editor");
                     return None;
@@ -373,7 +388,12 @@ impl Session {
                 None
             }
             Action::KitLoadBrowsed => {
-                if let Some(p) = self.browsed.take() {
+                if let Some(s) = self.browsed_slot.take() {
+                    match shared.load_library_slot(s) {
+                        Some(label) => self.surface.notify("Kit loaded", "Library", &label),
+                        None => self.surface.notify("Kit not loaded", "Library", &format!("{s:02} is empty")),
+                    }
+                } else if let Some(p) = self.browsed.take() {
                     match load_kit_file(shared, &p) {
                         Ok(name) => self.surface.notify("Kit loaded", &file_label(&p), &name),
                         Err(e) => self.surface.notify("Kit not loaded", &file_label(&p), &e),
@@ -382,6 +402,13 @@ impl Session {
                 None
             }
             Action::SaveKit => {
+                // a kit from the library is saved into its slot only
+                if let Some(s) = shared.library_selected() {
+                    if let Some(label) = shared.store_in_library(s) {
+                        self.surface.notify("Kit saved", "Library", &label);
+                    }
+                    return None;
+                }
                 let Some(p) = kit_path() else {
                     self.surface.notify("Save kit", "no kit file", "save once in the editor");
                     return None;
@@ -597,6 +624,54 @@ mod tests {
         s.perform(&shared, Action::SetSwitch(Switch::HwClock, true));
         assert!(matches!(shared.commands.pop(), Some(Command::Switch(true, true))));
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn library_browsing_loading_and_saving() {
+        let shared = Shared::new();
+        {
+            let mut l = shared.library.lock().unwrap();
+            for (slot, name, coarse) in [(2usize, "TWO", 12u8), (5, "FIVE", 15)] {
+                let mut k = Kit::init();
+                k.set_name(name);
+                k.values[par::COARSE1 as usize] = coarse;
+                l.slots[slot] = Some(crate::library::Entry { kit: k, source: String::new() });
+            }
+        }
+        let mut s = Session::new(&shared);
+        // Page down walks the filled slots and wraps
+        s.perform(&shared, Action::KitBrowse(1));
+        assert_eq!(s.browsed_slot, Some(2));
+        s.perform(&shared, Action::KitBrowse(1));
+        assert_eq!(s.browsed_slot, Some(5));
+        s.perform(&shared, Action::KitBrowse(1));
+        assert_eq!(s.browsed_slot, Some(2));
+        assert!(shared.commands.pop().is_none(), "browsing loads nothing");
+        // Play loads the browsed slot and selects it
+        s.perform(&shared, Action::KitLoadBrowsed);
+        assert_eq!(shared.kit_name(), "TWO");
+        assert_eq!(shared.library_selected(), Some(2));
+        assert!(matches!(shared.commands.pop(), Some(Command::LoadKit(k)) if Kit::from_file_bytes(&k).unwrap().values[par::COARSE1 as usize] == 12));
+        // browsing continues from the selected slot
+        s.perform(&shared, Action::KitBrowse(1));
+        assert_eq!(s.browsed_slot, Some(5));
+        // Save kit writes the slot, not a file
+        shared.values[par::COARSE1 as usize].store(40, Ordering::Relaxed);
+        s.perform(&shared, Action::SaveKit);
+        let l = shared.library.lock().unwrap();
+        assert_eq!(l.slots[2].as_ref().unwrap().kit.values[par::COARSE1 as usize], 40);
+        assert_eq!(l.slots[5].as_ref().unwrap().kit.values[par::COARSE1 as usize], 15);
+        drop(l);
+        assert!(shared.kit_file.lock().unwrap().path.is_none());
+        // Compare plays the slot's saved kit
+        shared.values[par::COARSE1 as usize].store(41, Ordering::Relaxed);
+        s.perform(&shared, Action::Compare(true));
+        assert!(matches!(shared.commands.pop(), Some(Command::LoadKit(k)) if Kit::from_file_bytes(&k).unwrap().values[par::COARSE1 as usize] == 40));
+        s.perform(&shared, Action::Compare(false));
+        let _ = shared.commands.pop();
+        // loading a kit file deselects the library
+        shared.deselect_library();
+        assert_eq!(shared.library_selected(), None);
     }
 
     #[test]

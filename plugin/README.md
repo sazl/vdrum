@@ -209,6 +209,8 @@ change is applied at the start of the next tick.
   * `faders`: the voice fader steps;
   * `lcxl3-settings`: the Launch Control XL 3 controller settings;
   * `lcxl3-state`: the controller's snapshots and macros (JSON);
+  * `kit-library`: the kit library (the selected slot, then one line per filled slot with the kit
+    file bytes hex encoded and the source file name; absent when the library is empty);
   * `sequencer`: the sequencer's patterns and densities (JSON, only what differs from empty
     patterns; absent when all patterns are empty);
   * the editor size and zoom.
@@ -221,6 +223,26 @@ change is applied at the start of the next tick.
     count byte and the 37 open hi-hat values (297 bytes). The firmware reads only the first 255.
   * *Save…* suggests the firmware's file name `NN-XXXXX.snd`.
   * *Init* loads the init kit.
+  * *Load…*, *Save…* and *Init* deselect the library slot: the kit is no longer the slot's.
+* **Kit library.** 64 kit slots (`00` to `63`, as in an LXR-02 project), saved with the plugin
+  state (`plugin/src/library.rs`).
+  * *Library ▾ → Import kits…* adds `.snd` files; *Import LXR-02 project folder…* adds the `.snd`
+    files of a folder. A file named `NN-NAME.SND` goes into slot `NN`, any other file into the
+    first empty slot.
+  * Import skips init kits (the init kit's voice parameters; the FX bus is ignored because the
+    LXR-02's `INITK` slots keep FX values from other kits) and kits already in the library (same
+    name and sound). The status line reports the result, for example "Imported 16 kits (48 init
+    kits skipped)".
+  * An import that replaces filled slots opens the library panel and lists the slots it replaces,
+    with *Import* and *Cancel*.
+  * The library panel (*Library ▾ → Show library…*) lists the slots. Click loads a slot's kit;
+    right-click saves the current kit there, renames, exports one `.snd`, clears, or moves the slot
+    up or down.
+  * ◀ and ▶ in the top bar load the previous and next filled slot.
+  * Loading a slot selects it. *Save kit* (top bar, and Global mode on the controller) then writes
+    the current kit into that slot only; *Save…* to a file stays separate. *Compare* compares with
+    the slot's kit.
+  * The library is not a file on disk: it lives in the plugin state (host project or preset).
 
 ## GUI
 
@@ -254,7 +276,8 @@ change is applied at the start of the next tick.
     * performance;
     * MIDI (BPM, global channel, channel and note per track);
     * output meters, the sum and hardware clock switches, and status.
-  * The top bar has the kit name, Load/Save/Init, the count of changed values, status and zoom.
+  * The top bar has the kit name, Load/Save/Init, the library (◀ ▶, *Library ▾* and, while a slot
+    is selected, *Save kit*), the count of changed values, status and zoom.
 * **Controls.**
   * Drag a value bar to change it; hold Shift for fine steps.
   * Double-click resets to the default.
@@ -290,11 +313,14 @@ logic in `crates/vdrum-surface`, messages in `crates/lcxl3`).
 * **Host parameters.** Controller changes are flagged like changes from MIDI (see below): the
   editor copies them to the host parameters, and the saved state includes them while the editor is
   closed. The voice faders are saved separately (`faders`) for the same reason.
-* **Kit files.** The controller works on the kit file last loaded or saved (in the editor or on
-  the controller; the path is saved with the plugin state as `kit-path`).
-  * Page up/down shows the previous/next `.snd` file of that folder; Play loads it, any other
-    control cancels.
-  * *Save kit* (Global, hold 1 s) overwrites that file with the current kit.
+* **Kits.**
+  * Page up/down shows the previous/next filled slot of the kit library ("Kit 03 · MALWA"); Play
+    loads it, any other control cancels.
+  * With an empty library, the controller works on the kit file last loaded or saved (in the editor
+    or on the controller; the path is saved with the plugin state as `kit-path`): Page up/down
+    shows the previous/next `.snd` file of that folder.
+  * *Save kit* (Global, hold 1 s) writes the current kit into the selected library slot, or, when
+    the kit is not from the library, overwrites the kit file.
   * *Compare* (Global, hold) plays the kit as last loaded or saved and returns to the edited kit on
     release. Both kit loads reach the host parameters like any kit load.
 * **Undo/redo** covers parameter changes made on the controller (256 steps; changes to one

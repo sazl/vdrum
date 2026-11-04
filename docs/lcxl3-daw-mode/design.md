@@ -53,7 +53,7 @@ With 16 mode slots, mode selection uses the panel's own button numbering: the to
 | Button with the Novation logo | 104 | Back to the previous mode (toggles between the last two) |
 | Solo/Arm | 65 | Go to mode 8 (Sequencer). Inside mode 8, hold = track group layer. |
 | Mute/Select | 66 | Go to mode 10 (Perform). Inside mode 8, hold = pattern layer. |
-| Page up / down | 106 / 107 | Browse kits in the current kit's folder; Play loads the shown kit, any other control cancels. In mode 8: bar 1 to 4. |
+| Page up / down | 106 / 107 | Browse the kit library's filled slots (with an empty library: the kits in the current kit's folder); Play loads the shown kit, any other control cancels. In mode 8: bar 1 to 4. |
 | Play | 116 | Load the browsed kit while browsing. In mode 8 with the internal clock: start/stop. Otherwise audition the current track. |
 | Record | 118 | Record arm (latching). While armed and the sequencer runs, trigger pads and Perform triggers are written to the sequencer at the playhead, to the pressed track. |
 | Mode | none ("n/a" in the guide) | Owned by the device: DAW Mixer, DAW Control or custom modes. The plugin follows the report (CC 30, channel 7). |
@@ -170,6 +170,8 @@ The modulation of every voice on one page: per track LFO rate, amount and destin
 ![Mode 16: Global](images/mode-16-global.png)
 
 Trigger note and MIDI channel per track, tempo, global channel, the seven voice faders, global sample rate, sum aux and hardware clock switches, init and save kit (hold 1 s), compare (hold: hear the kit as last saved), undo, redo and panic. Knob row 3 holds controller settings: four device feature controls from the guide (LED brightness CC 111, screen brightness CC 112, temporary-display timeout CC 113, encoder curve CC 121), plus pad velocity, list speed, fader mode and clock source. The bottom row is trigger pads.
+
+> **Addendum (kit library, 2026-11-04):** Page up/down now browses the plugin's kit library (64 slots) when it holds kits, and *Save kit* writes the selected library slot. With an empty library the folder browsing described here is unchanged. See `plugin/README.md`, "Kit library", and `editor-tabs-and-kit-library-plan.md`, Part C.
 
 ## Device protocol used
 

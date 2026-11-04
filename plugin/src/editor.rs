@@ -7,6 +7,7 @@
 //! that differ from their default are marked with an amber stripe.
 
 use crate::engine::track_trigger_note;
+use crate::library::{self, ImportPlan};
 use crate::params::{
     fader_text, is_list, learn_name, plugin_default, value_text, Command, Shared, VDrumParams, FADER_MAX, LEARN_FADER,
     LEARN_HW_CLOCK, LEARN_SUM_AUX,
@@ -219,6 +220,12 @@ impl Layout {
 enum FileReply {
     Load(PathBuf),
     Save(PathBuf),
+    /// Kit files to import into the library.
+    ImportKits(Vec<PathBuf>),
+    /// An LXR-02 project folder: its `.snd` files are imported into the library.
+    ImportFolder(PathBuf),
+    /// Export a library slot's kit as a `.snd` file.
+    ExportKit(usize, PathBuf),
 }
 
 struct Data {
@@ -228,23 +235,38 @@ struct Data {
     pad_lit: [f64; 7],
     file_reply: Arc<Mutex<Option<FileReply>>>,
     status: String,
+    /// The kit library panel is open.
+    library_open: bool,
+    /// An import that replaces kits, waiting for confirmation.
+    pending_import: Option<ImportPlan>,
+    /// The slot being renamed and the new name.
+    renaming: Option<(usize, String)>,
     /// Size of the scrolled content and of its viewport in the last frame, in points.
     content_size: egui::Vec2,
     viewport_size: egui::Vec2,
 }
 
+impl Data {
+    fn new() -> Data {
+        Data {
+            layout: Layout::build(),
+            name_buf: String::new(),
+            pad_seen: [0; 7],
+            pad_lit: [-10.0; 7],
+            file_reply: Arc::new(Mutex::new(None)),
+            status: String::new(),
+            library_open: false,
+            pending_import: None,
+            renaming: None,
+            content_size: egui::Vec2::ZERO,
+            viewport_size: egui::Vec2::ZERO,
+        }
+    }
+}
+
 pub fn create(params: Arc<VDrumParams>, shared: Arc<Shared>) -> Option<Box<dyn Editor>> {
     let egui_state = params.editor_state.clone();
-    let data = Data {
-        layout: Layout::build(),
-        name_buf: String::new(),
-        pad_seen: [0; 7],
-        pad_lit: [-10.0; 7],
-        file_reply: Arc::new(Mutex::new(None)),
-        status: String::new(),
-        content_size: egui::Vec2::ZERO,
-        viewport_size: egui::Vec2::ZERO,
-    };
+    let data = Data::new();
     let zoom = params.ui_scale.load(Ordering::Relaxed);
     create_egui_editor(
         params.editor_state.clone(),
@@ -337,6 +359,7 @@ fn update(ctx: &egui::Context, setter: &ParamSetter, data: &mut Data, params: &V
             Ok(bytes) => match Kit::from_file_bytes(&bytes) {
                 Ok(kit) => {
                     shared.set_name(&kit.name);
+                    shared.deselect_library();
                     shared.set_kit_file(Some(path.clone()), kit.to_file_bytes().to_vec());
                     let _ = shared.commands.push(Command::LoadKit(kit.to_file_bytes()));
                     data.status = format!("Loaded {}", path.display());
@@ -349,11 +372,32 @@ fn update(ctx: &egui::Context, setter: &ParamSetter, data: &mut Data, params: &V
             let bytes = params.kit().to_file_bytes();
             data.status = match std::fs::write(&path, bytes) {
                 Ok(()) => {
+                    // the kit is now that file's, not a library slot's
+                    shared.deselect_library();
                     shared.set_kit_file(Some(path.clone()), bytes.to_vec());
                     format!("Saved {}", path.display())
                 }
                 Err(e) => format!("{}: {e}", path.display()),
             }
+        }
+        Some(FileReply::ImportKits(paths)) => plan_import(data, shared, &paths),
+        Some(FileReply::ImportFolder(dir)) => {
+            let paths = library::snd_files(&dir);
+            if paths.is_empty() {
+                data.status = format!("No .snd files in {}", dir.display());
+            } else {
+                plan_import(data, shared, &paths);
+            }
+        }
+        Some(FileReply::ExportKit(slot, path)) => {
+            let kit = shared.library.lock().ok().and_then(|l| l.slots.get(slot).cloned().flatten()).map(|e| e.kit);
+            data.status = match kit {
+                Some(k) => match std::fs::write(&path, k.to_file_bytes()) {
+                    Ok(()) => format!("Exported {}", path.display()),
+                    Err(e) => format!("{}: {e}", path.display()),
+                },
+                None => format!("Slot {slot:02} is empty"),
+            };
         }
         None => {}
     }
@@ -373,20 +417,242 @@ fn update(ctx: &egui::Context, setter: &ParamSetter, data: &mut Data, params: &V
         data.content_size = out.content_size;
         data.viewport_size = out.inner_rect.size();
     });
+    let mut open = data.library_open;
+    egui::Window::new("Kit library")
+        .open(&mut open)
+        .default_size(vec2(360.0, 520.0))
+        .collapsible(false)
+        .show(ctx, |ui| library_panel(ui, data, shared));
+    data.library_open = open && data.library_open;
     ctx.request_repaint_after(std::time::Duration::from_millis(33));
 }
 
 fn spawn_dialog(reply: Arc<Mutex<Option<FileReply>>>, save: Option<String>) {
-    std::thread::spawn(move || {
-        let d = rfd::FileDialog::new().add_filter("Kit (.snd)", &["snd", "SND"]);
-        let r = match save {
+    run_dialog(reply, move || {
+        let d = kit_dialog();
+        match save {
             Some(name) => d.set_file_name(name).save_file().map(FileReply::Save),
             None => d.pick_file().map(FileReply::Load),
-        };
-        if let (Some(r), Ok(mut slot)) = (r, reply.lock()) {
+        }
+    });
+}
+
+fn kit_dialog() -> rfd::FileDialog {
+    rfd::FileDialog::new().add_filter("Kit (.snd)", &["snd", "SND"])
+}
+
+/// Runs a file dialog on its own thread; its answer is handled in the next frame.
+fn run_dialog(reply: Arc<Mutex<Option<FileReply>>>, dialog: impl FnOnce() -> Option<FileReply> + Send + 'static) {
+    std::thread::spawn(move || {
+        if let (Some(r), Ok(mut slot)) = (dialog(), reply.lock()) {
             *slot = Some(r);
         }
     });
+}
+
+/// Imports at once, or asks first when the import replaces kits in the library.
+fn plan_import(data: &mut Data, shared: &Shared, paths: &[PathBuf]) {
+    let Ok(mut lib) = shared.library.lock() else { return };
+    let plan = lib.plan_import_paths(paths);
+    if plan.replaces().is_empty() {
+        lib.apply(&plan);
+        shared.library_generation.fetch_add(1, Ordering::Relaxed);
+        data.status = plan.summary();
+    } else {
+        data.pending_import = Some(plan);
+        data.library_open = true;
+    }
+}
+
+/// Library actions chosen in a frame, done after the library lock is released.
+enum LibAction {
+    Load(usize),
+    Store(usize),
+    Clear(usize),
+    Move(usize, i32),
+    Rename(usize, String),
+    Export(usize),
+}
+
+fn do_lib_action(data: &mut Data, shared: &Shared, a: LibAction) {
+    let bump = || shared.library_generation.fetch_add(1, Ordering::Relaxed);
+    match a {
+        LibAction::Load(s) => {
+            if let Some(label) = shared.load_library_slot(s) {
+                data.status = format!("Loaded {label} from the library");
+            }
+        }
+        LibAction::Store(s) => {
+            if let Some(label) = shared.store_in_library(s) {
+                data.status = format!("Saved the kit to library slot {label}");
+            }
+        }
+        LibAction::Clear(s) => {
+            if let Ok(mut l) = shared.library.lock() {
+                l.slots[s] = None;
+                if l.selected == Some(s) {
+                    l.selected = None;
+                }
+            }
+            bump();
+        }
+        LibAction::Move(s, d) => {
+            if let Ok(mut l) = shared.library.lock() {
+                l.move_slot(s, d);
+            }
+            bump();
+        }
+        LibAction::Rename(s, name) => {
+            let selected = shared.library.lock().ok().and_then(|mut l| {
+                let e = l.slots.get_mut(s)?.as_mut()?;
+                e.kit.set_name(&name);
+                let k = e.kit.clone();
+                (l.selected == Some(s)).then_some(k)
+            });
+            // the loaded kit is the slot's: its name follows
+            if let Some(k) = selected {
+                shared.set_name(&k.name);
+            }
+            bump();
+        }
+        LibAction::Export(s) => {
+            let name = shared.library.lock().ok().and_then(|l| l.slots.get(s).cloned().flatten()).map(|e| e.kit.file_name(s as u8));
+            if let Some(name) = name {
+                run_dialog(data.file_reply.clone(), move || kit_dialog().set_file_name(name).save_file().map(|p| FileReply::ExportKit(s, p)));
+            }
+        }
+    }
+}
+
+/// The library's menu entries (top bar).
+fn library_menu(ui: &mut Ui, data: &mut Data, shared: &Shared) {
+    if ui.button("Show library…").clicked() {
+        data.library_open = true;
+        ui.close_menu();
+    }
+    ui.separator();
+    if ui.button("Import kits…").on_hover_text("Add .snd files to the library (NN-NAME.SND goes to slot NN)").clicked() {
+        run_dialog(data.file_reply.clone(), || kit_dialog().pick_files().map(FileReply::ImportKits));
+        ui.close_menu();
+    }
+    if ui.button("Import LXR-02 project folder…").on_hover_text("Add the kits (.snd) of a project folder; init kits are skipped").clicked() {
+        run_dialog(data.file_reply.clone(), || rfd::FileDialog::new().pick_folder().map(FileReply::ImportFolder));
+        ui.close_menu();
+    }
+    ui.separator();
+    let selected = shared.library_selected();
+    let first_empty = shared.library.lock().ok().and_then(|l| (0..library::SLOTS).find(|&s| l.slots[s].is_none()));
+    if let Some(s) = selected {
+        if ui.button(format!("Save kit to slot {s:02}")).clicked() {
+            do_lib_action(data, shared, LibAction::Store(s));
+            ui.close_menu();
+        }
+    }
+    let r = ui.add_enabled(first_empty.is_some(), egui::Button::new("Store kit in an empty slot"));
+    if r.clicked() {
+        if let Some(s) = first_empty {
+            do_lib_action(data, shared, LibAction::Store(s));
+        }
+        ui.close_menu();
+    }
+}
+
+/// The library panel: the 64 slots. Click loads; right-click for the other actions.
+fn library_panel(ui: &mut Ui, data: &mut Data, shared: &Shared) {
+    let mut actions = Vec::new();
+    if let Some(plan) = &data.pending_import {
+        let replaced = plan.replaces();
+        ui.label(RichText::new(format!("This import replaces {} kit{}:", replaced.len(), if replaced.len() == 1 { "" } else { "s" })).color(CHANGED));
+        ui.label(RichText::new(replaced.join(", ")).size(SMALL_FONT));
+        let mut done = None;
+        ui.horizontal(|ui| {
+            if ui.button("Import").clicked() {
+                done = Some(true);
+            }
+            if ui.button("Cancel").clicked() {
+                done = Some(false);
+            }
+        });
+        match done {
+            Some(true) => {
+                if let Some(plan) = data.pending_import.take() {
+                    if let Ok(mut l) = shared.library.lock() {
+                        l.apply(&plan);
+                    }
+                    shared.library_generation.fetch_add(1, Ordering::Relaxed);
+                    data.status = plan.summary();
+                }
+            }
+            Some(false) => {
+                data.pending_import = None;
+                data.status = "Import cancelled".into();
+            }
+            None => {}
+        }
+        ui.separator();
+    }
+    let Ok(lib) = shared.library.lock().map(|l| l.clone()) else { return };
+    ui.horizontal(|ui| {
+        ui.menu_button("Library ▾", |ui| library_menu(ui, data, shared));
+        ui.label(RichText::new(format!("{} of {} slots used", lib.len(), library::SLOTS)).size(10.5).color(LABEL));
+    });
+    ui.label(RichText::new("Click loads a kit. Right-click: save, rename, move, export, clear.").size(SMALL_FONT).color(LABEL));
+    ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
+        for s in 0..library::SLOTS {
+            let entry = lib.slots[s].as_ref();
+            if let Some((rs, buf)) = data.renaming.as_mut().filter(|(rs, _)| *rs == s) {
+                let r = ui.add(egui::TextEdit::singleline(buf).char_limit(8).desired_width(120.0));
+                r.request_focus();
+                if r.lost_focus() {
+                    if ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                        actions.push(LibAction::Rename(*rs, buf.clone()));
+                    }
+                    data.renaming = None;
+                }
+                continue;
+            }
+            let text = match entry {
+                Some(e) if !e.source.is_empty() => RichText::new(format!("{}   ({})", lib.label(s), e.source)),
+                Some(_) => RichText::new(lib.label(s)),
+                None => RichText::new(lib.label(s)).color(Color32::from_gray(110)),
+            };
+            let r = ui.selectable_label(lib.selected == Some(s), text);
+            if r.clicked() && entry.is_some() {
+                actions.push(LibAction::Load(s));
+            }
+            r.context_menu(|ui| {
+                if ui.button(if entry.is_some() { "Save current kit here (replace)" } else { "Save current kit here" }).clicked() {
+                    actions.push(LibAction::Store(s));
+                    ui.close_menu();
+                }
+                if entry.is_some() {
+                    if ui.button("Rename").clicked() {
+                        data.renaming = Some((s, entry.map(|e| e.kit.name_str().trim_end().to_string()).unwrap_or_default()));
+                        ui.close_menu();
+                    }
+                    if ui.button("Export .snd…").clicked() {
+                        actions.push(LibAction::Export(s));
+                        ui.close_menu();
+                    }
+                    if ui.button("Clear").clicked() {
+                        actions.push(LibAction::Clear(s));
+                        ui.close_menu();
+                    }
+                }
+                if s > 0 && ui.button("Move up").clicked() {
+                    actions.push(LibAction::Move(s, -1));
+                    ui.close_menu();
+                }
+                if s + 1 < library::SLOTS && ui.button("Move down").clicked() {
+                    actions.push(LibAction::Move(s, 1));
+                    ui.close_menu();
+                }
+            });
+        }
+    });
+    for a in actions {
+        do_lib_action(data, shared, a);
+    }
 }
 
 fn top_bar(ui: &mut Ui, data: &mut Data, params: &VDrumParams, shared: &Shared, egui_state: &EguiState) {
@@ -416,7 +682,31 @@ fn top_bar(ui: &mut Ui, data: &mut Data, params: &VDrumParams, shared: &Shared, 
         if ui.button("Init").on_hover_text("Load the init kit").clicked() {
             let k = Kit::init();
             shared.set_name(&k.name);
+            shared.deselect_library();
             let _ = shared.commands.push(Command::LoadKit(k.to_file_bytes()));
+        }
+        ui.separator();
+        let (selected, filled) = shared.library.lock().map(|l| (l.selected, l.len())).unwrap_or((None, 0));
+        for (text, dir, tip) in [("◀", -1, "Load the previous kit of the library"), ("▶", 1, "Load the next kit of the library")] {
+            let r = ui.add_enabled(filled > 0, egui::Button::new(text).small()).on_hover_text(tip);
+            if r.clicked() {
+                let next = shared.library.lock().ok().and_then(|l| l.step(selected, dir));
+                if let Some(s) = next {
+                    do_lib_action(data, shared, LibAction::Load(s));
+                }
+            }
+        }
+        let title = match selected {
+            Some(s) => format!("Library {s:02} ▾"),
+            None => "Library ▾".to_string(),
+        };
+        ui.menu_button(title, |ui| library_menu(ui, data, shared))
+            .response
+            .on_hover_text(format!("{filled} of {} library slots used", library::SLOTS));
+        if let Some(s) = selected {
+            if ui.button("Save kit").on_hover_text(format!("Write the kit into library slot {s:02}")).clicked() {
+                do_lib_action(data, shared, LibAction::Store(s));
+            }
         }
         let changed = params
             .infos
@@ -1017,16 +1307,7 @@ mod tests {
         let params = VDrumParams::new(shared.clone());
         params.ui_scale.store(zoom, Ordering::Relaxed);
         let egui_state = EguiState::from_size(size.0, size.1);
-        let mut data = Data {
-            layout: Layout::build(),
-            name_buf: String::new(),
-            pad_seen: [0; 7],
-                pad_lit: [-10.0; 7],
-            file_reply: Arc::new(Mutex::new(None)),
-            status: String::new(),
-            content_size: egui::Vec2::ZERO,
-            viewport_size: egui::Vec2::ZERO,
-        };
+        let mut data = Data::new();
         let ctx = egui::Context::default();
         setup(&ctx, zoom);
         let setter = ParamSetter::new(&NullContext);
@@ -1040,6 +1321,60 @@ mod tests {
         }
         assert!((ctx.zoom_factor() - zoom).abs() < 1e-6);
         (data.content_size, data.viewport_size)
+    }
+
+    #[test]
+    fn library_panel_imports_after_confirmation() {
+        let shared = Arc::new(Shared::new());
+        let params = VDrumParams::new(shared.clone());
+        let egui_state = EguiState::from_size(DEFAULT_SIZE.0, DEFAULT_SIZE.1);
+        let kit = |name: &str, coarse: u8| {
+            let mut k = Kit::init();
+            k.set_name(name);
+            k.values[par::COARSE1 as usize] = coarse;
+            k.to_file_bytes().to_vec()
+        };
+        shared.library.lock().unwrap().slots[1] = Some(library::Entry { kit: Kit::from_file_bytes(&kit("OLD", 3)).unwrap(), source: String::new() });
+        let dir = std::env::temp_dir().join(format!("vdrum-libpanel-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("01-NEW.SND"), kit("NEW", 5)).unwrap();
+        std::fs::write(dir.join("02-INITK.SND"), Kit::init().to_file_bytes()).unwrap();
+        let mut data = Data::new();
+        *data.file_reply.lock().unwrap() = Some(FileReply::ImportFolder(dir.clone()));
+        let ctx = egui::Context::default();
+        setup(&ctx, 1.0);
+        let setter = ParamSetter::new(&NullContext);
+        let frame = |data: &mut Data| {
+            let input = egui::RawInput {
+                screen_rect: Some(Rect::from_min_size(pos2(0.0, 0.0), vec2(DEFAULT_SIZE.0 as f32, DEFAULT_SIZE.1 as f32))),
+                ..Default::default()
+            };
+            let _ = ctx.run(input, |ctx| update(ctx, &setter, data, &params, &shared, &egui_state));
+        };
+        frame(&mut data);
+        // slot 01 is taken: the import waits for confirmation in the open panel
+        assert!(data.library_open);
+        assert_eq!(data.pending_import.as_ref().unwrap().replaces(), vec!["01 OLD".to_string()]);
+        assert_eq!(shared.library.lock().unwrap().slots[1].as_ref().unwrap().kit.name_str().trim_end(), "OLD");
+        frame(&mut data);
+        // confirmed
+        let plan = data.pending_import.take().unwrap();
+        shared.library.lock().unwrap().apply(&plan);
+        assert_eq!(plan.summary(), "Imported 1 kit (1 init kits skipped)");
+        assert_eq!(shared.library.lock().unwrap().len(), 1);
+        // loading and storing go through the shared state
+        do_lib_action(&mut data, &shared, LibAction::Load(1));
+        assert_eq!(shared.kit_name(), "NEW");
+        do_lib_action(&mut data, &shared, LibAction::Rename(1, "RENAMED".into()));
+        assert_eq!(shared.kit_name(), "RENAMED");
+        do_lib_action(&mut data, &shared, LibAction::Move(1, 1));
+        assert_eq!(shared.library_selected(), Some(2));
+        do_lib_action(&mut data, &shared, LibAction::Clear(2));
+        assert!(shared.library.lock().unwrap().is_empty());
+        assert_eq!(shared.library_selected(), None);
+        frame(&mut data);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
