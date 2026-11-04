@@ -7,6 +7,7 @@ pub mod controller;
 pub mod editor;
 pub mod engine;
 pub mod fp;
+pub mod library;
 pub mod params;
 pub mod pipeline;
 #[cfg(test)]

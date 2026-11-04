@@ -262,6 +262,10 @@ pub struct Shared {
     /// Controller snapshots and macros (`vdrum_surface::Surface::state_text`), saved with the
     /// plugin state.
     pub surface_state: Mutex<String>,
+    /// The kit library (64 slots), saved with the plugin state.
+    pub library: Mutex<crate::library::Library>,
+    /// Incremented whenever the library changes (for the editor and the controller).
+    pub library_generation: AtomicU32,
 }
 
 impl Shared {
@@ -293,6 +297,8 @@ impl Shared {
             mutes: AtomicU8::new(0),
             tempo: AtomicF32::new(120.0),
             surface_state: Mutex::new(String::new()),
+            library: Mutex::new(crate::library::Library::default()),
+            library_generation: AtomicU32::new(0),
         };
         let init = Kit::init();
         s.set_name(&init.name);
@@ -325,6 +331,52 @@ impl Shared {
                 f.path = path;
             }
             f.saved = Some(bytes);
+        }
+    }
+
+    /// Loads the kit of a library slot (and selects the slot); returns the slot's label, or
+    /// `None` for an empty slot.
+    pub fn load_library_slot(&self, slot: usize) -> Option<String> {
+        let (kit, label) = {
+            let mut l = self.library.lock().ok()?;
+            let kit = l.slots.get(slot)?.as_ref()?.kit.clone();
+            l.selected = Some(slot);
+            (kit, l.label(slot))
+        };
+        self.library_generation.fetch_add(1, Ordering::Relaxed);
+        self.set_name(&kit.name);
+        // *Compare* compares with the slot's kit
+        self.set_kit_file(None, kit.to_file_bytes().to_vec());
+        let _ = self.commands.push(Command::LoadKit(kit.to_file_bytes()));
+        Some(label)
+    }
+
+    /// Writes the current kit into a library slot (and selects it); returns the slot's label.
+    pub fn store_in_library(&self, slot: usize) -> Option<String> {
+        let kit = self.kit();
+        let label = {
+            let mut l = self.library.lock().ok()?;
+            let source = l.slots.get(slot)?.as_ref().map(|e| e.source.clone()).unwrap_or_default();
+            l.slots[slot] = Some(crate::library::Entry { kit: kit.clone(), source });
+            l.selected = Some(slot);
+            l.label(slot)
+        };
+        self.library_generation.fetch_add(1, Ordering::Relaxed);
+        self.set_kit_file(None, kit.to_file_bytes().to_vec());
+        Some(label)
+    }
+
+    /// The selected library slot, if the current kit came from the library.
+    pub fn library_selected(&self) -> Option<usize> {
+        self.library.lock().ok().and_then(|l| l.selected)
+    }
+
+    /// The current kit no longer comes from the library (a kit file or the init kit was loaded).
+    pub fn deselect_library(&self) {
+        if let Ok(mut l) = self.library.lock() {
+            if l.selected.take().is_some() {
+                self.library_generation.fetch_add(1, Ordering::Relaxed);
+            }
         }
     }
 
@@ -598,6 +650,11 @@ unsafe impl Params for VDrumParams {
                 m.insert("lcxl3-state".into(), s.clone());
             }
         }
+        if let Ok(l) = self.shared.library.lock() {
+            if *l != crate::library::Library::default() {
+                m.insert("kit-library".into(), l.to_text());
+            }
+        }
         if let Ok(d) = self.shared.seq.lock() {
             if *d != SeqData::default() {
                 m.insert("sequencer".into(), d.to_text());
@@ -687,6 +744,10 @@ unsafe impl Params for VDrumParams {
         }
         if let Ok(mut cur) = self.shared.surface_state.lock() {
             *cur = serialized.get("lcxl3-state").cloned().unwrap_or_default();
+        }
+        if let Ok(mut l) = self.shared.library.lock() {
+            *l = serialized.get("kit-library").map(|s| crate::library::Library::from_text(s)).unwrap_or_default();
+            self.shared.library_generation.fetch_add(1, Ordering::Relaxed);
         }
         // A state without sequencer data has empty patterns; `initialize()` loads them into the
         // engine.
@@ -853,6 +914,18 @@ mod tests {
         *sh.surface_state.lock().unwrap() = "{\"snapshots\":[],\"macros\":[]}".into();
         p2.deserialize_fields(&p.serialize_fields());
         assert_eq!(*sh2.surface_state.lock().unwrap(), *sh.surface_state.lock().unwrap());
+        // the kit library
+        assert!(!f.contains_key("kit-library"));
+        {
+            let mut l = sh.library.lock().unwrap();
+            let mut k = lxr_params::kit::Kit::init();
+            k.set_name("LIB");
+            k.values[lxr_params::par::COARSE1 as usize] = 99;
+            l.slots[3] = Some(crate::library::Entry { kit: k, source: "03-LIB.SND".into() });
+            l.selected = Some(3);
+        }
+        p2.deserialize_fields(&p.serialize_fields());
+        assert_eq!(*sh2.library.lock().unwrap(), *sh.library.lock().unwrap());
         // a state without sequencer data clears the patterns
         let mut f2 = f.clone();
         f2.remove("sequencer");
