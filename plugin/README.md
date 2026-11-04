@@ -337,7 +337,21 @@ logic in `crates/vdrum-surface`, messages in `crates/lcxl3`).
   picks the ports whose names contain `<text>` instead. `VDRUM_LCXL3=0` disables the controller.
   The port names have not been checked on a real device.
 * **One owner.** Only one plugin instance per process drives the device. Instances in other
-  processes (another host) are not coordinated.
+  processes (another host) are not coordinated. The other instances still run their surface for
+  their editor (below) and take the device over when the owner releases it.
+* **Without a device.** The surface also runs with no device connected, so the editor's mode tabs
+  show values and accept mouse edits. `Shared::controller_connected` says whether a device is
+  connected.
+* **Editor view.** Every frame (20 ms) in which it changed, the controller thread publishes a
+  `vdrum_surface::View` in `Shared::surface_view`: the mode, every control of the mode (label,
+  section and colour, LED colour, value text and position, parameter ID and name, fader position and
+  pickup), the context layers (Shift, track group, pattern select, held steps, Accent, Record, kit
+  browsing, Compare, macro learn, momentary effects, holds in progress), the last hardware edit and
+  the screen lines.
+* **Editor input.** The editor sends mouse edits as `lcxl3::Input` messages and tab clicks as mode
+  changes through `Shared::surface_input`. They run through the same handlers as the device
+  (`Surface::handle_editor`), but do not count as hardware edits, so they do not set the
+  "now editing" pill.
 * **Audio thread.** The controller never touches the engine. Parameter changes, fader moves and
   pad triggers go through the editor's lock-free command queue. LEDs and the screen read the
   shared parameter mirror, so they follow host automation, editor edits and kit loads.

@@ -20,4 +20,4 @@ pub use frame::{DeviceState, Frame, Popup};
 pub use layout::{Binding, Cell, Layout, Mode, Section};
 pub use model::{Action, Model, Switch};
 pub use seq::{SeqData, SeqEdit, SeqStatus, StepData};
-pub use surface::{Settings, Surface};
+pub use surface::{ControlView, EditView, Settings, Surface, View};

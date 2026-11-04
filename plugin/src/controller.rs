@@ -7,6 +7,10 @@
 //! uses; LEDs and the screen follow the shared parameter mirror, so they also show host automation,
 //! editor edits and kit loads. The thread never touches the audio thread's data directly.
 //!
+//! * The surface runs without a device too, so the editor's mode tabs work (and accept mouse edits)
+//!   with no controller connected. It publishes a [`vdrum_surface::View`] in
+//!   [`Shared::surface_view`] whenever what it shows changes, and takes the editor's mouse actions
+//!   from [`Shared::surface_input`].
 //! * One plugin instance per process owns the device; others leave it alone.
 //! * `VDRUM_LCXL3=0` disables the controller. `VDRUM_LCXL3_PORT=<text>` selects the ports whose
 //!   names contain `<text>` instead of the automatic choice.
@@ -14,7 +18,7 @@
 //!   same interval while it is.
 
 use crate::engine::track_trigger_note;
-use crate::params::{Command, Shared, N};
+use crate::params::{Command, EditorInput, Shared, N};
 use lcxl3::Input;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{channel, Receiver};
@@ -43,12 +47,10 @@ pub struct Controller {
 }
 
 impl Controller {
-    /// Starts the controller thread, unless it is disabled or another instance owns the device.
+    /// Starts the controller thread, unless it is disabled (`VDRUM_LCXL3=0`). The thread uses the
+    /// device only while no other instance in this process does.
     pub fn start(shared: Arc<Shared>) -> Option<Controller> {
         if std::env::var("VDRUM_LCXL3").is_ok_and(|v| v == "0") {
-            return None;
-        }
-        if OWNER.compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire).is_err() {
             return None;
         }
         let stop = Arc::new(AtomicBool::new(false));
@@ -56,15 +58,13 @@ impl Controller {
         let thread = std::thread::Builder::new()
             .name("vdrum-lcxl3".into())
             .spawn(move || {
+                shared.surface_running.store(true, Ordering::Relaxed);
                 run(&shared, &s);
-                OWNER.store(false, Ordering::Release);
+                shared.surface_running.store(false, Ordering::Relaxed);
+                shared.controller_connected.store(false, Ordering::Relaxed);
             })
-            .ok();
-        if thread.is_none() {
-            OWNER.store(false, Ordering::Release);
-            return None;
-        }
-        Some(Controller { stop, thread })
+            .ok()?;
+        Some(Controller { stop, thread: Some(thread) })
     }
 }
 
@@ -328,6 +328,8 @@ pub struct Session {
     browsed_slot: Option<usize>,
     /// The edited kit while *Compare* plays the saved one.
     compare_stash: Option<Kit>,
+    /// The view last published for the editor.
+    last_view: Option<vdrum_surface::View>,
 }
 
 impl Session {
@@ -337,7 +339,7 @@ impl Session {
         if let Ok(s) = shared.surface_state.lock() {
             surface.load_state(&s);
         }
-        Session { surface, device: DeviceState::default(), next_frame: 0, browsed: None, browsed_slot: None, compare_stash: None }
+        Session { surface, device: DeviceState::default(), next_frame: 0, browsed: None, browsed_slot: None, compare_stash: None, last_view: None }
     }
 
     /// The messages to send when the device was found.
@@ -461,6 +463,17 @@ impl Session {
                 out.extend(self.perform(shared, a));
             }
         }
+        // mouse actions from the editor's mode tabs
+        while let Some(i) = shared.surface_input.pop() {
+            match i {
+                EditorInput::Input(input) => {
+                    for a in self.surface.handle_editor(&input, t, &model) {
+                        out.extend(self.perform(shared, a));
+                    }
+                }
+                EditorInput::SetMode(m) => self.surface.set_mode(m),
+            }
+        }
         for a in self.surface.tick(t, &model) {
             out.extend(self.perform(shared, a));
         }
@@ -473,8 +486,23 @@ impl Session {
         if t >= self.next_frame {
             self.next_frame = t + FRAME_MS;
             out.extend(self.device.update(&self.surface.frame(t, &model)));
+            self.publish_view(shared, t);
         }
         out
+    }
+}
+
+impl Session {
+    /// Publishes the surface's view for the editor when it changed.
+    fn publish_view(&mut self, shared: &Shared, t: u64) {
+        let view = self.surface.view(t, &SharedModel(shared));
+        if self.last_view.as_ref() != Some(&view) {
+            if let Ok(mut v) = shared.surface_view.lock() {
+                *v = Some(Arc::new(view.clone()));
+            }
+            shared.surface_view_gen.fetch_add(1, Ordering::Relaxed);
+            self.last_view = Some(view);
+        }
     }
 }
 
@@ -490,29 +518,40 @@ fn run(shared: &Shared, stop: &AtomicBool) {
             next_scan = t + SCAN_MS;
             if conn.as_ref().is_some_and(|c| !c.present()) {
                 conn = None;
+                OWNER.store(false, Ordering::Release);
             }
-            if conn.is_none() {
-                if let Some(mut c) = Connection::open() {
-                    if c.send_all(session.connect()) {
-                        conn = Some(c);
-                    }
+            // one instance per process drives the device
+            if conn.is_none() && OWNER.compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire).is_ok() {
+                let opened = Connection::open().and_then(|mut c| c.send_all(session.connect()).then_some(c));
+                if opened.is_none() {
+                    OWNER.store(false, Ordering::Release);
                 }
+                conn = opened;
+            }
+            shared.controller_connected.store(conn.is_some(), Ordering::Relaxed);
+        }
+        match conn.as_mut() {
+            Some(c) => {
+                let received: Vec<Vec<u8>> = c.rx.try_iter().collect();
+                let out = session.step(shared, t, received);
+                if !out.is_empty() && !c.send_all(out) {
+                    conn = None;
+                    OWNER.store(false, Ordering::Release);
+                    shared.controller_connected.store(false, Ordering::Relaxed);
+                    continue;
+                }
+                std::thread::sleep(POLL);
+            }
+            None => {
+                // no device: the surface still runs for the editor's mode tabs
+                let _ = session.step(shared, t, std::iter::empty());
+                std::thread::sleep(POLL * 5);
             }
         }
-        let Some(c) = conn.as_mut() else {
-            std::thread::sleep(POLL * 10);
-            continue;
-        };
-        let received: Vec<Vec<u8>> = c.rx.try_iter().collect();
-        let out = session.step(shared, t, received);
-        if !out.is_empty() && !c.send_all(out) {
-            conn = None;
-            continue;
-        }
-        std::thread::sleep(POLL);
     }
     if let Some(mut c) = conn {
         c.send_all(session.disconnect());
+        OWNER.store(false, Ordering::Release);
     }
 }
 
@@ -672,6 +711,40 @@ mod tests {
         // loading a kit file deselects the library
         shared.deselect_library();
         assert_eq!(shared.library_selected(), None);
+    }
+
+    #[test]
+    fn editor_input_and_published_view() {
+        let shared = Shared::new();
+        let mut s = Session::new(&shared);
+        // no device: stepping still runs the surface and publishes the view
+        s.step(&shared, 0, []);
+        let g0 = shared.surface_view_gen.load(Ordering::Relaxed);
+        let v = shared.surface_view.lock().unwrap().clone().unwrap();
+        assert_eq!(v.mode, vdrum_surface::Mode::Voice(0));
+        // an encoder turned with the mouse
+        let fine = lxr_params::by_id("fine1").unwrap().index;
+        let v0 = shared.value(fine);
+        let _ = shared.surface_input.push(EditorInput::Input(Input::Relative { row: 0, col: 0, delta: 2 }));
+        s.step(&shared, 30, []);
+        assert_eq!(shared.value(fine), v0 + 2);
+        assert!(matches!(shared.commands.pop(), Some(Command::Param(p, _)) if p == fine));
+        let v = shared.surface_view.lock().unwrap().clone().unwrap();
+        assert!(v.edit.is_none(), "editor edits do not show the edit pill");
+        assert!(shared.surface_view_gen.load(Ordering::Relaxed) > g0);
+        // a tab click sets the mode
+        let _ = shared.surface_input.push(EditorInput::SetMode(vdrum_surface::Mode::Sequencer));
+        s.step(&shared, 60, []);
+        assert_eq!(shared.surface_view.lock().unwrap().as_ref().unwrap().mode, vdrum_surface::Mode::Sequencer);
+        // a hardware edit shows it
+        s.step(&shared, 90, [vec![0xBF, 77 + 1, 65]]);
+        let v = shared.surface_view.lock().unwrap().clone().unwrap();
+        assert!(v.edit.is_some());
+        // nothing changed: no new snapshot
+        let g = shared.surface_view_gen.load(Ordering::Relaxed);
+        s.step(&shared, 200, []);
+        s.step(&shared, 230, []);
+        assert_eq!(shared.surface_view_gen.load(Ordering::Relaxed), g);
     }
 
     #[test]

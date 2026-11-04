@@ -152,6 +152,15 @@ pub enum Command {
     SeqReload,
 }
 
+/// Input from the editor's mode tabs to the controller surface.
+#[derive(Clone, Debug)]
+pub enum EditorInput {
+    /// A control operated with the mouse, as if on the device.
+    Input(lcxl3::Input),
+    /// A mode tab was clicked.
+    SetMode(vdrum_surface::Mode),
+}
+
 /// The kit file the user works on: where it was loaded from or saved to, and its contents then
 /// (for the controller's kit browsing, *Save kit* and *Compare*).
 #[derive(Clone, Default)]
@@ -264,6 +273,16 @@ pub struct Shared {
     /// Controller snapshots and macros (`vdrum_surface::Surface::state_text`), saved with the
     /// plugin state.
     pub surface_state: Mutex<String>,
+    /// The controller surface as last drawn by the controller thread (for the editor's mode tabs),
+    /// and a counter that changes with every new snapshot.
+    pub surface_view: Mutex<Option<Arc<vdrum_surface::View>>>,
+    pub surface_view_gen: AtomicU32,
+    /// Mouse actions from the editor's mode tabs, for the controller thread.
+    pub surface_input: ArrayQueue<EditorInput>,
+    /// The controller thread runs the surface (also without a device), and the device is
+    /// connected.
+    pub surface_running: AtomicBool,
+    pub controller_connected: AtomicBool,
     /// The kit library (64 slots), saved with the plugin state.
     pub library: Mutex<crate::library::Library>,
     /// Incremented whenever the library changes (for the editor and the controller).
@@ -299,6 +318,11 @@ impl Shared {
             mutes: AtomicU8::new(0),
             tempo: AtomicF32::new(120.0),
             surface_state: Mutex::new(String::new()),
+            surface_view: Mutex::new(None),
+            surface_view_gen: AtomicU32::new(0),
+            surface_input: ArrayQueue::new(256),
+            surface_running: AtomicBool::new(false),
+            controller_connected: AtomicBool::new(false),
             library: Mutex::new(crate::library::Library::default()),
             library_generation: AtomicU32::new(0),
         };
