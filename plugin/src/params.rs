@@ -632,6 +632,11 @@ unsafe impl Params for VDrumParams {
                 self.editor_state.set_size(crate::editor::DEFAULT_SIZE);
             }
         }
+        // Layout 2 had one card for both hi-hats; its default size is too narrow for seven cards.
+        let version = serialized.get("editor-layout").and_then(|s| s.trim_matches('"').parse::<u32>().ok());
+        if version == Some(2) && self.editor_state.size() == crate::editor::SHARED_HAT_SIZE {
+            self.editor_state.set_size(crate::editor::DEFAULT_SIZE);
+        }
         let mut restore = Restore::default();
         if let Some(s) = serialized.get("kit") {
             if let Some(bytes) = serde_json::from_str::<String>(s).ok().and_then(|h| unhex(&h)) {
@@ -766,9 +771,14 @@ mod tests {
         assert_eq!(load(&[("editor-state", state(LEGACY_SIZE)), ("ui-scale", "1.3".into())]), (DEFAULT_SIZE, 1.0));
         // First layout, resized by hand: size kept.
         assert_eq!(load(&[("editor-state", state((1500, 700))), ("ui-scale", "1.3".into())]), ((1500, 700), 1.0));
+        // Layout 2 (one card for both hi-hats): its default size grows to the new default, a size
+        // chosen by hand and the zoom are kept.
+        use crate::editor::SHARED_HAT_SIZE;
+        assert_eq!(load(&[("editor-state", state(SHARED_HAT_SIZE)), ("ui-scale", "1.1".into()), ("editor-layout", "2".into())]), (DEFAULT_SIZE, 1.1));
+        assert_eq!(load(&[("editor-state", state((1531, 869))), ("ui-scale", "1.1".into()), ("editor-layout", "2".into())]), ((1531, 869), 1.1));
         // Current layout: both kept.
-        let cur = [("editor-state", state((1531, 869))), ("ui-scale", "1.1".into()), ("editor-layout", "2".into())];
-        assert_eq!(load(&cur), ((1531, 869), 1.1));
+        let cur = [("editor-state", state(SHARED_HAT_SIZE)), ("ui-scale", "1.1".into()), ("editor-layout", "3".into())];
+        assert_eq!(load(&cur), (SHARED_HAT_SIZE, 1.1));
         // And written back.
         let p = VDrumParams::new(Arc::new(Shared::new()));
         p.ui_scale.store(1.1, Ordering::Relaxed);

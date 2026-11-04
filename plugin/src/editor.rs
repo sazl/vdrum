@@ -42,15 +42,20 @@ const TITLE_FONT: f32 = 14.0;
 /// Width of the track names in the global column's MIDI table.
 const TRACK_COL_W: f32 = 72.0;
 /// Default window size (logical pixels, i.e. macOS points) at 100 %: everything fits without
-/// scrolling (see the `default_size_fits_everything` test). It leaves room for the menu bar, a
-/// host's plugin window header and the Dock on a 1470 × 956 display (MacBook Air 13"), and so on
-/// the MacBook Pro 14" (1512 × 982) and 16" (1728 × 1117) defaults.
-pub const DEFAULT_SIZE: (u32, u32) = (1392, 790);
+/// scrolling (see the `default_size_fits_everything` test), with one card per voice (the closed and
+/// the open hi-hat have their own cards). It fits the MacBook Pro 16" default (1728 × 1117) at 100 %
+/// and the MacBook Air 13" (1470 × 956) at 90 % zoom, leaving room for the menu bar, a host's
+/// plugin window header and the Dock.
+pub const DEFAULT_SIZE: (u32, u32) = (1584, 790);
+/// The default size of layout version 2, where the two hi-hats shared one card. Saved states with
+/// this size are migrated to [`DEFAULT_SIZE`].
+pub const SHARED_HAT_SIZE: (u32, u32) = (1392, 790);
 /// The default size of the first layout, which did not fit laptop screens. Saved states with this
 /// size are migrated to [`DEFAULT_SIZE`].
 pub const LEGACY_SIZE: (u32, u32) = (1812, 960);
-/// Saved with the plugin state; states without it come from the first layout.
-pub const LAYOUT_VERSION: u32 = 2;
+/// Saved with the plugin state; states without it come from the first layout. 3: one card per
+/// hi-hat.
+pub const LAYOUT_VERSION: u32 = 3;
 pub const MIN_ZOOM: f32 = 0.5;
 pub const MAX_ZOOM: f32 = 3.0;
 const ZOOM_STEP: f32 = 0.1;
@@ -92,7 +97,8 @@ pub struct Group {
 /// Where every parameter is shown.
 pub struct Layout {
     /// The groups of each voice: Drum 1..3, Snare, Cymbal, closed hi-hat (the firmware's hi-hat
-    /// voice), open hi-hat (VDrum's separate voice). The two hi-hats share one card with a selector.
+    /// voice), open hi-hat (VDrum's separate voice). Each voice has its own card; the hi-hats'
+    /// shared choke switch is on both hi-hat cards.
     pub voices: Vec<Vec<Group>>,
     pub fx: Vec<u16>,
     pub performance: Vec<u16>,
@@ -176,6 +182,10 @@ impl Layout {
                 // hi-hat's card shows its own decay
                 hat_params = params.clone();
                 params.retain(|p| *p != par::VELOD6_OPEN);
+                // the choke switch is shared by both hi-hats and shown on both cards
+                if let Some(i) = params.iter().position(|p| *p == par::VELOD6_CLOSED) {
+                    params.insert(i + 1, oh_index(OH_CHOKE));
+                }
             }
             let titles = group_titles(v);
             let mut groups: Vec<Group> = titles.iter().map(|t| Group { title: t, items: Vec::new() }).collect();
@@ -215,8 +225,6 @@ struct Data {
     layout: Layout,
     name_buf: String,
     pad_seen: [u32; 7],
-    /// Which hi-hat the hi-hat card shows: 5 closed, 6 open.
-    hat_tab: usize,
     pad_lit: [f64; 7],
     file_reply: Arc<Mutex<Option<FileReply>>>,
     status: String,
@@ -231,7 +239,6 @@ pub fn create(params: Arc<VDrumParams>, shared: Arc<Shared>) -> Option<Box<dyn E
         layout: Layout::build(),
         name_buf: String::new(),
         pad_seen: [0; 7],
-        hat_tab: 5,
         pad_lit: [-10.0; 7],
         file_reply: Arc::new(Mutex::new(None)),
         status: String::new(),
@@ -357,9 +364,7 @@ fn update(ctx: &egui::Context, setter: &ParamSetter, data: &mut Data, params: &V
         let out = ScrollArea::both().auto_shrink([false, false]).show(ui, |ui| {
             ui.horizontal_top(|ui| {
                 ui.spacing_mut().item_spacing.x = CARD_GAP;
-                for v in 0..6 {
-                    // card 5: the hi-hat card, showing the closed or the open hi-hat
-                    let v = if v == 5 { data.hat_tab } else { v };
+                for v in 0..7 {
                     voice_card(ui, setter, data, params, shared, v);
                 }
                 global_column(ui, setter, data, params, shared);
@@ -503,48 +508,18 @@ fn card<R>(ui: &mut Ui, width: f32, add: impl FnOnce(&mut Ui) -> R) -> R {
 fn voice_card(ui: &mut Ui, setter: &ParamSetter, data: &mut Data, params: &VDrumParams, shared: &Shared, v: usize) {
     card(ui, ROW_W, |ui| {
         ui.vertical(|ui| {
-            // Header: name, trigger note(s), pads
-            let hat = v >= 5;
-            let tracks: &[usize] = if hat { &[5, 6] } else { std::slice::from_ref(&[0, 1, 2, 3, 4][v]) };
+            // Header: name, trigger note, pad
             ui.horizontal(|ui| {
                 ui.vertical(|ui| {
-                    ui.set_width(ROW_W - 32.0 * tracks.len() as f32 - 4.0);
-                    if hat {
-                        // the closed and the open hi-hat are separate voices; one card shows either
-                        ui.horizontal(|ui| {
-                            ui.spacing_mut().item_spacing.x = 2.0;
-                            for (tab, name) in [(5usize, "Closed"), (6, "Open")] {
-                                let sel = data.hat_tab == tab;
-                                let text = RichText::new(name).size(TITLE_FONT - 2.0).strong();
-                                let text = if sel { text.color(Color32::WHITE) } else { text.color(LABEL) };
-                                if ui.selectable_label(sel, text).on_hover_text(format!("Show the {} hi-hat's parameters", name.to_lowercase())).clicked() {
-                                    data.hat_tab = tab;
-                                }
-                            }
-                        });
-                    } else {
-                        ui.label(RichText::new(Voice::VOICES[v].label()).size(TITLE_FONT).strong().color(Color32::WHITE));
-                    }
+                    ui.set_width(ROW_W - 32.0 - 4.0);
+                    let title = if v < 5 { Voice::VOICES[v].label() } else { TRACK_NAMES[v] };
+                    ui.label(RichText::new(title).size(TITLE_FONT).strong().color(Color32::WHITE));
                     let get = |p: u16| params.param(p).map(|x| x.value() as u16).unwrap_or(0);
-                    let notes: Vec<String> = tracks
-                        .iter()
-                        .map(|&t| {
-                            let (ch, note) = track_trigger_note(t, get);
-                            let n = get(MIDI_NOTE[t]);
-                            let what = if n == 0 { "any note".to_string() } else { format!("{} ({note})", note_text(note)) };
-                            if tracks.len() > 1 {
-                                let what = if n == 0 { "any".to_string() } else { note_text(note) };
-                                format!("{} {what} ch{}", PAD_LABELS[t], ch + 1)
-                            } else {
-                                format!("{what}, channel {}", ch + 1)
-                            }
-                        })
-                        .collect();
-                    ui.label(RichText::new(notes.join("  ")).size(SMALL_FONT).color(LABEL));
+                    let (ch, note) = track_trigger_note(v, get);
+                    let what = if get(MIDI_NOTE[v]) == 0 { "any note".to_string() } else { format!("{} ({note})", note_text(note)) };
+                    ui.label(RichText::new(format!("{what}, channel {}", ch + 1)).size(SMALL_FONT).color(LABEL));
                 });
-                for &t in tracks {
-                    pad(ui, data, params, shared, t, vec2(28.0, 26.0));
-                }
+                pad(ui, data, params, shared, v, vec2(28.0, 26.0));
             });
             for g in &data.layout.voices[v] {
                 section_header(ui, g.title, ROW_W);
@@ -987,10 +962,12 @@ mod tests {
                     match item {
                         Item::Param(idx, label) => {
                             // Voice cards only show parameters of their own voice, with a label.
+                            // (the hi-hats' shared choke switch is on both hi-hat cards)
+                            let choke = *idx == oh_index(OH_CHOKE);
                             let voice = Voice::VOICES.get(v).copied().unwrap_or(Voice::OpenHat);
-                            assert_eq!(lxr_params::info(*idx).unwrap().voice, voice, "{idx}");
+                            assert!(lxr_params::info(*idx).unwrap().voice == voice || (choke && v == 5), "{idx}");
                             assert!(!label.is_empty());
-                            assert!(!shown.contains(idx), "{idx} shown twice");
+                            assert!(!shown.contains(idx) || choke, "{idx} shown twice");
                             shown.push(*idx);
                         }
                         Item::Fader(i) => faders.push(*i),
@@ -1044,8 +1021,7 @@ mod tests {
             layout: Layout::build(),
             name_buf: String::new(),
             pad_seen: [0; 7],
-            hat_tab: 5,
-            pad_lit: [-10.0; 7],
+                pad_lit: [-10.0; 7],
             file_reply: Arc::new(Mutex::new(None)),
             status: String::new(),
             content_size: egui::Vec2::ZERO,
@@ -1104,10 +1080,13 @@ mod tests {
 
     #[test]
     fn default_size_fits_laptop_screens() {
-        // Logical resolution of the smallest current MacBook default (Air 13", 1470 × 956) minus
-        // the menu bar (37 pt with the notch), a host's plugin window header (about 60 pt in Logic)
-        // and the Dock (about 60 pt when not hidden).
-        assert!(DEFAULT_SIZE.0 <= 1470 && DEFAULT_SIZE.1 <= 956 - 37 - 60 - 60, "{DEFAULT_SIZE:?}");
+        // Logical resolutions of MacBook defaults minus the menu bar (37 pt with the notch), a
+        // host's plugin window header (about 60 pt in Logic) and the Dock (about 60 pt when not
+        // hidden): the MacBook Pro 16" (1728 × 1117) at 100 %, the MacBook Air 13" (1470 × 956)
+        // at 90 % zoom.
+        let fits = |(w, h): (u32, u32), z: f32| DEFAULT_SIZE.0 as f32 * z <= w as f32 && DEFAULT_SIZE.1 as f32 * z <= (h - 37 - 60 - 60) as f32;
+        assert!(fits((1728, 1117), 1.0), "{DEFAULT_SIZE:?}");
+        assert!(fits((1470, 956), 0.9), "{DEFAULT_SIZE:?}");
     }
 
     #[test]
