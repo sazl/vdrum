@@ -281,3 +281,66 @@ fn faulted_engine_is_silent() {
     let b = e.tick();
     assert!(b.dac1.iter().chain(b.dac2.iter()).all(|s| *s == 0));
 }
+
+#[test]
+fn sequencer_operations_reach_the_engine() {
+    use crate::engine::SeqEv;
+    use vdrum_surface::seq::{SeqData, SeqEdit, StepData};
+    let mut e = crate::new_engine();
+    let on = StepData { on: true, velocity: 90, prob: 80, ..StepData::default() };
+    e.seq(SeqEv::Step { pat: 0, track: 3, step: 2, data: on });
+    let s = e.0.seq_step_read(0, 3, 2);
+    assert_eq!((s.volume, s.prob), (0x80 | 90, 80));
+    assert_eq!(e.0.seq_patternSet.seq_mainSteps[0][0][3], 1 << 2);
+    // densities scale the probability of the steps that are on
+    e.seq(SeqEv::Density { track: 3, value: 50 });
+    assert_eq!(e.0.seq_step_read(0, 3, 2).prob, 40);
+    e.seq(SeqEv::Density { track: 7, value: 50 });
+    assert_eq!(e.0.seq_step_read(0, 3, 2).prob, 20);
+    // a step turned on later gets the scaled probability too
+    e.seq(SeqEv::Bits { pat: 0, track: 3, bits: 0b1100 });
+    assert_eq!(e.0.seq_step_read(0, 3, 3).prob, 25);
+    assert_eq!(e.0.seq_patternSet.seq_mainSteps[0][0][3], 0b1100);
+    // host transport: steps advance on pulses only
+    e.seq(SeqEv::HostStart(2));
+    let st = e.seq_status();
+    assert!(st.running);
+    assert_eq!(st.step[3], 1);
+    e.seq(SeqEv::HostPulse);
+    for _ in 0..3 {
+        e.tick();
+    }
+    assert_eq!(e.seq_status().step[3], 2);
+    e.seq(SeqEv::HostStop);
+    assert!(!e.seq_status().running);
+
+    // a bulk load replaces everything
+    let mut d = SeqData::default();
+    d.apply(&SeqEdit::Euclid { pat: 5, track: 0, fills: 3, rotate: 0 });
+    d.apply(&SeqEdit::Length { pat: 5, track: 0, length: 8 });
+    d.apply(&SeqEdit::Shuffle { pat: 5, value: 64 });
+    let mut e2 = crate::new_engine();
+    e2.seq_load(&d);
+    assert_eq!(e2.0.seq_patternSet.seq_mainSteps[0][5][0], vdrum_surface::seq::euclid(8, 3, 0) as u16);
+    assert_eq!(e2.0.seq_patternSet.length[5][0], 8);
+    assert_eq!(e2.0.seq_patternSet.shuffle[5], 64);
+    assert_eq!(e2.0.seq_patternSet.length[0][0], 16);
+    e2.seq(SeqEv::NextPattern(5));
+    assert_eq!(e2.seq_status().pattern, 5);
+    assert!(!e2.faulted());
+}
+
+#[test]
+fn pattern_changes_keep_the_kit() {
+    // The firmware's PAR_PATTERN_MODE 1 loads the pattern's kit slot on a pattern change, which
+    // would undo edits; the plugin turns it off.
+    let mut e = crate::new_engine();
+    e.set_parameter(lxr_params::par::COARSE1, 12);
+    let before: Vec<u16> = (0..lxr_params::NUM_PARAMS).map(|p| e.get_parameter(p)).collect();
+    e.seq(crate::engine::SeqEv::NextPattern(5));
+    assert_eq!(e.seq_status().pattern, 5);
+    let after: Vec<u16> = (0..lxr_params::NUM_PARAMS).map(|p| e.get_parameter(p)).collect();
+    let changed: Vec<usize> = (0..before.len()).filter(|&i| before[i] != after[i]).collect();
+    assert!(changed.iter().all(|&i| i >= lxr_params::kit::KIT_PARAMS), "kit parameters changed: {changed:?}");
+    assert_eq!(e.get_parameter(lxr_params::par::COARSE1), 12);
+}

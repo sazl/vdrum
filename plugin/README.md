@@ -207,9 +207,11 @@ change is applied at the start of the next tick.
   * `midi_learn`;
   * `faders`: the voice fader steps;
   * `lcxl3-settings`: the Launch Control XL 3 controller settings;
+  * `sequencer`: the sequencer's patterns and densities (JSON, only what differs from empty
+    patterns; absent when all patterns are empty);
   * the editor size and zoom.
 * **Restoring state.** The kit and the globals are authoritative. They are loaded into the engine
-  in `initialize()`.
+  in `initialize()`, and so are the sequencer patterns (a state without `sequencer` clears them).
 * **Kit files.**
   * *Load…* reads the firmware's `.snd` format (`preset_loadDrumsetSD`) and VDrum kits. A firmware
     kit has no open hi-hat block; its open hi-hat is imported from the hi-hat.
@@ -296,6 +298,53 @@ logic in `crates/vdrum-surface`, messages in `crates/lcxl3`).
 * **Settings.** The controller settings of the Global mode (pad velocity, list speed, fader mode,
   clock, device brightness, popup time, encoder curve) are saved with the plugin state
   (`lcxl3-settings`).
+
+### Sequencer (mode 8)
+
+The engine's ported LXR-02 sequencer plays the patterns (7 tracks, 64 patterns, 64 steps per
+track). The controller edits the plugin's copy of the pattern data (`Shared::seq`,
+`vdrum_surface::seq::SeqData`) and sends each change to the engine through the command queue
+(`Command::Seq`), so the audio thread never locks. The plugin state saves the copy; `initialize()`
+loads it into the engine. Engine writes go through `lxr_core::vdrum::seq`, which also updates the
+firmware's backup copy of the playing pattern (`patternBackupBuffer`); without that, the firmware
+discards edits of the playing pattern when the pattern changes.
+
+* **Clock.** Global mode, *Clock*:
+  * *Host* (default): the sequencer follows the host transport. On start the plugin places every
+    track at the host position (16th notes from the song start, modulo the track length) and then
+    sends one pulse per 16th note at its sample position (`process()`), through the firmware's
+    external clock input path (`seq_isSyncExternal` = 1, `trigger_clockReceived`). A jump of the
+    host position (loop, locate) re-places the tracks. The rounded host tempo is passed to the
+    engine for flams and shuffle. Stopping the transport stops the sequencer. The standalone app
+    has no transport, so nothing plays in this setting.
+  * *Internal*: the engine's own clock at the global tempo (`PAR_BPM`); Play starts (from step 1)
+    and stops it.
+  * Pulses are applied at the start of the engine tick they fall into (up to 63 engine frames
+    early, like MIDI). On the firmware's external clock path, odd 16th notes are delayed by the
+    shuffle time even at shuffle 0, which ends one tick (1.45 ms) later.
+* **Steps.** The 16 buttons are the steps of the shown bar (Page up/down: bars 1 to 4) for the edit
+  group. A press sets the step on every group track where it is off (at the entry velocity); a
+  press and release without other changes clears it. Hold Solo/Arm: top row = the seven tracks of
+  the edit group (button 8: all or Drum 1). Hold Mute/Select: the 16 buttons queue patterns 1 to 16
+  (at the bar end while running); a short press without using the layer goes to Perform.
+* **Held steps.** Knob row 1: velocity, probability, note, flam/ratchet, micro-shift, the two lock
+  values, clear locks. Row 2: parameter locks (pitch, decay, cutoff, resonance, drive, pan, sample
+  rate, FX send) for every group track. A lock starts at the kit's current value; a third lock
+  replaces the older one. Locks use the step's two automation slots, which hold parameter numbers
+  0 to 254 and CC values 0 to 127: the open hi-hat's parameters (numbers from 302) cannot be locked.
+* **Generators.** Fills and Rotate set Euclid pulses and rotation and rewrite the track's steps
+  (hand-set steps stay until Fills is turned); Length is 1 to 64 steps per track. The Euclid
+  pattern comes from the plugin (`vdrum_surface::seq::euclid`), not from the engine's
+  `euklid_generate`, which only covers lengths up to 16. Density faders scale the probability of
+  every step of the track (Density all: of every track) in the engine copy; the saved step
+  probability is unchanged.
+* **Record.** With Record armed and the sequencer running, a trigger pad writes a step at the
+  track's playhead (the next step when more than half of the step has passed). The pad also
+  triggers at once, so a step written ahead plays again when the sequencer reaches it (as on the
+  LXR-02, whose `seq_stepToSkip` is set but not read).
+* **Pattern changes** keep the kit. The firmware's default `PAR_PATTERN_MODE` 1 loads the
+  pattern's kit slot from the engine's kit memory on every pattern change, which undid kit edits;
+  the plugin sets it to 0 (it is not a host parameter).
 
 ## Validation (Linux, x86_64)
 

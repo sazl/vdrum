@@ -15,6 +15,8 @@ struct Fake {
     faders: RefCell<[i32; 7]>,
     hits: RefCell<[u32; 7]>,
     switches: RefCell<[bool; 2]>,
+    seq: RefCell<SeqData>,
+    status: RefCell<SeqStatus>,
 }
 
 impl Fake {
@@ -35,6 +37,20 @@ impl Fake {
                 Action::SetVoiceFader { track, step } => self.faders.borrow_mut()[*track as usize] = *step,
                 Action::Trigger { track, .. } => self.hits.borrow_mut()[*track as usize] += 1,
                 Action::SetSwitch(sw, on) => self.switches.borrow_mut()[(*sw == Switch::HwClock) as usize] = *on,
+                Action::Seq(e) => {
+                    self.seq.borrow_mut().apply(e);
+                    let mut st = self.status.borrow_mut();
+                    match *e {
+                        SeqEdit::NextPattern(p) => {
+                            st.pending = p;
+                            if !st.running {
+                                st.pattern = p;
+                            }
+                        }
+                        SeqEdit::Run(r) => st.running = r,
+                        _ => {}
+                    }
+                }
                 _ => {}
             }
         }
@@ -56,6 +72,12 @@ impl Model for Fake {
     }
     fn switch(&self, sw: Switch) -> bool {
         self.switches.borrow()[(sw == Switch::HwClock) as usize]
+    }
+    fn seq(&self) -> Box<dyn std::ops::Deref<Target = SeqData> + '_> {
+        Box::new(self.seq.borrow())
+    }
+    fn seq_status(&self) -> SeqStatus {
+        *self.status.borrow()
     }
 }
 
@@ -157,7 +179,10 @@ fn shift_and_buttons_select_modes() {
     assert_eq!(s.mode(), Mode::Voice(0));
     press(&mut s, &m, Button::SoloArm, 0);
     assert_eq!(s.mode(), Mode::Sequencer);
+    // in mode 8 Mute/Select is a layer while held; a tap goes to Perform on release
     press(&mut s, &m, Button::MuteSelect, 0);
+    assert_eq!(s.mode(), Mode::Sequencer);
+    release(&mut s, &m, Button::MuteSelect, 0);
     assert_eq!(s.mode(), Mode::Perform);
 }
 
@@ -488,4 +513,210 @@ fn global_kit_actions_compare_panic_and_switches() {
     let led = |c| fr.leds.iter().find(|(x, _)| *x == c).unwrap().1;
     assert_eq!(led(t(2)), Section::Global.colour(), "HW clock on");
     assert_eq!(led(t(1)), vdrum_surface::frame::dim(Section::Global.colour()), "sum aux off");
+}
+
+
+fn seq_edits(a: &[Action]) -> Vec<SeqEdit> {
+    a.iter().filter_map(|x| if let Action::Seq(e) = x { Some(*e) } else { None }).collect()
+}
+
+#[test]
+fn step_buttons_set_on_press_and_clear_on_release() {
+    let m = Fake::new();
+    let mut s = Surface::new();
+    s.set_mode(Mode::Sequencer);
+    // press sets the step for the edit group (Drum 1), release keeps it
+    press(&mut s, &m, Button::Top(4), 0);
+    release(&mut s, &m, Button::Top(4), 50);
+    let st = m.seq.borrow().step(0, 0, 4);
+    assert!(st.on);
+    assert_eq!(st.velocity, 100);
+    // a second press and release clears it
+    press(&mut s, &m, Button::Top(4), 100);
+    assert!(m.seq.borrow().step(0, 0, 4).on);
+    release(&mut s, &m, Button::Top(4), 150);
+    assert!(!m.seq.borrow().step(0, 0, 4).on);
+    // bottom row = steps 9..16, Page down = next bar
+    press(&mut s, &m, Button::PageDown, 0);
+    press(&mut s, &m, Button::Bottom(0), 0);
+    release(&mut s, &m, Button::Bottom(0), 0);
+    assert!(m.seq.borrow().step(0, 0, 24).on);
+    // the step LED is lit in the track colour
+    let fr = s.frame(0, &m);
+    let led = fr.leds.iter().find(|(c, _)| *c == Control::Button(Button::Bottom(0))).unwrap().1;
+    assert_ne!(led, (0, 0, 0));
+    // the playhead is white
+    m.status.borrow_mut().running = true;
+    m.status.borrow_mut().step = [17; 7];
+    let fr = s.frame(0, &m);
+    let led = fr.leds.iter().find(|(c, _)| *c == Control::Button(Button::Top(1))).unwrap().1;
+    assert_eq!(led, (255, 255, 255));
+    assert!(fr.stationary[1].contains("bar 2/4"), "{:?}", fr.stationary);
+}
+
+#[test]
+fn edit_group_sets_steps_on_several_tracks() {
+    let m = Fake::new();
+    let mut s = Surface::new();
+    press(&mut s, &m, Button::SoloArm, 0); // go to mode 8
+    release(&mut s, &m, Button::SoloArm, 0);
+    assert_eq!(s.mode(), Mode::Sequencer);
+    // hold Solo/Arm: top row = tracks
+    press(&mut s, &m, Button::SoloArm, 0);
+    press(&mut s, &m, Button::Top(6), 0);
+    release(&mut s, &m, Button::Top(6), 0);
+    release(&mut s, &m, Button::SoloArm, 0);
+    assert_eq!(s.edit_group(), 0b100_0001);
+    assert_eq!(s.mode(), Mode::Sequencer);
+    // where the group disagrees a press sets the step on all
+    let on = StepData { on: true, ..StepData::default() };
+    m.apply(&[Action::Seq(SeqEdit::Step { pat: 0, track: 0, step: 0, data: on })]);
+    let a = press(&mut s, &m, Button::Top(0), 0);
+    assert_eq!(seq_edits(&a).len(), 1);
+    release(&mut s, &m, Button::Top(0), 0);
+    assert!(m.seq.borrow().step(0, 6, 0).on);
+    // now both are on: press and release clears both
+    press(&mut s, &m, Button::Top(0), 0);
+    let a = release(&mut s, &m, Button::Top(0), 0);
+    assert_eq!(seq_edits(&a).len(), 2);
+    assert!(!m.seq.borrow().step(0, 0, 0).on && !m.seq.borrow().step(0, 6, 0).on);
+    // the group never becomes empty; button 8 = all, then back to Drum 1
+    press(&mut s, &m, Button::SoloArm, 0);
+    press(&mut s, &m, Button::Top(0), 0);
+    press(&mut s, &m, Button::Top(6), 0);
+    assert_eq!(s.edit_group(), 0b100_0000);
+    press(&mut s, &m, Button::Top(7), 0);
+    assert_eq!(s.edit_group(), 0x7f);
+    press(&mut s, &m, Button::Top(7), 0);
+    assert_eq!(s.edit_group(), 1);
+}
+
+#[test]
+fn held_steps_change_fields_and_locks() {
+    let m = Fake::new();
+    let mut s = Surface::new();
+    s.set_mode(Mode::Sequencer);
+    press(&mut s, &m, Button::Top(2), 0);
+    press(&mut s, &m, Button::Top(3), 0);
+    assert_eq!(s.layout().get(k(1, 1)).unwrap().binding, Binding::StepField(layout::StepField::Velocity));
+    turn(&mut s, &m, 0, 0, -10); // velocity
+    turn(&mut s, &m, 0, 3, 2); // flam x3
+    // lock: cutoff (row 2, column 3), starting from the kit's value
+    let cutoff = voice_param(0, "cutoff");
+    let base = vdrum_surface::model::unscale(0, lxr_params::info(cutoff).unwrap().max, m.param(cutoff));
+    turn(&mut s, &m, 1, 2, -5);
+    release(&mut s, &m, Button::Top(2), 0);
+    release(&mut s, &m, Button::Top(3), 0);
+    for step in [2, 3] {
+        let st = m.seq.borrow().step(0, 0, step);
+        assert!(st.on, "edited steps stay on after release");
+        assert_eq!(st.velocity, 90);
+        assert_eq!(st.flam, 2);
+        assert_eq!(st.locks[0], (cutoff as u8, base - 5));
+    }
+    assert_eq!(s.layout().get(k(1, 1)).unwrap().binding, Binding::SeqFills(0));
+    // a third lock replaces the oldest
+    press(&mut s, &m, Button::Top(2), 0);
+    turn(&mut s, &m, 1, 0, 1); // pitch
+    turn(&mut s, &m, 1, 1, 1); // decay
+    release(&mut s, &m, Button::Top(2), 0);
+    let st = m.seq.borrow().step(0, 0, 2);
+    assert_eq!(st.locks[0].0 as u16, voice_param(0, "coarse"));
+    assert_eq!(st.locks[1].0 as u16, voice_param(0, "decay"));
+    // the open hi-hat's parameters cannot be locked
+    press(&mut s, &m, Button::SoloArm, 0);
+    press(&mut s, &m, Button::Top(6), 0);
+    press(&mut s, &m, Button::Top(0), 0);
+    release(&mut s, &m, Button::SoloArm, 0);
+    press(&mut s, &m, Button::Top(5), 0);
+    let a = turn(&mut s, &m, 1, 2, 1);
+    assert!(seq_edits(&a).is_empty());
+}
+
+#[test]
+fn generator_knobs_and_density_faders() {
+    let m = Fake::new();
+    let mut s = Surface::new();
+    s.set_mode(Mode::Sequencer);
+    turn(&mut s, &m, 0, 1, 4); // Drum 2 fills
+    assert_eq!(m.seq.borrow().track(0, 1).bits(), 0x1111);
+    turn(&mut s, &m, 1, 1, 2); // rotate
+    assert_eq!(m.seq.borrow().track(0, 1).bits(), 0x4444);
+    turn(&mut s, &m, 2, 1, -8); // length 8
+    assert_eq!(m.seq.borrow().track(0, 1).length, 8);
+    assert_eq!(m.seq.borrow().track(0, 1).fills, 4);
+    // rotate without fills does nothing
+    assert!(seq_edits(&turn(&mut s, &m, 1, 0, 1)).is_empty());
+    // shuffle and next pattern (column 8)
+    turn(&mut s, &m, 0, 7, 20);
+    assert_eq!(m.seq.borrow().patterns[0].shuffle, 20);
+    turn(&mut s, &m, 1, 7, 2);
+    assert_eq!(m.status.borrow().pattern, 2);
+    // density faders pick up at the current value (100 % = top)
+    fader(&mut s, &m, 2, 0);
+    assert_eq!(m.seq.borrow().density[2], 100);
+    fader(&mut s, &m, 2, 127);
+    fader(&mut s, &m, 2, 64);
+    assert_eq!(m.seq.borrow().density[2], 50);
+    fader(&mut s, &m, 7, 127);
+    fader(&mut s, &m, 7, 0);
+    assert_eq!(m.seq.borrow().density_all, 0);
+}
+
+#[test]
+fn pattern_layer_queues_patterns() {
+    let m = Fake::new();
+    let mut s = Surface::new();
+    s.set_mode(Mode::Sequencer);
+    m.status.borrow_mut().running = true;
+    press(&mut s, &m, Button::MuteSelect, 0);
+    let a = press(&mut s, &m, Button::Bottom(2), 0);
+    assert_eq!(seq_edits(&a), vec![SeqEdit::NextPattern(10)]);
+    release(&mut s, &m, Button::Bottom(2), 0);
+    release(&mut s, &m, Button::MuteSelect, 0);
+    assert_eq!(s.mode(), Mode::Sequencer);
+    // no step was set
+    assert!(m.seq.borrow().patterns[0].is_empty());
+}
+
+#[test]
+fn record_writes_pad_hits_at_the_playhead() {
+    let m = Fake::new();
+    let mut s = Surface::new();
+    press(&mut s, &m, Button::Record, 0);
+    assert!(s.record_armed());
+    // stopped: nothing is recorded
+    let a = press(&mut s, &m, Button::Bottom(3), 0);
+    assert!(seq_edits(&a).is_empty());
+    {
+        let mut st = m.status.borrow_mut();
+        st.running = true;
+        st.step = [5; 7];
+        st.late = true;
+    }
+    press(&mut s, &m, Button::Bottom(3), 0); // snare pad
+    let st = m.seq.borrow().step(0, 3, 6);
+    assert!(st.on);
+    assert_eq!(st.velocity, 100);
+    // the next step wraps at the track length
+    m.status.borrow_mut().step = [15; 7];
+    press(&mut s, &m, Button::Bottom(3), 0);
+    assert!(m.seq.borrow().step(0, 3, 0).on);
+}
+
+#[test]
+fn play_runs_the_internal_clock_only() {
+    let m = Fake::new();
+    let mut s = Surface::new();
+    s.set_mode(Mode::Sequencer);
+    assert!(seq_edits(&press(&mut s, &m, Button::Play, 0)).is_empty());
+    // Global: clock setting (knob row 3, column 8) to Internal
+    s.set_mode(Mode::Global);
+    let a = turn(&mut s, &m, 2, 7, 1);
+    assert!(a.contains(&Action::SeqHostClock(false)), "{a:?}");
+    s.set_mode(Mode::Sequencer);
+    let a = press(&mut s, &m, Button::Play, 0);
+    assert_eq!(seq_edits(&a), vec![SeqEdit::Run(true)]);
+    let a = press(&mut s, &m, Button::Play, 10);
+    assert_eq!(seq_edits(&a), vec![SeqEdit::Run(false)]);
 }
