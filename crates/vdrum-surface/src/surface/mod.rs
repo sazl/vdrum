@@ -11,6 +11,13 @@ use crate::seq::{SeqEdit, StepData, FLAM_NAMES, MAX_FLAM, NO_LOCK, NO_SHIFT, NUM
 use lxr_params::par;
 use lcxl3::{Button, Control, Input};
 
+mod perform;
+pub use perform::{kit_params, voice_params, Macro, SLOTS};
+use perform::{ActiveMoment, Morph, Scaler};
+
+/// A macro assignment: (parameter, value at fader bottom, value at fader top).
+pub type Assign = (u16, u16, u16);
+
 /// Hold time for "hold 1 s" actions, in milliseconds.
 pub const HOLD_MS: u64 = 1000;
 /// How long a pad stays lit after its track was triggered, in milliseconds.
@@ -190,6 +197,25 @@ pub struct Surface {
     entry_velocity: u8,
     /// A layer button (Solo/Arm, Mute/Select in mode 8) was used while held.
     layer_used: bool,
+    /// The button being released had fired its hold action.
+    release_fired: bool,
+    moments: Vec<ActiveMoment>,
+    /// Momentary effect depth and rate, 0..=127.
+    moment_depth: u8,
+    moment_rate: u8,
+    /// LFO rate, LFO depth, velocity amount scales.
+    scalers: [Scaler; 3],
+    /// LFO sync settings before *Sync to host*.
+    lfo_sync_saved: Option<Vec<(u16, u16)>>,
+    snapshots: [Option<Vec<(u16, u16)>>; SLOTS],
+    morph: [Morph; 7],
+    morph_all: u8,
+    target_all: u8,
+    macros: [Macro; SLOTS],
+    macro_pos: [u8; SLOTS],
+    /// Macro being learned and the changes recorded so far.
+    learning: Option<(u8, Vec<Assign>)>,
+    state_changed: bool,
 }
 
 impl Default for Surface {
@@ -230,6 +256,20 @@ impl Surface {
             record: false,
             entry_velocity: 100,
             layer_used: false,
+            release_fired: false,
+            moments: Vec::new(),
+            moment_depth: 96,
+            moment_rate: 64,
+            scalers: std::array::from_fn(|_| Scaler { pct: 100, base: Vec::new() }),
+            lfo_sync_saved: None,
+            snapshots: Default::default(),
+            morph: Default::default(),
+            morph_all: 0,
+            target_all: 0,
+            macros: std::array::from_fn(|_| Macro { assign: Vec::new(), depth: 100 }),
+            macro_pos: [0; SLOTS],
+            learning: None,
+            state_changed: false,
         }
     }
 
@@ -264,6 +304,7 @@ impl Surface {
             return;
         }
         out.push(Action::SetParam { idx, value });
+        self.learn_record(idx, old, value);
         self.redo.clear();
         match self.history.last_mut() {
             Some(c) if c.idx == idx && self.now.saturating_sub(c.at) < UNDO_MERGE_MS => {
@@ -369,6 +410,8 @@ impl Surface {
     /// Advance time: fires hold actions. Call regularly (every few milliseconds).
     pub fn tick(&mut self, now: u64, model: &dyn Model) -> Vec<Action> {
         let mut out = Vec::new();
+        self.now = now;
+        self.moment_tick(model, &mut out);
         for t in 0..7u8 {
             let h = model.hits(t);
             if h != self.hit_seen[t as usize] {
@@ -438,6 +481,48 @@ impl Surface {
             | Binding::SeqNextPattern
             | Binding::SeqEntryVelocity => self.seq_encoder(cell, delta, model, out),
             Binding::StepField(f) => self.step_field(cell, f, delta, model, out),
+            Binding::MomentDepth | Binding::MomentRate => {
+                let v = if cell.binding == Binding::MomentDepth { &mut self.moment_depth } else { &mut self.moment_rate };
+                *v = (*v as i32 + delta).clamp(0, 127) as u8;
+                let text = v.to_string();
+                self.show(cell, text);
+            }
+            Binding::LfoRateScale => {
+                let pct = self.scalers[0].pct + delta * 5;
+                self.scale(cell, 0, pct, model, out);
+            }
+            Binding::VelScale => {
+                let pct = self.scalers[2].pct + delta * 5;
+                self.scale(cell, 2, pct, model, out);
+            }
+            Binding::LfoOffsetAll => self.lfo_offset_all(cell, delta, model, out),
+            Binding::MacroDepth(n) => self.macro_depth(cell, n, delta),
+            Binding::TrackMorph(t) => {
+                let a = (self.morph[t as usize].amount as i32 + delta).clamp(0, 127) as u8;
+                let text = self.morph_set(t, Some(a), None, model, out);
+                self.show(cell, text);
+            }
+            Binding::TrackTarget(t) => {
+                let g = (self.morph[t as usize].target as i32 + delta).clamp(0, SLOTS as i32 - 1) as u8;
+                let text = self.morph_set(t, None, Some(g), model, out);
+                self.show(cell, text);
+            }
+            Binding::MorphAll | Binding::TargetAll => {
+                let all = cell.binding == Binding::MorphAll;
+                let v = if all { &mut self.morph_all } else { &mut self.target_all };
+                let hi = if all { 127 } else { SLOTS as i32 - 1 };
+                *v = (*v as i32 + delta).clamp(0, hi) as u8;
+                let v = *v;
+                let mut text = String::new();
+                for t in 0..7u8 {
+                    text = if all {
+                        self.morph_set(t, Some(v), None, model, out)
+                    } else {
+                        self.morph_set(t, None, Some(v), model, out)
+                    };
+                }
+                self.show(cell, text);
+            }
             Binding::LockTarget(k) => self.lock_target(cell, k, delta, model, out),
             _ => {}
         }
@@ -638,6 +723,8 @@ impl Surface {
             },
             Binding::VoiceFader(t) => (0, FADER_MAX as u16, model.voice_fader(t).clamp(0, FADER_MAX) as u16),
             Binding::SeqDensity(t) => (0, 100, model.seq().density[t as usize % 7] as u16),
+            Binding::Macro(n) => (0, 127, self.macro_pos[n as usize % SLOTS] as u16),
+            Binding::LfoDepthScale => (0, 200, self.scalers[1].pct as u16),
             Binding::SeqDensityAll => (0, 100, model.seq().density_all as u16),
             _ => {
                 self.faders[col as usize].raw = Some(raw);
@@ -668,6 +755,12 @@ impl Surface {
                 }
                 self.show(cell, value.to_string());
             }
+            Binding::Macro(n) => {
+                self.macro_pos[n as usize % SLOTS] = value as u8;
+                let text = self.macro_move(n, value as u8, model, out);
+                self.show(cell, text);
+            }
+            Binding::LfoDepthScale => self.scale(cell, 1, value as i32, model, out),
             Binding::SeqDensity(_) | Binding::SeqDensityAll => {
                 let track = if let Binding::SeqDensity(t) = cell.binding { t } else { 7 };
                 if value != cur {
@@ -686,6 +779,7 @@ impl Surface {
                 self.held.push(Held { control: c, since: now, fired: false });
             }
         } else {
+            self.release_fired = self.held.iter().any(|h| h.control == c && h.fired);
             self.held.retain(|h| h.control != c);
         }
         match button {
@@ -897,7 +991,7 @@ impl Surface {
                 self.set(idx, new, model, out);
                 self.show_param(cell, idx, new, model);
             }
-            Binding::Pad(track) => {
+            Binding::Pad(track) | Binding::Trigger(track) => {
                 let velocity = self.pad_velocity();
                 out.push(Action::Trigger { track, velocity });
                 self.record_hit(track, velocity, model, out);
@@ -953,6 +1047,16 @@ impl Surface {
                 out.push(Action::Compare(true));
                 self.show(cell, "saved kit (release: back)".to_string());
             }
+            Binding::Mute(t) => self.toggle_mute(cell, Some(t), model, out),
+            Binding::MuteAll => self.toggle_mute(cell, None, model, out),
+            Binding::Moment(k) => self.moment_press(cell, k, model, out),
+            Binding::LfoSyncHost => self.lfo_sync_host(cell, model, out),
+            Binding::LfoResetPhases => {
+                out.push(Action::LfoReset);
+                self.show(cell, "done".to_string());
+            }
+            Binding::Snapshot(_) => self.show(cell, "release: recall, hold 1 s: store".to_string()),
+            Binding::Learn(n) => self.learn_press(cell, n),
             Binding::Undo => self.undo(false, out),
             Binding::Redo => self.undo(true, out),
             Binding::Panic => {
@@ -963,8 +1067,10 @@ impl Surface {
         }
     }
 
-    fn release(&mut self, cell: &Cell, _model: &dyn Model, out: &mut Vec<Action>) {
+    fn release(&mut self, cell: &Cell, model: &dyn Model, out: &mut Vec<Action>) {
         match cell.binding {
+            Binding::Moment(k) => self.moment_release(cell, k, model, out),
+            Binding::Snapshot(n) if !self.release_fired => self.snapshot_recall(cell, n, model, out),
             Binding::Accent => self.accent = false,
             Binding::Compare if self.comparing => {
                 self.comparing = false;
@@ -992,6 +1098,7 @@ impl Surface {
                     None => self.show(cell, "nothing copied".to_string()),
                 }
             }
+            Binding::Snapshot(n) => self.snapshot_store(cell, n, model),
             Binding::InitKit => {
                 out.push(Action::InitKit);
                 self.show(cell, "init kit loaded".to_string());
@@ -1194,14 +1301,37 @@ impl Surface {
                 }
                 _ => col,
             },
-            Binding::Pad(t) => {
+            Binding::Pad(t) | Binding::Trigger(t) => {
                 let lit = self.hit_at[t as usize].is_some_and(|at| now.saturating_sub(at) < FLASH_MS) || self.is_held(c);
                 if lit {
                     (255, 255, 255)
+                } else if model.mutes() >> t & 1 != 0 {
+                    (96, 0, 0)
                 } else {
                     dim(col)
                 }
             }
+            Binding::Mute(t) => {
+                if model.mutes() >> t & 1 != 0 {
+                    (255, 0, 0)
+                } else {
+                    dim(col)
+                }
+            }
+            Binding::MuteAll => {
+                if model.mutes() & 0x7f != 0 {
+                    (255, 0, 0)
+                } else {
+                    dim(col)
+                }
+            }
+            Binding::Moment(k) => on_off(col, self.moments.iter().any(|m| m.k == k)),
+            Binding::LfoSyncHost => on_off(col, self.lfo_sync_saved.is_some()),
+            Binding::Snapshot(n) => on_off(col, self.snapshots[n as usize % SLOTS].is_some()),
+            Binding::Learn(n) => match &self.learning {
+                Some((l, _)) if *l == n => (255, 255, 255),
+                _ => on_off(col, !self.macros[n as usize % SLOTS].assign.is_empty()),
+            },
             Binding::Accent => {
                 if self.accent {
                     (255, 255, 255)

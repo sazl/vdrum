@@ -301,6 +301,9 @@ impl Plugin for VDrum {
         while let Some(cmd) = shared.commands.pop() {
             match cmd {
                 Command::Midi(bytes) => {
+                    if muted(shared, bytes) {
+                        continue;
+                    }
                     pad_hits(shared, bytes);
                     pipeline.push_event(0, Ev::midi(bytes), &mut apply);
                 }
@@ -383,17 +386,28 @@ impl Plugin for VDrum {
             }
             self.seq_host_clock = Some(host_clock);
         }
+        {
+            let tr = context.transport();
+            let t = match tr.tempo {
+                Some(t) if host_clock && t > 0.0 => t as f32,
+                _ => (shared.value(lxr_params::par::BPM) as f32).max(20.0),
+            };
+            shared.tempo.store(t, Ordering::Relaxed);
+        }
         if host_clock {
             let tr = context.transport();
+            // the host tempo also sets the clock of synced LFOs while stopped
+            if let Some(tempo) = tr.tempo.filter(|t| *t > 0.0) {
+                let bpm = tempo.round().clamp(1.0, 999.0) as u16;
+                if bpm != self.seq_tempo {
+                    self.seq_tempo = bpm;
+                    pipeline.push_event(0, Ev::Seq(SeqEv::Tempo(bpm)), &mut apply);
+                }
+            }
             match (tr.playing, tr.pos_beats(), tr.tempo) {
                 (true, Some(beats), Some(tempo)) if tempo > 0.0 && tr.sample_rate > 0.0 => {
                     let pos = beats * 4.0;
                     let per_sample = tempo / 15.0 / tr.sample_rate as f64;
-                    let bpm = tempo.round().clamp(1.0, 999.0) as u16;
-                    if bpm != self.seq_tempo {
-                        self.seq_tempo = bpm;
-                        pipeline.push_event(0, Ev::Seq(SeqEv::Tempo(bpm)), &mut apply);
-                    }
                     let next = (pos - 1e-6).ceil() as i64;
                     if !self.seq_playing {
                         self.seq_playing = true;
@@ -480,6 +494,9 @@ impl Plugin for VDrum {
                         continue;
                     }
                 }
+            }
+            if muted(shared, bytes) {
+                continue;
             }
             pad_hits(shared, bytes);
             pipeline.push_event(timing, Ev::midi(bytes), &mut apply);
@@ -571,6 +588,16 @@ fn apply_event<E: Engine>(e: &mut E, shared: &Shared, midi_applied: &Cell<bool>,
         Ev::Fader { index, adc } => e.set_fader_adc(index as usize, adc),
         Ev::Seq(ev) => e.seq(ev),
     }
+}
+
+/// Whether a message is a note-on that only triggers muted tracks (it is dropped).
+fn muted(shared: &Shared, bytes: [u8; 3]) -> bool {
+    let mutes = shared.mutes.load(Ordering::Relaxed) as u32;
+    if mutes == 0 || bytes[0] & 0xf0 != 0x90 || bytes[2] == 0 {
+        return false;
+    }
+    let mask = tracks_for_note(bytes[0] & 0x0f, bytes[1], |p| shared.value(p)) as u32;
+    mask != 0 && mask & !mutes == 0
 }
 
 /// Light the pads of the tracks a note-on triggers (by the current channel/note settings).

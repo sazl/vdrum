@@ -110,6 +110,12 @@ impl Model for SharedModel<'_> {
     fn seq_status(&self) -> SeqStatus {
         self.0.seq_status.load()
     }
+    fn mutes(&self) -> u8 {
+        self.0.mutes.load(Ordering::Relaxed)
+    }
+    fn tempo(&self) -> f64 {
+        self.0.tempo.load(Ordering::Relaxed) as f64
+    }
 }
 
 /// The engine operations that bring the engine's copy of the sequencer data up to date after
@@ -192,6 +198,15 @@ pub fn apply(shared: &Shared, action: Action) -> Option<Vec<u8>> {
             for ev in evs {
                 let _ = shared.commands.push(Command::Seq(ev));
             }
+            None
+        }
+        Action::SetMutes(m) => {
+            shared.mutes.store(m & 0x7f, Ordering::Relaxed);
+            let _ = shared.commands.push(Command::Seq(SeqEv::Mutes(m & 0x7f)));
+            None
+        }
+        Action::LfoReset => {
+            let _ = shared.commands.push(Command::Seq(SeqEv::LfoReset));
             None
         }
         Action::SeqHostClock(host) => {
@@ -316,6 +331,9 @@ impl Session {
     pub fn new(shared: &Shared) -> Session {
         let mut surface = Surface::new();
         surface.settings = load_settings(shared);
+        if let Ok(s) = shared.surface_state.lock() {
+            surface.load_state(&s);
+        }
         Session { surface, device: DeviceState::default(), next_frame: 0, browsed: None, compare_stash: None }
     }
 
@@ -420,6 +438,11 @@ impl Session {
             out.extend(self.perform(shared, a));
         }
         save_settings(shared, &self.surface.settings);
+        if self.surface.take_state_changed() {
+            if let Ok(mut cur) = shared.surface_state.lock() {
+                *cur = self.surface.state_text();
+            }
+        }
         if t >= self.next_frame {
             self.next_frame = t + FRAME_MS;
             out.extend(self.device.update(&self.surface.frame(t, &model)));
@@ -514,6 +537,9 @@ mod tests {
         assert!(matches!(shared.commands.pop(), Some(Command::Seq(SeqEv::Bits { bits: 0x55, .. }))));
         apply(&shared, Action::Seq(SeqEdit::Density { track: 7, value: 120 }));
         assert!(matches!(shared.commands.pop(), Some(Command::Seq(SeqEv::Density { track: 7, value: 100 }))));
+        apply(&shared, Action::SetMutes(0xff));
+        assert_eq!(SharedModel(&shared).mutes(), 0x7f);
+        assert!(matches!(shared.commands.pop(), Some(Command::Seq(SeqEv::Mutes(0x7f)))));
         apply(&shared, Action::SeqHostClock(false));
         assert!(!shared.seq_host_clock.load(Ordering::Relaxed));
         // out of range: ignored

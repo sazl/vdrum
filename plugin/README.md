@@ -207,6 +207,7 @@ change is applied at the start of the next tick.
   * `midi_learn`;
   * `faders`: the voice fader steps;
   * `lcxl3-settings`: the Launch Control XL 3 controller settings;
+  * `lcxl3-state`: the controller's snapshots and macros (JSON);
   * `sequencer`: the sequencer's patterns and densities (JSON, only what differs from empty
     patterns; absent when all patterns are empty);
   * the editor size and zoom.
@@ -345,6 +346,46 @@ discards edits of the playing pattern when the pattern changes.
 * **Pattern changes** keep the kit. The firmware's default `PAR_PATTERN_MODE` 1 loads the
   pattern's kit slot from the engine's kit memory on every pattern change, which undid kit edits;
   the plugin sets it to 0 (it is not a host parameter).
+
+### Performance modes (9 to 12)
+
+These act through the same parameter changes as the knobs, except mutes and the LFO phase reset.
+They do not go into the undo history (the LFO offset knob does).
+
+* **Mutes** (Perform, bottom row; button 8 = all). The audio thread drops note-ons whose tracks
+  are all muted (host MIDI and controller pads) and the sequencer skips muted tracks
+  (`seq_mutedTracks`, set without the firmware's note off, so a sounding voice finishes its decay).
+  A note that triggers a muted and an unmuted track plays both. Mutes are not saved.
+* **Momentary effects** (Mix + FX, bottom row, active while held). On release every changed
+  parameter returns to its value before the press; a change to the same parameter made while the
+  effect is held is overwritten.
+  * Stutter 1/16 and 1/32 repeat the tracks hit in the last second, at the host tempo (or
+    `PAR_BPM`), from the controller thread (timing within a few milliseconds, not sample exact).
+  * Filter sweep moves all cutoffs down over 50 ms to 2 s (Effect rate).
+  * Reso up, Swell (attack), Long decay raise those parameters of all voices; Lo-fi lowers the
+    global sample rate; FX throw sends all voices to the FX bus and raises the dry/wet amount.
+  * Effect depth sets how far they go.
+* **LFO + Mod, column 8.**
+  * Rate scale (10 to 400 %), Depth scale fader (0 to 200 %) and Vel scale (0 to 200 %) multiply the
+    LFO rates, LFO amounts and velocity amounts of all voices. The values at 100 % are kept and
+    return when the scale is back at 100 %. A value changed elsewhere while scaled becomes the new
+    value at 100 %. The saved kit holds the scaled values.
+  * LFO offset all moves every LFO phase offset (undoable).
+  * Sync to host sets the free-running LFOs to clock sync 1/1 (the engine's sync follows the
+    sequencer tempo, which follows the host tempo in the Host clock setting); pressed again, the
+    previous sync settings return.
+  * Reset phases restarts every LFO at its phase offset (`Lxr::vdrum_lfo_reset_phases`).
+* **Snapshots** (Morph + Macro, top row). Hold 1 s stores the kit parameters, a short press
+  recalls them. Saved with the plugin state (`lcxl3-state`).
+* **Morph.** Each voice has a morph amount and a target snapshot (knob rows 2 and 3; column 8 sets
+  all voices). Numeric parameters are interpolated from the voice's values when the morph started
+  toward the snapshot; lists switch at the middle; the audio output stays. Amount 0 restores the
+  starting values. The engine's own morph (`PAR_MORPH`) is not used: it needs a morph kit slot in
+  the engine's kit memory, which the plugin does not fill.
+* **Macros.** Press Learn N, move controls in any mode, press Learn N again: every parameter
+  changed in between gets the range from its value before the first change to its last value.
+  The fader sets the position in that range, knob row 1 scales the ranges (0 to 200 %). Saved
+  with the plugin state. Assigning macros in the editor is not implemented.
 
 ## Validation (Linux, x86_64)
 

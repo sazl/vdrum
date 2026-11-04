@@ -17,6 +17,7 @@ struct Fake {
     switches: RefCell<[bool; 2]>,
     seq: RefCell<SeqData>,
     status: RefCell<SeqStatus>,
+    mutes: RefCell<u8>,
 }
 
 impl Fake {
@@ -51,6 +52,7 @@ impl Fake {
                         _ => {}
                     }
                 }
+                Action::SetMutes(m) => *self.mutes.borrow_mut() = *m,
                 _ => {}
             }
         }
@@ -78,6 +80,9 @@ impl Model for Fake {
     }
     fn seq_status(&self) -> SeqStatus {
         *self.status.borrow()
+    }
+    fn mutes(&self) -> u8 {
+        *self.mutes.borrow()
     }
 }
 
@@ -719,4 +724,126 @@ fn play_runs_the_internal_clock_only() {
     assert_eq!(seq_edits(&a), vec![SeqEdit::Run(true)]);
     let a = press(&mut s, &m, Button::Play, 10);
     assert_eq!(seq_edits(&a), vec![SeqEdit::Run(false)]);
+}
+
+
+fn led_of(s: &Surface, m: &Fake, c: Control) -> (u8, u8, u8) {
+    s.frame(0, m).leds.iter().find(|(x, _)| *x == c).map(|x| x.1).unwrap()
+}
+
+#[test]
+fn perform_mutes_and_triggers() {
+    let m = Fake::new();
+    let mut s = Surface::new();
+    s.set_mode(Mode::Perform);
+    press(&mut s, &m, Button::Bottom(2), 0);
+    assert_eq!(m.mutes(), 0b100);
+    assert_eq!(led_of(&s, &m, Control::Button(Button::Bottom(2))), (255, 0, 0));
+    press(&mut s, &m, Button::Bottom(7), 0); // mute all
+    assert_eq!(m.mutes(), 0x7f);
+    press(&mut s, &m, Button::Bottom(7), 0);
+    assert_eq!(m.mutes(), 0);
+    let a = press(&mut s, &m, Button::Top(4), 0);
+    assert!(a.iter().any(|x| matches!(x, Action::Trigger { track: 4, .. })));
+}
+
+#[test]
+fn momentary_effects_restore_exactly() {
+    let m = Fake::new();
+    let mut s = Surface::new();
+    s.set_mode(Mode::MixFx);
+    let reso: Vec<u16> = (0..7).map(|t| voice_param(t, "reso")).filter(|i| lxr_params::info(*i).is_some()).collect();
+    m.apply(&[Action::SetParam { idx: reso[0], value: 33 }]);
+    let before: Vec<u16> = reso.iter().map(|i| m.param(*i)).collect();
+    press(&mut s, &m, Button::Bottom(3), 0); // Reso up
+    assert!(m.param(reso[0]) > 33);
+    release(&mut s, &m, Button::Bottom(3), 10);
+    assert_eq!(reso.iter().map(|i| m.param(*i)).collect::<Vec<_>>(), before);
+
+    // filter sweep moves over time
+    let cut = voice_param(0, "cutoff");
+    let c0 = m.param(cut);
+    press(&mut s, &m, Button::Bottom(2), 1000);
+    tick(&mut s, &m, 1100);
+    let mid = m.param(cut);
+    tick(&mut s, &m, 5000);
+    let end = m.param(cut);
+    assert!(end < mid && mid <= c0, "{c0} {mid} {end}");
+    release(&mut s, &m, Button::Bottom(2), 5001);
+    assert_eq!(m.param(cut), c0);
+
+    // stutter repeats the tracks hit recently at 1/16 of the tempo (120 bpm: 125 ms)
+    m.hits.borrow_mut()[3] += 1;
+    tick(&mut s, &m, 6000);
+    let a = press(&mut s, &m, Button::Bottom(0), 6100);
+    assert_eq!(a.iter().filter(|x| matches!(x, Action::Trigger { track: 3, .. })).count(), 1);
+    let a = tick(&mut s, &m, 6100 + 125 * 3);
+    assert_eq!(a.iter().filter(|x| matches!(x, Action::Trigger { track: 3, .. })).count(), 3);
+    release(&mut s, &m, Button::Bottom(0), 6500);
+    assert!(tick(&mut s, &m, 7000).iter().all(|x| !matches!(x, Action::Trigger { .. })));
+}
+
+#[test]
+fn lfo_scales_are_non_destructive() {
+    let m = Fake::new();
+    let mut s = Surface::new();
+    s.set_mode(Mode::LfoMod);
+    let r0 = voice_param(0, "lfo_rate");
+    m.apply(&[Action::SetParam { idx: r0, value: 40 }]);
+    turn(&mut s, &m, 0, 7, 20); // rate scale 200 %
+    assert_eq!(m.param(r0), 80);
+    turn(&mut s, &m, 0, 7, -20);
+    assert_eq!(m.param(r0), 40);
+    // LFO sync to host sets free LFOs to 1/1 and back
+    let sy = voice_param(1, "lfo_sync");
+    press(&mut s, &m, Button::Top(7), 0);
+    assert_eq!(m.param(sy), 3);
+    press(&mut s, &m, Button::Top(7), 0);
+    assert_eq!(m.param(sy), 0);
+    let a = press(&mut s, &m, Button::Bottom(7), 0);
+    assert!(a.contains(&Action::LfoReset));
+}
+
+#[test]
+fn snapshots_morph_and_macros() {
+    let m = Fake::new();
+    let mut s = Surface::new();
+    s.set_mode(Mode::MorphMacro);
+    let coarse = voice_param(0, "coarse");
+    m.apply(&[Action::SetParam { idx: coarse, value: 100 }]);
+    // hold 1 s stores snapshot 1
+    press(&mut s, &m, Button::Top(0), 0);
+    tick(&mut s, &m, 1000);
+    release(&mut s, &m, Button::Top(0), 1100);
+    assert!(s.take_state_changed());
+    m.apply(&[Action::SetParam { idx: coarse, value: 20 }]);
+    // morph Drum 1 toward snapshot 1 and back
+    turn(&mut s, &m, 1, 0, 127);
+    assert_eq!(m.param(coarse), 100);
+    turn(&mut s, &m, 1, 0, -64);
+    assert_eq!(m.param(coarse), 59); // 20 + 80 * 63 / 127
+    turn(&mut s, &m, 1, 0, -127);
+    assert_eq!(m.param(coarse), 20);
+    // a short press recalls
+    press(&mut s, &m, Button::Top(0), 2000);
+    release(&mut s, &m, Button::Top(0), 2100);
+    assert_eq!(m.param(coarse), 100);
+
+    // learn macro 1 from a knob turned in a voice mode
+    press(&mut s, &m, Button::Bottom(0), 3000);
+    s.set_mode(Mode::Voice(0));
+    let fine = voice_param(0, "fine");
+    let f0 = m.param(fine);
+    turn(&mut s, &m, 0, 0, 10);
+    s.set_mode(Mode::MorphMacro);
+    press(&mut s, &m, Button::Bottom(0), 4000);
+    fader(&mut s, &m, 0, 0);
+    assert_eq!(m.param(fine), f0);
+    fader(&mut s, &m, 0, 127);
+    assert_eq!(m.param(fine), f0 + 10);
+    // the state survives a reload
+    let text = s.state_text();
+    let mut s2 = Surface::new();
+    s2.load_state(&text);
+    assert_eq!(s2.state_text(), text);
 }

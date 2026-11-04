@@ -344,3 +344,26 @@ fn pattern_changes_keep_the_kit() {
     assert!(changed.iter().all(|&i| i >= lxr_params::kit::KIT_PARAMS), "kit parameters changed: {changed:?}");
     assert_eq!(e.get_parameter(lxr_params::par::COARSE1), 12);
 }
+
+#[test]
+fn mutes_and_lfo_reset() {
+    use crate::engine::SeqEv;
+    let mut e = crate::new_engine();
+    e.seq(SeqEv::Mutes(0b101));
+    assert_eq!(e.0.seq_mutedTracks, 0b101);
+    for _ in 0..50 {
+        e.tick();
+    }
+    e.0.snareVoice.lfo.phaseOffset = 1234;
+    e.seq(SeqEv::LfoReset);
+    assert_eq!(e.0.snareVoice.lfo.phase, 1234);
+
+    // muted tracks' note-ons are dropped before the engine
+    let sh = Shared::new();
+    let on = [0x90, crate::params::DEFAULT_TRACK_NOTES[3], 100];
+    assert!(!crate::muted(&sh, on));
+    sh.mutes.store(1 << 3, std::sync::atomic::Ordering::Relaxed);
+    assert!(crate::muted(&sh, on));
+    assert!(!crate::muted(&sh, [0x90, crate::params::DEFAULT_TRACK_NOTES[2], 100]));
+    assert!(!crate::muted(&sh, [0x80, crate::params::DEFAULT_TRACK_NOTES[3], 0]));
+}

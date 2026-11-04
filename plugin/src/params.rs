@@ -254,6 +254,14 @@ pub struct Shared {
     /// The sequencer follows the host transport (true) or runs on the engine's own clock.
     pub seq_host_clock: AtomicBool,
     pub seq_status: SeqStatusAtomics,
+    /// Muted tracks (bit `t` = track `t`): the audio thread drops their note-ons and the
+    /// sequencer skips them.
+    pub mutes: AtomicU8,
+    /// Current tempo (host, or the engine's `PAR_BPM`), for the controller's stutter.
+    pub tempo: AtomicF32,
+    /// Controller snapshots and macros (`vdrum_surface::Surface::state_text`), saved with the
+    /// plugin state.
+    pub surface_state: Mutex<String>,
 }
 
 impl Shared {
@@ -282,6 +290,9 @@ impl Shared {
             seq: Mutex::new(SeqData::default()),
             seq_host_clock: AtomicBool::new(true),
             seq_status: SeqStatusAtomics::new(),
+            mutes: AtomicU8::new(0),
+            tempo: AtomicF32::new(120.0),
+            surface_state: Mutex::new(String::new()),
         };
         let init = Kit::init();
         s.set_name(&init.name);
@@ -582,6 +593,11 @@ unsafe impl Params for VDrumParams {
                 m.insert("lcxl3-settings".into(), s.clone());
             }
         }
+        if let Ok(s) = self.shared.surface_state.lock() {
+            if !s.is_empty() {
+                m.insert("lcxl3-state".into(), s.clone());
+            }
+        }
         if let Ok(d) = self.shared.seq.lock() {
             if *d != SeqData::default() {
                 m.insert("sequencer".into(), d.to_text());
@@ -663,6 +679,9 @@ unsafe impl Params for VDrumParams {
             }
             let host = vdrum_surface::Settings::from_text(s).host_clock;
             self.shared.seq_host_clock.store(host, Ordering::Relaxed);
+        }
+        if let Ok(mut cur) = self.shared.surface_state.lock() {
+            *cur = serialized.get("lcxl3-state").cloned().unwrap_or_default();
         }
         // A state without sequencer data has empty patterns; `initialize()` loads them into the
         // engine.
@@ -820,6 +839,10 @@ mod tests {
         p2.deserialize_fields(&f);
         assert_eq!(*sh2.seq.lock().unwrap(), *sh.seq.lock().unwrap());
         assert!(!sh2.seq_host_clock.load(Ordering::Relaxed));
+        assert!(!f.contains_key("lcxl3-state"));
+        *sh.surface_state.lock().unwrap() = "{\"snapshots\":[],\"macros\":[]}".into();
+        p2.deserialize_fields(&p.serialize_fields());
+        assert_eq!(*sh2.surface_state.lock().unwrap(), *sh.surface_state.lock().unwrap());
         // a state without sequencer data clears the patterns
         let mut f2 = f.clone();
         f2.remove("sequencer");
