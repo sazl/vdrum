@@ -54,4 +54,7 @@ pub mod preset;
 pub mod sequencer;
 pub mod soundengine;
 
+/// VDrum extensions (not part of the firmware port).
+pub mod vdrum;
+
 pub use engine::{Block, Lxr};

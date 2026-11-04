@@ -158,7 +158,7 @@ change is applied at the start of the next tick.
 * **MIDI learn.**
   * To learn: right-click a control, choose *MIDI learn*, then move a controller. The next CC on
     any channel is assigned.
-  * Every parameter can be learned. That covers all engine parameters, the six voice faders, and
+  * Every parameter can be learned. That covers all engine parameters, the seven voice faders, and
     the *Sum aux* and *Hardware clock* switches.
   * A learned (channel, CC) pair is taken out of the stream and is not passed to the engine. Its
     7-bit value is scaled linearly onto the parameter's range: fader steps 0–99, and for the
@@ -170,12 +170,17 @@ change is applied at the start of the next tick.
 
 ## Parameters and GUI sync
 
-* **Host parameters.** There are 249 engine parameters: 233 sound and 16 global. Each has the ID
-  of its firmware enum name, lower case and without `PAR_` (for example `coarse1` or
-  `midi_chan_global`). Groups follow voice and section (`Drum 1/Oscillator`, `FX/FX Bus`,
+* **Host parameters.** There are 286 engine parameters: 233 sound and 16 global from the firmware,
+  and 37 for the open hi-hat voice (`lxr_core::vdrum::open_hat`). Firmware parameters have the ID
+  of their enum name, lower case and without `PAR_` (for example `coarse1` or
+  `midi_chan_global`); the open hi-hat's IDs end in `7` or `_oh` (`coarse7`, `wave1_oh`), and
+  `hat_choke` is the closed-hat choke. The open hi-hat parameters come after the others, so the
+  host slots of the firmware parameters did not move. `velod6_open` remains a host parameter but
+  has no effect while the hi-hat is split. Groups follow voice and section (`Drum 1/Oscillator`, `FX/FX Bus`,
   `Global/MIDI`). Values show the firmware's edit-mode text; modulation targets are spelled out.
-* **Voice faders.** The plugin adds six parameters, `vdrum_fader_1` … `vdrum_fader_6`, for the
-  hardware's volume faders (Drum 1–3, Snare, Cymbal, Hi-hat). They are not part of the kit.
+* **Voice faders.** The plugin adds seven parameters, `vdrum_fader_1` … `vdrum_fader_7`, for the
+  hardware's volume faders (Drum 1–3, Snare, Cymbal, Hi-hat) and one for the open hi-hat. They are
+  not part of the kit.
   * They have steps 0–99 and go through the hardware path, `adc_checkFaders` (`set_fader_adc`).
   * Step `s` reads ADC `36 + 41·s` (12 bit). Every step therefore clears the 40-count
     hysteresis, step 0 is silence, and step 99 is the top.
@@ -197,15 +202,17 @@ change is applied at the start of the next tick.
 
 * **Plugin state.** It holds:
   * the host parameters;
-  * `kit`: the `.snd` bytes (8-byte name plus 247 parameters), hex encoded;
+  * `kit`: the kit file bytes (8-byte name, 247 parameters and the open hi-hat block), hex encoded;
   * `globals`: the global settings by ID;
   * `midi_learn`;
   * the editor size and zoom.
 * **Restoring state.** The kit and the globals are authoritative. They are loaded into the engine
   in `initialize()`.
 * **Kit files.**
-  * *Load…* and *Save…* read and write the firmware's `.snd` format (`preset_loadDrumsetSD`,
-    `preset_saveDrumsetSD`).
+  * *Load…* reads the firmware's `.snd` format (`preset_loadDrumsetSD`) and VDrum kits. A firmware
+    kit has no open hi-hat block; its open hi-hat is imported from the hi-hat.
+  * *Save…* writes a VDrum kit: the firmware's 255 bytes (`preset_saveDrumsetSD`), then `VDX1`, a
+    count byte and the 37 open hi-hat values (297 bytes). The firmware reads only the first 255.
   * *Save…* suggests the firmware's file name `NN-XXXXX.snd`.
   * *Init* loads the init kit.
 
@@ -220,7 +227,8 @@ change is applied at the start of the next tick.
     * Filter, Transient, LFO, Velocity modulation;
     * Mix, including the fader.
   * Card headers show the trigger note and channel, with trigger pads that light when the track
-    plays. The hi-hat card has CH and OH and shows the closed and open hi-hat pages.
+    plays. The hi-hat card has a Closed/Open selector and both pads; it shows the closed or the open
+    hi-hat voice.
   * Labels are spelled out ("Pitch Mod Amount", "Destination Voice"). Values are shown as the
     LXR-02 display shows them in edit mode. The tooltip has the full name and, for modulation
     destinations, the spelled-out target.

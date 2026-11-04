@@ -357,6 +357,9 @@ impl Lxr {
         self.Snare_calcAsync();
         self.Cymbal_calcAsync();
         self.HiHat_calcAsync();
+        if self.vdrum.hat_split {
+            self.oh_mixer_prepare(); // VDrum extension: open hi-hat voice
+        }
 
         let mut sampleData = [0i16; OUTPUT_DMA_SIZE as usize];
         let mut fxBusData = [0i16; OUTPUT_DMA_SIZE as usize * 2];
@@ -391,6 +394,10 @@ impl Lxr {
         self.mixer_decimateBlock(5, &mut sampleData);
         let (panL, panR) = (self.hatVoice.triggeredPanL, self.hatVoice.triggeredPanR);
         self.mixer_addDataToOutput(self.mixer_audioRouting[5], panL, panR, &sampleData, output, output2, &mut fxBusData);
+
+        if self.vdrum.hat_split {
+            self.oh_mixer_render(&mut sampleData, output, output2, &mut fxBusData); // VDrum extension
+        }
 
         self.FxBus_process(&mut fxBusData, output, output2, OUTPUT_DMA_SIZE as u32);
     }

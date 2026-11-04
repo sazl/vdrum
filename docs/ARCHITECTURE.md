@@ -82,6 +82,28 @@ MIDI bytes are parsed in the main loop between interrupts (`uart_processMidi()`)
    Struct layouts of the firmware are available with
    `gdb-multiarch -batch -ex 'ptype /o <Type>' lxr_v1.7_gcc11.3.elf`.
 
+## VDrum extensions to the engine (`lxr_core::vdrum`)
+
+Code in `crates/lxr-core/src/vdrum/` is not part of the firmware port. Its hooks in firmware modules
+are guarded so that the firmware path is unchanged while they are off; `Lxr::new()` starts with every
+extension off, and the scenario reference hashes are computed in that state.
+
+### Open hi-hat as a separate voice (`vdrum::open_hat`)
+
+* `Lxr::set_hat_split(true)` (the plugin's `LxrEngine::new` calls it) gives track 7 (voice 6) its own
+  `HiHatVoice` (`vdrum.ohVoice`) with 37 parameters (`OH_*`): the 36 hi-hat sound parameters plus
+  `OH_CHOKE` (a closed hit silences the open hat). Track 6 keeps the firmware `hatVoice` and plays
+  only closed hits. `PAR_VELOD6_OPEN` no longer affects anything while the split is on.
+* On split-on the open voice copies `hatVoice`'s running state, then applies the `OH_*` values, so an
+  open hat whose parameters were imported from the hi-hat (`oh_import_from_hat`) renders the same
+  samples as the firmware's open hat.
+* Mixer: the open hat has its own routing, decimation and fader (`set_fader_adc(6, ..)`).
+* Modulation targets 229..=254 address 26 open-hat parameters (`OH_MOD_TARGETS`). The open hat's own
+  LFO and velocity modulation can target them. Firmware LFOs and velocity modulators keep their
+  0..=228 ranges and cannot target the open hat.
+* Kit files: the firmware's 255 bytes, then `VDX1`, a count byte and the 37 open-hat values (297
+  bytes, `lxr_params::kit`). A firmware kit without the block imports the open hat from the hi-hat.
+
 ## Environment variables
 
 | Variable | Meaning |

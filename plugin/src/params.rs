@@ -3,7 +3,7 @@
 
 use crossbeam_queue::ArrayQueue;
 use lxr_params::kit::{Kit, KIT_FILE_LEN, KIT_PARAMS};
-use lxr_params::{Dtype, ParamInfo, ParamKind, Voice, GLOBAL_PARAMS, NUM_PARAMS, PARAMS};
+use lxr_params::{oh_params, Dtype, ParamInfo, ParamKind, Voice, GLOBAL_PARAMS, NUM_ALL_PARAMS, PARAMS};
 use nih_plug::params::internals::ParamPtr;
 use nih_plug::params::persist::PersistentField;
 use nih_plug::prelude::*;
@@ -13,7 +13,8 @@ use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU16, AtomicU32, AtomicU8, Ordering};
 use std::sync::{Arc, Mutex};
 
-pub const N: usize = NUM_PARAMS as usize;
+/// Parameter indices: the firmware's (`0..NUM_PARAMS`) and the open hi-hat's (`NUM_PARAMS..`).
+pub const N: usize = NUM_ALL_PARAMS as usize;
 /// MIDI learn slots: 16 channels × 128 CCs.
 pub const LEARN_SLOTS: usize = 16 * 128;
 /// Stable ID of the "sum aux into main" switch (not an engine parameter).
@@ -21,10 +22,12 @@ pub const SUM_AUX_ID: &str = "vdrum_sum_aux";
 /// Stable ID of the "hardware clock" switch: run the engine at the hardware's 44140.625 Hz and
 /// resample, instead of 44100 Hz (pass-through at a 44100 Hz host rate).
 pub const HARDWARE_CLOCK_ID: &str = "vdrum_hardware_clock";
-/// Stable ID prefix of the voice fader parameters (`vdrum_fader_1` .. `vdrum_fader_6`).
+/// Stable ID prefix of the voice fader parameters (`vdrum_fader_1` .. `vdrum_fader_7`).
 pub const FADER_ID_PREFIX: &str = "vdrum_fader_";
-const FADER_NAMES: [&str; 6] =
-    ["Drum 1 Fader", "Drum 2 Fader", "Drum 3 Fader", "Snare Fader", "Cymbal Fader", "Hi-hat Fader"];
+/// Number of voice faders: the firmware's six and the open hi-hat's.
+pub const NUM_FADERS: usize = 7;
+const FADER_NAMES: [&str; NUM_FADERS] =
+    ["Drum 1 Fader", "Drum 2 Fader", "Drum 3 Fader", "Snare Fader", "Cymbal Fader", "Hi-hat Fader", "Open Hi-hat Fader"];
 
 /// Plugin default MIDI notes of the 7 tracks (Drum 1, Drum 2, Drum 3, Snare, Cymbal, closed hi-hat,
 /// open hi-hat), all on MIDI channel 1: General MIDI drum notes (36 Bass Drum 1, 45 Low Tom,
@@ -84,13 +87,13 @@ pub fn fader_text(step: i32) -> String {
     }
 }
 
-/// MIDI learn targets after the engine parameters (`0..N`): the six voice faders, then the two
+/// MIDI learn targets after the engine parameters (`0..N`): the seven voice faders, then the two
 /// plugin switches.
 pub const LEARN_FADER: u16 = N as u16;
-pub const LEARN_SUM_AUX: u16 = N as u16 + 6;
-pub const LEARN_HW_CLOCK: u16 = N as u16 + 7;
+pub const LEARN_SUM_AUX: u16 = N as u16 + NUM_FADERS as u16;
+pub const LEARN_HW_CLOCK: u16 = N as u16 + NUM_FADERS as u16 + 1;
 /// Number of plugin (non-engine) learn targets.
-pub const EXTRA_TARGETS: usize = 8;
+pub const EXTRA_TARGETS: usize = NUM_FADERS + 2;
 
 /// Stable ID of a learn target (for the saved learn map).
 pub fn learn_id(target: u16) -> Option<String> {
@@ -106,7 +109,7 @@ pub fn learn_id(target: u16) -> Option<String> {
 /// Inverse of [`learn_id`].
 pub fn learn_target_by_id(id: &str) -> Option<u16> {
     if let Some(n) = id.strip_prefix(FADER_ID_PREFIX).and_then(|n| n.parse::<u16>().ok()) {
-        return (1..=6).contains(&n).then(|| LEARN_FADER + n - 1);
+        return (1..=NUM_FADERS as u16).contains(&n).then(|| LEARN_FADER + n - 1);
     }
     match id {
         SUM_AUX_ID => Some(LEARN_SUM_AUX),
@@ -196,7 +199,7 @@ impl Shared {
         };
         let init = Kit::init();
         s.set_name(&init.name);
-        for p in PARAMS.iter().chain(GLOBAL_PARAMS.iter()) {
+        for p in PARAMS.iter().chain(GLOBAL_PARAMS.iter()).chain(oh_params().iter()) {
             s.values[p.index as usize].store(plugin_default(p), Ordering::Relaxed);
         }
         s
@@ -258,15 +261,17 @@ pub fn scale_cc(info: &ParamInfo, v: u8) -> u16 {
     info.min + ((v.min(127) as u32 * span + 63) / 127) as u16
 }
 
-/// The parameters exposed to the host: every sound parameter and the global settings. Not exposed
-/// (but kept in the kit): the unused kit slots, and parameters with a single possible value
-/// (`PAR_FX_REVERB_TYPE`: the firmware lists one reverb type), which a host parameter cannot
-/// represent (zero-width range).
+/// The parameters exposed to the host: every sound parameter, the global settings and the open
+/// hi-hat's parameters (after the others, so that the host slots of the firmware parameters do not
+/// move). Not exposed (but kept in the kit): the unused kit slots, and parameters with a single
+/// possible value (`PAR_FX_REVERB_TYPE`: the firmware lists one reverb type), which a host parameter
+/// cannot represent (zero-width range).
 pub fn host_param_infos() -> Vec<&'static ParamInfo> {
     PARAMS
         .iter()
         .filter(|p| p.kind == ParamKind::Sound && p.min < p.max)
         .chain(GLOBAL_PARAMS.iter())
+        .chain(oh_params().iter())
         .collect()
 }
 
@@ -313,8 +318,9 @@ pub struct VDrumParams {
     pub slot_of: [i16; N],
     pub sum_aux: BoolParam,
     pub hardware_clock: BoolParam,
-    /// The six voice volume faders (Drum 1..3, Snare, Cymbal, Hi-hat), steps 0..=[`FADER_MAX`].
-    pub faders: [IntParam; 6],
+    /// The seven voice volume faders (Drum 1..3, Snare, Cymbal, Hi-hat, Open Hi-hat), steps
+    /// 0..=[`FADER_MAX`].
+    pub faders: [IntParam; NUM_FADERS],
     pub shared: Arc<Shared>,
     groups: Vec<String>,
 }
@@ -386,9 +392,12 @@ impl VDrumParams {
 
     /// The current kit.
     pub fn kit(&self) -> Kit {
-        let mut k = Kit { name: self.shared.name_bytes(), values: [0; KIT_PARAMS] };
+        let mut k = Kit::from_values(self.shared.name_bytes(), [0; KIT_PARAMS]);
         for (i, v) in k.values.iter_mut().enumerate() {
             *v = self.current(i as u16).min(255) as u8;
+        }
+        for (k_, v) in k.oh.iter_mut().enumerate() {
+            *v = self.current(lxr_params::open_hat::oh_index(k_)).min(255) as u8;
         }
         k
     }
@@ -417,7 +426,8 @@ unsafe impl Params for VDrumParams {
         v.push((SUM_AUX_ID.to_string(), self.sum_aux.as_ptr(), "Output".to_string()));
         v.push((HARDWARE_CLOCK_ID.to_string(), self.hardware_clock.as_ptr(), "Output".to_string()));
         for (i, f) in self.faders.iter().enumerate() {
-            v.push((format!("{FADER_ID_PREFIX}{}", i + 1), f.as_ptr(), format!("{}/Mix", Voice::VOICES[i].label())));
+            let voice = Voice::VOICES.get(i).copied().unwrap_or(Voice::OpenHat);
+            v.push((format!("{FADER_ID_PREFIX}{}", i + 1), f.as_ptr(), format!("{}/Mix", voice.label())));
         }
         v
     }
@@ -524,7 +534,7 @@ mod tests {
     fn host_params_have_unique_stable_ids() {
         let p = VDrumParams::new(Arc::new(Shared::new()));
         let map = p.param_map();
-        assert_eq!(map.len(), 233 + 16 + 2 + 6);
+        assert_eq!(map.len(), 233 + 16 + 37 + 2 + 7);
         // Ranges must not be empty (hosts reject them).
         assert!(p.infos.iter().all(|i| i.min < i.max));
         let mut ids: Vec<_> = map.iter().map(|m| m.0.clone()).collect();
@@ -533,6 +543,12 @@ mod tests {
         assert_eq!(ids.len(), map.len());
         assert!(map.iter().any(|m| m.0 == "coarse1" && m.2 == "Drum 1/Oscillator"));
         assert!(map.iter().any(|m| m.0 == "midi_chan_global" && m.2 == "Global/MIDI"));
+        assert!(map.iter().any(|m| m.0 == "coarse7" && m.2 == "Open Hi-hat/Oscillator"));
+        assert!(map.iter().any(|m| m.0 == "vdrum_fader_7" && m.2 == "Open Hi-hat/Mix"));
+        // the firmware parameters keep their host slots (and order)
+        let first: Vec<_> = map.iter().take(233 + 16).map(|m| m.0.clone()).collect();
+        assert_eq!(first[0], "osc_wave_drum1");
+        assert!(!first.iter().any(|id| lxr_params::by_id(id).is_some_and(|i| i.voice == Voice::OpenHat)));
     }
 
     #[test]

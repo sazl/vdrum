@@ -202,6 +202,9 @@ impl Lxr {
         self.cymbalVoice.lfo.phaseInc = self.lfo_calcPhaseInc(f, s);
         let (f, s) = (self.hatVoice.lfo.freq, self.hatVoice.lfo.sync);
         self.hatVoice.lfo.phaseInc = self.lfo_calcPhaseInc(f, s);
+        // VDrum extension: the open hi-hat's LFO (kept in sync whether or not the split is on)
+        let (f, s) = (self.vdrum.ohVoice.lfo.freq, self.vdrum.ohVoice.lfo.sync);
+        self.vdrum.ohVoice.lfo.phaseInc = self.lfo_calcPhaseInc(f, s);
     }
 
     /// C: `void lfo_retrigger(uint8_t voice)`
@@ -217,6 +220,13 @@ impl Lxr {
             }
         }
         for l in [&mut self.snareVoice.lfo, &mut self.cymbalVoice.lfo, &mut self.hatVoice.lfo] {
+            if l.retrigger as u32 == v {
+                l.phase = l.phaseOffset;
+            }
+        }
+        if self.vdrum.hat_split {
+            // VDrum extension: the open hi-hat's LFO (retrigger 7 = the open hi-hat, `oh_trigger`)
+            let l = &mut self.vdrum.ohVoice.lfo;
             if l.retrigger as u32 == v {
                 l.phase = l.phaseOffset;
             }

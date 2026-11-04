@@ -14,9 +14,11 @@
 pub mod format;
 pub mod generated;
 pub mod kit;
+pub mod open_hat;
 
 pub use format::{format_value, format_value_short, parse_value};
 pub use generated::*;
+pub use open_hat::{oh_params, NUM_ALL_PARAMS, OH_NUM_PARAMS, OH_PARAM_BASE};
 
 /// What kind of entry of `enum ParamEnums` a [`ParamInfo`] describes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -40,6 +42,8 @@ pub enum Voice {
     Snare,
     Cymbal,
     HiHat,
+    /// VDrum's separate open hi-hat voice ([`open_hat`]; the firmware plays it on [`Voice::HiHat`]).
+    OpenHat,
     /// The FX bus page.
     Fx,
     /// Global/performance settings.
@@ -58,14 +62,18 @@ impl Voice {
             Voice::Snare => "Snare",
             Voice::Cymbal => "Cymbal",
             Voice::HiHat => "Hi-hat",
+            Voice::OpenHat => "Open Hi-hat",
             Voice::Fx => "FX",
             Voice::Global => "Global",
             Voice::None => "",
         }
     }
 
-    /// 0-based voice number (0..=5) for the six sound voices.
+    /// 0-based voice number (0..=5) for the six sound voices, 6 for the open hi-hat.
     pub fn number(self) -> Option<u8> {
+        if self == Voice::OpenHat {
+            return Some(6);
+        }
         Self::VOICES.iter().position(|v| *v == self).map(|i| i as u8)
     }
 }
@@ -245,9 +253,14 @@ impl ParamInfo {
 }
 
 /// Information on a parameter: kit parameters by index, then the global settings.
+///
+/// Indices from [`OH_PARAM_BASE`] on are the open hi-hat's parameters ([`open_hat`]).
 pub fn info(index: u16) -> Option<&'static ParamInfo> {
     if (index as usize) < PARAMS.len() {
         return Some(&PARAMS[index as usize]);
+    }
+    if let Some(k) = open_hat::oh_k(index) {
+        return oh_params().get(k);
     }
     GLOBAL_PARAMS.iter().find(|p| p.index == index)
 }
@@ -260,7 +273,7 @@ pub fn by_enum_name(name: &str) -> Option<&'static ParamInfo> {
 
 /// Look up a parameter by its stable host identifier.
 pub fn by_id(id: &str) -> Option<&'static ParamInfo> {
-    PARAMS.iter().chain(GLOBAL_PARAMS.iter()).find(|p| p.id == id)
+    PARAMS.iter().chain(GLOBAL_PARAMS.iter()).chain(oh_params().iter()).find(|p| p.id == id)
 }
 
 /// The parameters that change the sound (kind [`ParamKind::Sound`]), in index order.
@@ -269,8 +282,11 @@ pub fn sound_params() -> impl Iterator<Item = &'static ParamInfo> {
 }
 
 /// The voice (1-based, as `voiceFromModTargValue()`) a [`MOD_TARGETS`] index belongs to, 0 for "off"
-/// and the global entry.
+/// and the global entry; 7 for the open hi-hat targets ([`open_hat::OH_MOD_TARGETS`]).
 pub fn mod_target_voice(idx: u8) -> u8 {
+    if idx >= open_hat::OH_TARGET_BASE && idx <= open_hat::OH_MAX_TARGET {
+        return 7;
+    }
     for (v, (start, end)) in MOD_TARGET_VOICE_OFFSETS.iter().enumerate() {
         if idx >= *start && idx <= *end {
             return v as u8 + 1;
@@ -279,9 +295,10 @@ pub fn mod_target_voice(idx: u8) -> u8 {
     0
 }
 
-/// The parameter number a [`MOD_TARGETS`] index stands for (what the front panel sends to the engine).
+/// The parameter number a [`MOD_TARGETS`] index stands for (what the front panel sends to the engine);
+/// for an open hi-hat target, the open hi-hat parameter index.
 pub fn mod_target_param(idx: u8) -> Option<u16> {
-    MOD_TARGETS.get(idx as usize).map(|t| t.1)
+    MOD_TARGETS.get(idx as usize).map(|t| t.1).or_else(|| open_hat::oh_target_param(idx))
 }
 
 /// `paramToModTarget[]` (Cc2Text.c, `paramToModTargetInit()`): the last [`MOD_TARGETS`] index that

@@ -111,6 +111,11 @@ pub fn menu_item_name(menu: MenuList, value: u8) -> String {
 
 /// Short (3 character) name of a modulation destination (`menu_displayModTargetShort()`).
 pub fn mod_target_short(idx: u8, include_voice: bool) -> String {
+    // open hi-hat targets: the hi-hat target's text, voice 7
+    let (idx, voice) = match crate::open_hat::hat_target_for_oh_target(idx) {
+        Some(t) => (t, 7),
+        None => (idx, mod_target_voice(idx)),
+    };
     let Some(&(name, param)) = MOD_TARGETS.get(idx as usize) else {
         return "---".to_string();
     };
@@ -121,7 +126,7 @@ pub fn mod_target_short(idx: u8, include_voice: bool) -> String {
     let mut out = Vec::new();
     let mut n = 3;
     if include_voice {
-        out.push(b'0' + mod_target_voice(idx));
+        out.push(b'0' + voice);
         n -= 1;
     }
     out.extend_from_slice(&short[..short.len().min(n)]);
@@ -131,6 +136,7 @@ pub fn mod_target_short(idx: u8, include_voice: bool) -> String {
 /// Full name of a modulation destination (`menu_displayModTargetFull()`): category (8 columns)
 /// followed by the long name.
 pub fn mod_target_full(idx: u8) -> String {
+    let idx = crate::open_hat::hat_target_for_oh_target(idx).unwrap_or(idx);
     let Some(&(name, param)) = MOD_TARGETS.get(idx as usize) else {
         return "---".to_string();
     };
@@ -208,6 +214,9 @@ fn common(info: &ParamInfo, v: u8) -> Option<String> {
 
 /// The value text the menu shows in edit mode (one parameter with its full name).
 pub fn format_value(info: &ParamInfo, v: u8) -> String {
+    if let Some(s) = open_hat_text(info, v) {
+        return s;
+    }
     match info.dtype {
         Dtype::TargetSelectionLfo | Dtype::TargetSelectionVelo | Dtype::AutomTarget => mod_target_full(v),
         _ => common(info, v).unwrap_or_else(|| "---".to_string()),
@@ -216,11 +225,21 @@ pub fn format_value(info: &ParamInfo, v: u8) -> String {
 
 /// The 3 character value text of the parameter overview (four parameters per LCD line).
 pub fn format_value_short(info: &ParamInfo, v: u8) -> String {
+    if let Some(s) = open_hat_text(info, v) {
+        return s;
+    }
     match info.dtype {
         Dtype::TargetSelectionLfo | Dtype::TargetSelectionVelo => mod_target_short(v, false),
         Dtype::AutomTarget => mod_target_short(v, true),
         _ => common(info, v).unwrap_or_else(|| "---".to_string()),
     }
+}
+
+/// Values of open hi-hat parameters that the firmware's menu has no text for: LFO retrigger 7 (the open
+/// hi-hat track).
+fn open_hat_text(info: &ParamInfo, v: u8) -> Option<String> {
+    let k = crate::open_hat::oh_k(info.index)?;
+    (k == crate::open_hat::OH_RETRIGGER_LFO && v == 7).then(|| "OH".to_string())
 }
 
 fn norm(s: &str) -> String {
@@ -272,6 +291,9 @@ pub fn parse_value(info: &ParamInfo, text: &str) -> Option<u8> {
 /// Readable name of a modulation destination used by VDrum: the readable name of the parameter it
 /// stands for (`"Drum 1 Oscillator Coarse"`), `"off"` for index 0. Not a firmware text.
 pub fn mod_target_readable(idx: u8) -> Option<String> {
+    if let Some(p) = crate::open_hat::oh_target_param(idx) {
+        return Some(crate::info(p)?.name.to_string());
+    }
     let &(_, param) = MOD_TARGETS.get(idx as usize)?;
     if param == par::NONE {
         return Some("off".to_string());

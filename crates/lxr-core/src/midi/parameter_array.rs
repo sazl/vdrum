@@ -72,6 +72,10 @@ impl Lxr {
     /// Calls: `Lxr::midiParser_ccHandler`.
     pub fn paramArray_setParameter(&mut self, idx: u16, newValue: ptrValue) {
         let _ = newValue; // unused in the compiled (`#if 1`) variant
+        if idx >= crate::vdrum::OH_DEST_BASE {
+            // VDrum extension: an open hi-hat parameter (never a firmware index)
+            return self.oh_reset_param(idx);
+        }
         let p = self.parameterArray[idx as usize];
 
         // **PATROT avoid setting this if it's not set to something good

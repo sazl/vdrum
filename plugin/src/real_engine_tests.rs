@@ -170,7 +170,10 @@ fn plugin_path_reproduces_reference_hashes() {
             continue; // reads ITCM code bytes (docs/ENGINE_CONTRACT.md section 9)
         }
         let Some(want) = refs.get(&sc.name) else { continue };
-        let got = hash(&run_plugin(&sc, LxrEngine::new(), BUFFER_PATTERNS[i % BUFFER_PATTERNS.len()]));
+        // The reference hashes are the firmware's: run with the hi-hat split off (one shared hat voice).
+        let mut engine = LxrEngine::new();
+        engine.0.set_hat_split(false);
+        let got = hash(&run_plugin(&sc, engine, BUFFER_PATTERNS[i % BUFFER_PATTERNS.len()]));
         assert_eq!(&got, want, "{}: plugin output differs from the reference", sc.name);
         checked += 1;
     }
@@ -203,6 +206,7 @@ fn plugin_defaults_output_equals_engine_output_at_any_buffer_size() {
     let sc = Scenario { name: "defaults".into(), ticks: 160, events };
 
     let mut direct = lxr_core::Lxr::new();
+    direct.set_hat_split(true); // as LxrEngine::new
     for (i, n) in params::DEFAULT_TRACK_NOTES.iter().enumerate() {
         direct.set_parameter(par::MIDI_NOTE1 + i as u16, *n);
     }
@@ -239,7 +243,7 @@ fn save_kit_roundtrips_through_load_kit() {
     let mut e = LxrEngine::new();
     e.set_parameter(lxr_params::par::COARSE1, 77);
     let k = e.save_kit();
-    assert_eq!(k.len(), 255);
+    assert_eq!(k.len(), lxr_params::kit::KIT_FILE_LEN);
     let mut e2 = LxrEngine::new();
     e2.load_kit(&k);
     assert_eq!(e2.get_parameter(lxr_params::par::COARSE1), 77);
