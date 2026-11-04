@@ -228,23 +228,26 @@ change is applied at the start of the next tick.
   controls generated from the `lxr-params` table), and immediate mode builds that from data without
   per-widget state or bindings. Vizia and iced would need a retained widget tree for every cell.
 * **Layout.**
-  * One card per voice. Each card holds all of that voice's sections:
+  * One card per voice, seven in all: Drum 1–3, Snare, Cymbal, Closed hi-hat, Open hi-hat. Each
+    card holds all of that voice's sections:
     * Oscillator, FM (or the mod oscillators for the cymbal and hi-hat), Amp EG, Mod EG (pitch);
     * Filter, Transient, LFO, Velocity modulation;
     * Mix, including the fader.
-  * Card headers show the trigger note and channel, with trigger pads that light when the track
-    plays. The hi-hat card has a Closed/Open selector and both pads; it shows the closed or the open
-    hi-hat voice.
+  * Card headers show the trigger note and channel, with a trigger pad that lights when the track
+    plays. The switch "closed hat chokes open hat" is one parameter shared by both hi-hats and
+    appears on both hi-hat cards.
   * Labels are spelled out ("Pitch Mod Amount", "Destination Voice"). Values are shown as the
     LXR-02 display shows them in edit mode. The tooltip has the full name and, for modulation
     destinations, the spelled-out target.
   * Values that differ from their default (the init kit, or the plugin default for globals) have an
     amber stripe. The top bar counts them.
-  * The default window is 1392 × 790 logical pixels (macOS points) and holds everything at 100 %
-    without scrolling. It leaves room for the menu bar, a host's plugin window header and the Dock
-    on the default resolutions of the MacBook Air 13" (1470 × 956), MacBook Pro 14" (1512 × 982)
-    and 16" (1728 × 1117). The `default_size_fits_everything` test lays the editor out headlessly
-    and checks this.
+  * The default window is 1584 × 790 logical pixels (macOS points) and holds everything at 100 %
+    without scrolling. With room for the menu bar, a host's plugin window header and the Dock, it
+    fits the MacBook Pro 16" default resolution (1728 × 1117) at 100 % and the MacBook Air 13"
+    (1470 × 956) and MacBook Pro 14" (1512 × 982) at 90 % zoom (or with horizontal scrolling). The
+    `default_size_fits_everything` test lays the editor out headlessly and checks this.
+  * States saved by the layout with one shared hi-hat card (layout version 2) at its default size
+    (1392 × 790) open at the new default size; a size set by hand is kept.
   * A right-hand column holds:
     * the FX bus, with P1–P4 labelled for the current FX type from the firmware's FX page and
       controls not used by the type dimmed;
