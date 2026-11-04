@@ -8,6 +8,7 @@
 
 use crate::engine::track_trigger_note;
 use crate::library::{self, ImportPlan};
+use crate::lxr_files::{self, PatternPlan};
 use crate::params::{
     fader_text, is_list, learn_name, plugin_default, value_text, Command, Shared, VDrumParams, FADER_MAX, LEARN_FADER,
     LEARN_HW_CLOCK, LEARN_SUM_AUX,
@@ -226,6 +227,20 @@ enum FileReply {
     ImportFolder(PathBuf),
     /// Export a library slot's kit as a `.snd` file.
     ExportKit(usize, PathBuf),
+    /// Pattern files to import into the sequencer.
+    ImportPatterns(Vec<PathBuf>),
+    /// Export a pattern as a `.pat` file.
+    ExportPattern(usize, PathBuf),
+    /// Export everything as an LXR-02 project folder.
+    ExportProject(PathBuf),
+}
+
+/// An import waiting for confirmation.
+struct PendingImport {
+    kits: ImportPlan,
+    patterns: PatternPlan,
+    /// The patterns came with a project folder: ask before importing them.
+    ask_patterns: bool,
 }
 
 struct Data {
@@ -237,8 +252,12 @@ struct Data {
     status: String,
     /// The kit library panel is open.
     library_open: bool,
-    /// An import that replaces kits, waiting for confirmation.
-    pending_import: Option<ImportPlan>,
+    /// An import that replaces kits or patterns, waiting for confirmation.
+    pending_import: Option<PendingImport>,
+    /// A project export waiting for confirmation: the folder and the LXR-02 files already there.
+    pending_export: Option<(PathBuf, usize)>,
+    /// The library panel shows the patterns (otherwise the kits).
+    show_patterns: bool,
     /// The slot being renamed and the new name.
     renaming: Option<(usize, String)>,
     /// Size of the scrolled content and of its viewport in the last frame, in points.
@@ -257,6 +276,8 @@ impl Data {
             status: String::new(),
             library_open: false,
             pending_import: None,
+            pending_export: None,
+            show_patterns: false,
             renaming: None,
             content_size: egui::Vec2::ZERO,
             viewport_size: egui::Vec2::ZERO,
@@ -380,14 +401,29 @@ fn update(ctx: &egui::Context, setter: &ParamSetter, data: &mut Data, params: &V
                 Err(e) => format!("{}: {e}", path.display()),
             }
         }
-        Some(FileReply::ImportKits(paths)) => plan_import(data, shared, &paths),
+        Some(FileReply::ImportKits(paths)) => plan_import(data, shared, &paths, &[], false),
+        Some(FileReply::ImportPatterns(paths)) => plan_import(data, shared, &[], &paths, false),
         Some(FileReply::ImportFolder(dir)) => {
-            let paths = library::snd_files(&dir);
-            if paths.is_empty() {
-                data.status = format!("No .snd files in {}", dir.display());
+            let kits = library::snd_files(&dir);
+            let pats = lxr_files::pat_files(&dir);
+            if kits.is_empty() && pats.is_empty() {
+                data.status = format!("No .snd or .pat files in {}", dir.display());
             } else {
-                plan_import(data, shared, &paths);
+                plan_import(data, shared, &kits, &pats, true);
             }
+        }
+        Some(FileReply::ExportPattern(n, path)) => {
+            let file = pattern_file(shared, n);
+            data.status = match file.map(|f| std::fs::write(&path, lxr_files::pat_to_bytes(&f))) {
+                Some(Ok(())) => format!("Exported {}", path.display()),
+                Some(Err(e)) => format!("{}: {e}", path.display()),
+                None => "Pattern not available".into(),
+            };
+        }
+        Some(FileReply::ExportProject(dir)) => {
+            let existing = lxr_files::existing_project_files(&dir).len();
+            data.pending_export = Some((dir, existing));
+            data.library_open = true;
         }
         Some(FileReply::ExportKit(slot, path)) => {
             let kit = shared.library.lock().ok().and_then(|l| l.slots.get(slot).cloned().flatten()).map(|e| e.kit);
@@ -418,7 +454,7 @@ fn update(ctx: &egui::Context, setter: &ParamSetter, data: &mut Data, params: &V
         data.viewport_size = out.inner_rect.size();
     });
     let mut open = data.library_open;
-    egui::Window::new("Kit library")
+    egui::Window::new("Library")
         .open(&mut open)
         .default_size(vec2(360.0, 520.0))
         .collapsible(false)
@@ -441,6 +477,10 @@ fn kit_dialog() -> rfd::FileDialog {
     rfd::FileDialog::new().add_filter("Kit (.snd)", &["snd", "SND"])
 }
 
+fn pat_dialog() -> rfd::FileDialog {
+    rfd::FileDialog::new().add_filter("LXR-02 pattern (.pat)", &["pat", "PAT"])
+}
+
 /// Runs a file dialog on its own thread; its answer is handled in the next frame.
 fn run_dialog(reply: Arc<Mutex<Option<FileReply>>>, dialog: impl FnOnce() -> Option<FileReply> + Send + 'static) {
     std::thread::spawn(move || {
@@ -450,17 +490,83 @@ fn run_dialog(reply: Arc<Mutex<Option<FileReply>>>, dialog: impl FnOnce() -> Opt
     });
 }
 
-/// Imports at once, or asks first when the import replaces kits in the library.
-fn plan_import(data: &mut Data, shared: &Shared, paths: &[PathBuf]) {
-    let Ok(mut lib) = shared.library.lock() else { return };
-    let plan = lib.plan_import_paths(paths);
-    if plan.replaces().is_empty() {
-        lib.apply(&plan);
-        shared.library_generation.fetch_add(1, Ordering::Relaxed);
-        data.status = plan.summary();
-    } else {
-        data.pending_import = Some(plan);
+/// Imports at once, or asks first when the import replaces kits or patterns, or brings patterns
+/// with a project folder.
+fn plan_import(data: &mut Data, shared: &Shared, kit_paths: &[PathBuf], pat_paths: &[PathBuf], ask_patterns: bool) {
+    let kits = match shared.library.lock() {
+        Ok(l) => l.plan_import_paths(kit_paths),
+        Err(_) => return,
+    };
+    let (files, errors) = lxr_files::read_files(pat_paths);
+    let (patterns, replaces_patterns) = match shared.seq.lock() {
+        Ok(seq) => {
+            let mut p = lxr_files::plan_patterns(&seq, &files);
+            p.errors.extend(errors);
+            let r = !p.replaces(&seq).is_empty();
+            (p, r)
+        }
+        Err(_) => return,
+    };
+    let pending = PendingImport { kits, patterns, ask_patterns };
+    let ask = !pending.kits.replaces().is_empty() || replaces_patterns || (ask_patterns && !pending.patterns.puts.is_empty());
+    if ask {
+        data.pending_import = Some(pending);
         data.library_open = true;
+    } else {
+        data.status = apply_import(shared, &pending, true);
+    }
+}
+
+/// Applies an import; returns the status line.
+fn apply_import(shared: &Shared, p: &PendingImport, with_patterns: bool) -> String {
+    let mut parts = Vec::new();
+    if let Ok(mut l) = shared.library.lock() {
+        l.apply(&p.kits);
+        let kits_found = !p.kits.puts.is_empty() || p.kits.init_skipped + p.kits.duplicates + p.kits.no_room + p.kits.errors.len() > 0;
+        if kits_found {
+            parts.push(p.kits.summary());
+        }
+        if with_patterns {
+            let found = !p.patterns.puts.is_empty() || p.patterns.empty_skipped + p.patterns.no_room + p.patterns.errors.len() > 0;
+            if let (true, Ok(mut seq)) = (found, shared.seq.lock()) {
+                p.patterns.apply(&mut seq, &mut l);
+                parts.push(p.patterns.summary());
+            }
+            if !p.patterns.puts.is_empty() {
+                let _ = shared.commands.push(Command::SeqReload);
+            }
+        } else if !p.patterns.puts.is_empty() {
+            parts.push("patterns skipped".into());
+        }
+    }
+    shared.library_generation.fetch_add(1, Ordering::Relaxed);
+    let s = parts.join(", ");
+    if s.starts_with("Imported") {
+        s
+    } else {
+        format!("Imported {s}")
+    }
+}
+
+/// A pattern as a pattern file (the sequencer's data, the library's name and kit number).
+fn pattern_file(shared: &Shared, n: usize) -> Option<lxr_files::PatFile> {
+    let lib = shared.library.lock().ok()?;
+    let seq = shared.seq.lock().ok()?;
+    Some(lxr_files::PatFile { name: *lib.pattern_names.get(n)?, pattern: seq.patterns.get(n)?.clone(), kit_nr: lib.pattern_kits[n] })
+}
+
+/// Writes the project export; returns the status line.
+fn export_project(shared: &Shared, dir: &std::path::Path) -> String {
+    let files = {
+        let (Ok(lib), Ok(seq)) = (shared.library.lock(), shared.seq.lock()) else { return "Export failed".into() };
+        let globals: Vec<u8> = lxr_files::GLOBALS.map(|i| shared.values[i].load(Ordering::Relaxed) as u8).collect();
+        let mut name = [0u8; 8];
+        name.copy_from_slice(&shared.name_bytes()[..8]);
+        lxr_files::project_files(&lib, &seq, &globals, &name)
+    };
+    match lxr_files::write_project(dir, &files) {
+        Ok(n) => format!("Exported {n} files to {}", dir.display()),
+        Err(e) => format!("{}: {e}", dir.display()),
     }
 }
 
@@ -472,6 +578,8 @@ enum LibAction {
     Move(usize, i32),
     Rename(usize, String),
     Export(usize),
+    RenamePattern(usize, String),
+    ExportPattern(usize),
 }
 
 fn do_lib_action(data: &mut Data, shared: &Shared, a: LibAction) {
@@ -515,6 +623,18 @@ fn do_lib_action(data: &mut Data, shared: &Shared, a: LibAction) {
             }
             bump();
         }
+        LibAction::RenamePattern(n, name) => {
+            if let Ok(mut l) = shared.library.lock() {
+                l.pattern_names[n] = lxr_files::name_bytes(&name);
+            }
+            bump();
+        }
+        LibAction::ExportPattern(n) => {
+            let name = shared.library.lock().ok().map(|l| lxr_files::file_name(n, &l.pattern_names[n], "PAT"));
+            if let Some(name) = name {
+                run_dialog(data.file_reply.clone(), move || pat_dialog().set_file_name(name).save_file().map(|p| FileReply::ExportPattern(n, p)));
+            }
+        }
         LibAction::Export(s) => {
             let name = shared.library.lock().ok().and_then(|l| l.slots.get(s).cloned().flatten()).map(|e| e.kit.file_name(s as u8));
             if let Some(name) = name {
@@ -535,8 +655,16 @@ fn library_menu(ui: &mut Ui, data: &mut Data, shared: &Shared) {
         run_dialog(data.file_reply.clone(), || kit_dialog().pick_files().map(FileReply::ImportKits));
         ui.close_menu();
     }
-    if ui.button("Import LXR-02 project folder…").on_hover_text("Add the kits (.snd) of a project folder; init kits are skipped").clicked() {
+    if ui.button("Import patterns…").on_hover_text("Load LXR-02 .pat files into the sequencer (NN-NAME.PAT goes to pattern NN + 1)").clicked() {
+        run_dialog(data.file_reply.clone(), || pat_dialog().pick_files().map(FileReply::ImportPatterns));
+        ui.close_menu();
+    }
+    if ui.button("Import LXR-02 project folder…").on_hover_text("Add the kits (.snd) of a project folder and, if you confirm, its patterns (.pat); init kits and empty patterns are skipped").clicked() {
         run_dialog(data.file_reply.clone(), || rfd::FileDialog::new().pick_folder().map(FileReply::ImportFolder));
+        ui.close_menu();
+    }
+    if ui.button("Export LXR-02 project…").on_hover_text("Write all kits, patterns and the globals as an LXR-02 project folder").clicked() {
+        run_dialog(data.file_reply.clone(), || rfd::FileDialog::new().pick_folder().map(FileReply::ExportProject));
         ui.close_menu();
     }
     ui.separator();
@@ -557,16 +685,72 @@ fn library_menu(ui: &mut Ui, data: &mut Data, shared: &Shared) {
     }
 }
 
-/// The library panel: the 64 slots. Click loads; right-click for the other actions.
-fn library_panel(ui: &mut Ui, data: &mut Data, shared: &Shared) {
-    let mut actions = Vec::new();
-    if let Some(plan) = &data.pending_import {
-        let replaced = plan.replaces();
-        ui.label(RichText::new(format!("This import replaces {} kit{}:", replaced.len(), if replaced.len() == 1 { "" } else { "s" })).color(CHANGED));
-        ui.label(RichText::new(replaced.join(", ")).size(SMALL_FONT));
+/// Import and export confirmations at the top of the library panel.
+fn confirmations(ui: &mut Ui, data: &mut Data, shared: &Shared) {
+    if let Some(p) = &data.pending_import {
+        let replaced = p.kits.replaces();
+        if !replaced.is_empty() {
+            let n = replaced.len();
+            ui.label(RichText::new(format!("This import replaces {n} kit{}:", if n == 1 { "" } else { "s" })).color(CHANGED));
+            ui.label(RichText::new(replaced.join(", ")).size(SMALL_FONT));
+        }
+        let numbers: Vec<usize> = p.patterns.puts.iter().map(|(n, _)| *n).collect();
+        let has_patterns = !numbers.is_empty();
+        let has_kits = !p.kits.puts.is_empty();
+        if has_patterns {
+            let n = numbers.len();
+            let q = if p.ask_patterns { "Also import" } else { "Import" };
+            ui.label(
+                RichText::new(format!(
+                    "{q} {n} pattern{}? This replaces {} in the sequencer.",
+                    if n == 1 { "" } else { "s" },
+                    PatternPlan::range_text(&numbers)
+                ))
+                .color(CHANGED),
+            );
+        }
         let mut done = None;
         ui.horizontal(|ui| {
-            if ui.button("Import").clicked() {
+            if has_patterns && has_kits {
+                if ui.button("Import kits and patterns").clicked() {
+                    done = Some(Some(true));
+                }
+                if ui.button("Kits only").on_hover_text("Skip the patterns").clicked() {
+                    done = Some(Some(false));
+                }
+            } else if ui.button("Import").clicked() {
+                done = Some(Some(true));
+            }
+            if ui.button("Cancel").clicked() {
+                done = Some(None);
+            }
+        });
+        match done {
+            Some(Some(with_patterns)) => {
+                if let Some(p) = data.pending_import.take() {
+                    data.status = apply_import(shared, &p, with_patterns);
+                }
+            }
+            Some(None) => {
+                data.pending_import = None;
+                data.status = "Import cancelled".into();
+            }
+            None => {}
+        }
+        ui.separator();
+    }
+    if let Some((dir, existing)) = &data.pending_export {
+        ui.label(RichText::new(format!("Export an LXR-02 project to {}", dir.display())).color(CHANGED));
+        if *existing > 0 {
+            ui.label(RichText::new(format!("This replaces the {existing} LXR-02 project files in the folder.")).color(CHANGED));
+        }
+        ui.label(RichText::new("The LXR-02 cannot hold:").size(SMALL_FONT).color(LABEL));
+        for l in lxr_files::EXPORT_LOSSES {
+            ui.label(RichText::new(format!("• {l}")).size(SMALL_FONT).color(LABEL));
+        }
+        let mut done = None;
+        ui.horizontal(|ui| {
+            if ui.button("Export").clicked() {
                 done = Some(true);
             }
             if ui.button("Cancel").clicked() {
@@ -575,27 +759,82 @@ fn library_panel(ui: &mut Ui, data: &mut Data, shared: &Shared) {
         });
         match done {
             Some(true) => {
-                if let Some(plan) = data.pending_import.take() {
-                    if let Ok(mut l) = shared.library.lock() {
-                        l.apply(&plan);
-                    }
-                    shared.library_generation.fetch_add(1, Ordering::Relaxed);
-                    data.status = plan.summary();
+                if let Some((dir, _)) = data.pending_export.take() {
+                    data.status = export_project(shared, &dir);
                 }
             }
             Some(false) => {
-                data.pending_import = None;
-                data.status = "Import cancelled".into();
+                data.pending_export = None;
+                data.status = "Export cancelled".into();
             }
             None => {}
         }
         ui.separator();
     }
+}
+
+/// The 64 sequencer patterns with their LXR-02 names and kit numbers. Right-click: rename,
+/// export `.pat`.
+fn pattern_list(ui: &mut Ui, data: &mut Data, shared: &Shared, lib: &library::Library) {
+    ui.label(RichText::new("Right-click: rename, export .pat. The kit number is kept for export; VDrum does not change kits with patterns.").size(SMALL_FONT).color(LABEL));
+    let steps: Vec<usize> = match shared.seq.lock() {
+        Ok(seq) => seq.patterns.iter().map(|p| p.tracks.iter().map(|t| t.bits().count_ones() as usize).sum()).collect(),
+        Err(_) => return,
+    };
+    let mut actions = Vec::new();
+    ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
+        for (n, &steps) in steps.iter().enumerate() {
+            if let Some((rn, buf)) = data.renaming.as_mut().filter(|(rn, _)| *rn == n) {
+                let r = ui.add(egui::TextEdit::singleline(buf).char_limit(8).desired_width(120.0));
+                r.request_focus();
+                if r.lost_focus() {
+                    if ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                        actions.push(LibAction::RenamePattern(*rn, buf.clone()));
+                    }
+                    data.renaming = None;
+                }
+                continue;
+            }
+            let name = lxr_files::name_text(&lib.pattern_names[n]);
+            let text = format!("{:02} {:<8}  {steps} steps, kit {:02}", n + 1, name.trim_end(), lib.pattern_kits[n]);
+            let rich = if steps == 0 { RichText::new(text).color(Color32::from_gray(110)) } else { RichText::new(text) };
+            let r = ui.selectable_label(false, rich);
+            r.context_menu(|ui| {
+                if ui.button("Rename").clicked() {
+                    data.renaming = Some((n, name.trim_end().to_string()));
+                    ui.close_menu();
+                }
+                if ui.button("Export .pat…").clicked() {
+                    actions.push(LibAction::ExportPattern(n));
+                    ui.close_menu();
+                }
+            });
+        }
+    });
+    for a in actions {
+        do_lib_action(data, shared, a);
+    }
+}
+
+/// The library panel: the 64 slots. Click loads; right-click for the other actions.
+fn library_panel(ui: &mut Ui, data: &mut Data, shared: &Shared) {
+    let mut actions = Vec::new();
+    confirmations(ui, data, shared);
     let Ok(lib) = shared.library.lock().map(|l| l.clone()) else { return };
     ui.horizontal(|ui| {
         ui.menu_button("Library ▾", |ui| library_menu(ui, data, shared));
+        for (patterns, text) in [(false, "Kits"), (true, "Patterns")] {
+            if ui.selectable_label(data.show_patterns == patterns, text).clicked() && data.show_patterns != patterns {
+                data.show_patterns = patterns;
+                data.renaming = None;
+            }
+        }
         ui.label(RichText::new(format!("{} of {} slots used", lib.len(), library::SLOTS)).size(10.5).color(LABEL));
     });
+    if data.show_patterns {
+        pattern_list(ui, data, shared, &lib);
+        return;
+    }
     ui.label(RichText::new("Click loads a kit. Right-click: save, rename, move, export, clear.").size(SMALL_FONT).color(LABEL));
     ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
         for s in 0..library::SLOTS {
@@ -1340,6 +1579,11 @@ mod tests {
         std::fs::create_dir_all(&dir).unwrap();
         std::fs::write(dir.join("01-NEW.SND"), kit("NEW", 5)).unwrap();
         std::fs::write(dir.join("02-INITK.SND"), Kit::init().to_file_bytes()).unwrap();
+        let mut pat = vdrum_surface::seq::PatternData::default();
+        pat.tracks[0].steps[4].on = true;
+        let pat_file = |p: &vdrum_surface::seq::PatternData| lxr_files::pat_to_bytes(&lxr_files::PatFile { name: *b"GROOVE\0\0", pattern: p.clone(), kit_nr: 1 });
+        std::fs::write(dir.join("03-GROOV.PAT"), pat_file(&pat)).unwrap();
+        std::fs::write(dir.join("04-.PAT"), pat_file(&Default::default())).unwrap();
         let mut data = Data::new();
         *data.file_reply.lock().unwrap() = Some(FileReply::ImportFolder(dir.clone()));
         let ctx = egui::Context::default();
@@ -1355,14 +1599,39 @@ mod tests {
         frame(&mut data);
         // slot 01 is taken: the import waits for confirmation in the open panel
         assert!(data.library_open);
-        assert_eq!(data.pending_import.as_ref().unwrap().replaces(), vec!["01 OLD".to_string()]);
+        let pending = data.pending_import.as_ref().unwrap();
+        assert_eq!(pending.kits.replaces(), vec!["01 OLD".to_string()]);
+        assert_eq!(pending.patterns.puts.len(), 1);
+        assert!(pending.ask_patterns);
         assert_eq!(shared.library.lock().unwrap().slots[1].as_ref().unwrap().kit.name_str().trim_end(), "OLD");
         frame(&mut data);
-        // confirmed
-        let plan = data.pending_import.take().unwrap();
-        shared.library.lock().unwrap().apply(&plan);
-        assert_eq!(plan.summary(), "Imported 1 kit (1 init kits skipped)");
+        // confirmed, with the patterns
+        let p = data.pending_import.take().unwrap();
+        assert_eq!(apply_import(&shared, &p, true), "Imported 1 kit (1 init kits skipped), 1 pattern (1 empty skipped)");
         assert_eq!(shared.library.lock().unwrap().len(), 1);
+        assert_eq!(shared.seq.lock().unwrap().patterns[3], pat);
+        assert_eq!(lxr_files::name_text(&shared.library.lock().unwrap().pattern_names[3]), "GROOVE");
+        assert!(matches!(shared.commands.pop(), Some(Command::SeqReload)));
+        // a pattern import that replaces pattern 04 asks first; one into empty patterns does not
+        *data.file_reply.lock().unwrap() = Some(FileReply::ImportPatterns(vec![dir.join("03-GROOV.PAT")]));
+        frame(&mut data);
+        assert!(data.pending_import.take().is_some());
+        std::fs::write(dir.join("loose.pat"), pat_file(&pat)).unwrap();
+        *data.file_reply.lock().unwrap() = Some(FileReply::ImportPatterns(vec![dir.join("loose.pat")]));
+        frame(&mut data);
+        assert!(data.pending_import.is_none());
+        assert_eq!(data.status, "Imported 1 pattern");
+        assert_eq!(shared.seq.lock().unwrap().patterns[0], pat, "first empty pattern");
+        // project export asks first, listing the losses
+        let out = dir.join("export");
+        *data.file_reply.lock().unwrap() = Some(FileReply::ExportProject(out.clone()));
+        frame(&mut data);
+        assert_eq!(data.pending_export, Some((out.clone(), 0)));
+        data.show_patterns = true;
+        frame(&mut data);
+        data.pending_export = None;
+        assert!(export_project(&shared, &out).starts_with("Exported 194 files"));
+        assert_eq!(std::fs::read(out.join("03-GROOV.PAT")).unwrap(), pat_file(&pat));
         // loading and storing go through the shared state
         do_lib_action(&mut data, &shared, LibAction::Load(1));
         assert_eq!(shared.kit_name(), "NEW");

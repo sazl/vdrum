@@ -8,6 +8,7 @@ pub mod editor;
 pub mod engine;
 pub mod fp;
 pub mod library;
+pub mod lxr_files;
 pub mod params;
 pub mod pipeline;
 #[cfg(test)]
@@ -74,6 +75,8 @@ pub struct VDrum {
     seq_host_clock: Option<bool>,
     /// The host transport is playing and the sequencer follows it.
     seq_playing: bool,
+    /// A [`Command::SeqReload`] found the sequencer data locked; retried in the next block.
+    seq_reload_pending: bool,
     /// Position (16th notes) of the next host pulse.
     seq_next: i64,
     /// Tempo last sent to the engine.
@@ -99,6 +102,7 @@ impl Default for VDrum {
             has_aux: true,
             hardware_clock: false,
             hw_clock_want: false,
+            seq_reload_pending: false,
             hw_clock_host: false,
             sum_aux_want: false,
             sum_aux_host: false,
@@ -326,6 +330,7 @@ impl Plugin for VDrum {
                     pipeline.engine.all_sound_off();
                 }
                 Command::Seq(ev) => pipeline.push_event(0, Ev::Seq(ev), &mut apply),
+                Command::SeqReload => self.seq_reload_pending = true,
                 Command::Switch(hw, on) => {
                     let target = if hw { params::LEARN_HW_CLOCK } else { params::LEARN_SUM_AUX };
                     if hw {
@@ -338,6 +343,15 @@ impl Plugin for VDrum {
                     shared.extra_values[k].store(on as i32, Ordering::Relaxed);
                     shared.extra_dirty[k].store(true, Ordering::Relaxed);
                 }
+            }
+        }
+
+        // Pattern import: the whole sequencer data (never waits for the lock).
+        if self.seq_reload_pending {
+            if let Ok(d) = shared.seq.try_lock() {
+                let _ieee = fp::IeeeGuard::new();
+                pipeline.engine.seq_load(&d);
+                self.seq_reload_pending = false;
             }
         }
 

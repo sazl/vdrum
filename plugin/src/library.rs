@@ -26,11 +26,15 @@ pub struct Library {
     pub slots: Vec<Option<Entry>>,
     /// Slot of the kit loaded last from the library.
     pub selected: Option<usize>,
+    /// Pattern names (8 bytes, as in `.PAT`) and the kit slot each pattern names, for the 64
+    /// sequencer patterns. Imported from and exported to LXR-02 pattern files.
+    pub pattern_names: Vec<[u8; 8]>,
+    pub pattern_kits: Vec<u8>,
 }
 
 impl Default for Library {
     fn default() -> Self {
-        Library { slots: vec![None; SLOTS], selected: None }
+        Library { slots: vec![None; SLOTS], selected: None, pattern_names: vec![[0; 8]; SLOTS], pattern_kits: vec![0; SLOTS] }
     }
 }
 
@@ -224,7 +228,8 @@ impl Library {
     }
 
     /// Text form saved with the plugin state: the selected slot, then one line per filled slot
-    /// (`slot hex-kit-bytes source`).
+    /// (`slot hex-kit-bytes source`), then one line per named pattern or pattern with a kit number
+    /// (`pattern number kit hex-name`).
     pub fn to_text(&self) -> String {
         let mut s = match self.selected {
             Some(n) => format!("selected {n}\n"),
@@ -234,6 +239,12 @@ impl Library {
             if let Some(e) = e {
                 let hex: String = e.kit.to_file_bytes().iter().map(|b| format!("{b:02x}")).collect();
                 s += &format!("{i} {hex} {}\n", e.source.replace('\n', " "));
+            }
+        }
+        for n in 0..SLOTS {
+            if self.pattern_names[n] != [0; 8] || self.pattern_kits[n] != 0 {
+                let hex: String = self.pattern_names[n].iter().map(|b| format!("{b:02x}")).collect();
+                s += &format!("pattern {n} {} {hex}\n", self.pattern_kits[n]);
             }
         }
         s
@@ -247,6 +258,17 @@ impl Library {
             let (Some(a), Some(b)) = (it.next(), it.next()) else { continue };
             if a == "selected" {
                 lib.selected = b.parse::<usize>().ok().filter(|&n| n < SLOTS);
+                continue;
+            }
+            if a == "pattern" {
+                let mut rest = it.next().unwrap_or("").split(' ');
+                let (Some(n), Some(kit), Some(hex)) = (b.parse::<usize>().ok().filter(|&n| n < SLOTS), rest.next().and_then(|k| k.parse::<u8>().ok()), rest.next()) else { continue };
+                if hex.len() == 16 && hex.is_ascii() {
+                    for i in 0..8 {
+                        lib.pattern_names[n][i] = u8::from_str_radix(&hex[2 * i..2 * i + 2], 16).unwrap_or(0);
+                    }
+                }
+                lib.pattern_kits[n] = kit;
                 continue;
             }
             let Some(slot) = a.parse::<usize>().ok().filter(|&n| n < SLOTS) else { continue };
@@ -360,6 +382,9 @@ mod tests {
         lib.slots[7] = Some(Entry { kit: k, source: "07-OPEN.SND".into() });
         lib.slots[63] = Some(Entry { kit: kit("LAST", 1), source: String::new() });
         lib.selected = Some(7);
+        lib.pattern_names[3] = *b"BEAT 1\0\0";
+        lib.pattern_kits[3] = 9;
+        lib.pattern_kits[60] = 2;
         let back = Library::from_text(&lib.to_text());
         assert_eq!(back, lib);
         assert_eq!(Library::from_text("garbage\n99 00\nselected 3\n"), Library::default());

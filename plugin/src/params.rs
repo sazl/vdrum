@@ -148,6 +148,8 @@ pub enum Command {
     Switch(bool, bool),
     /// A sequencer operation (from the controller; [`Shared::seq`] is already changed).
     Seq(crate::engine::SeqEv),
+    /// Load all of [`Shared::seq`] into the engine (after a pattern import).
+    SeqReload,
 }
 
 /// The kit file the user works on: where it was loaded from or saved to, and its contents then
