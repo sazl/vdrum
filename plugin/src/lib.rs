@@ -495,6 +495,9 @@ impl Plugin for VDrum {
                     }
                 }
             }
+            if !host_message_reaches_engine(bytes) {
+                continue;
+            }
             if muted(shared, bytes) {
                 continue;
             }
@@ -591,6 +594,14 @@ fn apply_event<E: Engine>(e: &mut E, shared: &Shared, midi_applied: &Cell<bool>,
 }
 
 /// Whether a message is a note-on that only triggers muted tracks (it is dropped).
+/// Whether a host MIDI message that is not a learned CC goes to the engine. Control changes never
+/// do: the firmware's own CC/NRPN map (CC 2–127 to parameters 1–126, NRPN through CC 99/98/6, CC 0
+/// bank change loading a kit) is not used, so a controller whose messages also reach the host (for
+/// example the Launch Control XL 3's DAW port) cannot change unrelated parameters.
+fn host_message_reaches_engine(bytes: [u8; 3]) -> bool {
+    bytes[0] & 0xf0 != 0xb0
+}
+
 fn muted(shared: &Shared, bytes: [u8; 3]) -> bool {
     let mutes = shared.mutes.load(Ordering::Relaxed) as u32;
     if mutes == 0 || bytes[0] & 0xf0 != 0x90 || bytes[2] == 0 {

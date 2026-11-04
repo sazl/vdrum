@@ -726,32 +726,6 @@ fn options(info: &ParamInfo, params: &VDrumParams) -> Vec<u16> {
     }
 }
 
-fn midi_help(info: &ParamInfo, params: &VDrumParams) -> String {
-    let m = &info.midi;
-    let mut s = String::new();
-    if let Some(cc) = m.cc {
-        let rule = match m.cc_voice {
-            v @ 1..=6 => {
-                let ch = params.param(MIDI_CHAN[v as usize]).map(|p| p.value()).unwrap_or(0);
-                format!("on the {} channel ({ch}) or the global channel", TRACK_NAMES[v as usize])
-            }
-            _ => "on any channel set for a track or as global channel".to_string(),
-        };
-        s += &format!("MIDI: CC {cc} {rule}");
-    } else if let Some(n) = m.nrpn {
-        s += &format!("MIDI: NRPN {n} (CC 99 = {}, CC 98 = {}, value on CC 6)", n >> 7, n & 127);
-        if m.front_translates_nrpn {
-            s += "; the value is a parameter number, translated to a modulation target";
-        }
-    } else {
-        s += "MIDI: no CC/NRPN";
-    }
-    if (m.cc.is_some() || m.nrpn.is_some()) && !m.effective() {
-        s += " (ignored by the firmware)";
-    }
-    s
-}
-
 /// The value as the LXR-02's display shows it in edit mode.
 fn hw_text(info: &ParamInfo, v: u16) -> String {
     let s = lxr_params::format_value(info, v.min(255) as u8);
@@ -983,8 +957,11 @@ fn param_cell(ui: &mut Ui, setter: &ParamSetter, params: &VDrumParams, shared: &
             hw_text(info, default as u16),
             if v != default { "  (changed)" } else { "" }
         ));
-        ui.label(midi_help(info, params));
-        for (ch, cc) in shared.learned_for(idx) {
+        let learned: Vec<(u8, u8)> = shared.learned_for(idx).collect();
+        if learned.is_empty() {
+            ui.label("MIDI: not learned (right-click for MIDI learn)");
+        }
+        for (ch, cc) in learned {
             ui.label(format!("Learned: channel {} CC {cc}", ch + 1));
         }
         if !info.description.is_empty() {
