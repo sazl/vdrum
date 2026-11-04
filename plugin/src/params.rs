@@ -515,6 +515,10 @@ pub struct VDrumParams {
     pub editor_state: Arc<EguiState>,
     /// GUI zoom factor (persisted).
     pub ui_scale: AtomicF32,
+    /// Editor tab: 0 = Params, 1..=13 = the controller modes (persisted).
+    pub editor_tab: AtomicU8,
+    /// The editor follows the controller's mode changes, also from the Params tab (persisted).
+    pub follow_controller: AtomicBool,
     pub infos: Vec<&'static ParamInfo>,
     pub ints: Vec<IntParam>,
     /// Host slot of each parameter index, or -1.
@@ -553,6 +557,8 @@ impl VDrumParams {
         VDrumParams {
             editor_state: EguiState::from_size(crate::editor::DEFAULT_SIZE.0, crate::editor::DEFAULT_SIZE.1),
             ui_scale: AtomicF32::new(1.0),
+            editor_tab: AtomicU8::new(0),
+            follow_controller: AtomicBool::new(true),
             infos,
             ints,
             slot_of,
@@ -642,6 +648,8 @@ unsafe impl Params for VDrumParams {
         }
         m.insert("ui-scale".into(), self.ui_scale.load(Ordering::Relaxed).to_string());
         m.insert("editor-layout".into(), crate::editor::LAYOUT_VERSION.to_string());
+        m.insert("editor-tab".into(), self.editor_tab.load(Ordering::Relaxed).to_string());
+        m.insert("follow-controller".into(), self.follow_controller.load(Ordering::Relaxed).to_string());
         let kit = self.kit();
         if let Ok(s) = serde_json::to_string(&hex(&kit.to_file_bytes())) {
             m.insert("kit".into(), s);
@@ -720,6 +728,14 @@ unsafe impl Params for VDrumParams {
         if version == Some(2) && self.editor_state.size() == crate::editor::SHARED_HAT_SIZE {
             self.editor_state.set_size(crate::editor::DEFAULT_SIZE);
         }
+        // Layout 3 had no tab bar; its default size is too short for the tab and pill rows.
+        if version == Some(3) && self.editor_state.size() == crate::editor::NO_TABS_SIZE {
+            self.editor_state.set_size(crate::editor::DEFAULT_SIZE);
+        }
+        let tab = serialized.get("editor-tab").and_then(|s| s.trim_matches('"').parse::<u8>().ok()).filter(|&t| t <= 13);
+        self.editor_tab.store(tab.unwrap_or(0), Ordering::Relaxed);
+        let follow = serialized.get("follow-controller").map(|s| s.trim_matches('"') != "false");
+        self.follow_controller.store(follow.unwrap_or(true), Ordering::Relaxed);
         let mut restore = Restore::default();
         if let Some(s) = serialized.get("kit") {
             if let Some(bytes) = serde_json::from_str::<String>(s).ok().and_then(|h| unhex(&h)) {
