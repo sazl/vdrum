@@ -1,0 +1,11 @@
+[package]
+name = "vdrum-surface"
+description = "VDrum's Launch Control XL 3 surface: modes, control mappings, LEDs and screen as a state machine (no I/O)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+lcxl3 = { path = "../lcxl3" }
+lxr-params = { path = "../lxr-params" }
