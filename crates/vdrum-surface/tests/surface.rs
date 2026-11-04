@@ -847,3 +847,54 @@ fn snapshots_morph_and_macros() {
     s2.load_state(&text);
     assert_eq!(s2.state_text(), text);
 }
+
+#[test]
+fn view_shows_controls_layers_and_hardware_edits_only() {
+    let m = Fake::new();
+    let mut s = Surface::new();
+    let v = s.view(0, &m);
+    assert_eq!(v.mode, Mode::Voice(0));
+    assert_eq!(v.controls.len(), 48);
+    assert!(v.edit.is_none());
+    // encoder 1 of row 1: Drum 1 fine tune, with its value and parameter ID
+    let fine = layout::p("fine1");
+    let c = v.control(k(1, 1)).unwrap();
+    assert_eq!(c.param.map(|p| p.0), Some("fine1"));
+    assert!(c.value.is_some() && c.frac.is_some());
+    assert_ne!(c.led, (0, 0, 0));
+    // a hardware edit sets the edit pill; an editor edit changes the value but not the pill
+    turn(&mut s, &m, 0, 0, 2);
+    let e = s.view(0, &m).edit.unwrap();
+    assert_eq!(e.name, s.view(0, &m).control(k(1, 1)).unwrap().label);
+    let before = m.param(fine);
+    let a = s.handle_editor(&Input::Relative { row: 0, col: 0, delta: 3 }, 10, &m);
+    m.apply(&a);
+    assert_eq!(m.param(fine), before + 3);
+    assert_eq!(s.view(10, &m).edit.unwrap().gen, e.gen, "editor edits are not hardware edits");
+    // faders: position and pickup
+    let fv = s.view(10, &m).controls.iter().find(|c| c.control == f(1)).unwrap().fader;
+    assert_eq!(fv, Some((None, false)));
+    // context layers
+    press(&mut s, &m, Button::Shift, 20);
+    assert!(s.view(20, &m).layers.iter().any(|l| l.starts_with("SHIFT")));
+    press(&mut s, &m, Button::Bottom(7), 20); // mode 16: Global
+    release(&mut s, &m, Button::Shift, 20);
+    assert_eq!(s.view(20, &m).mode, Mode::Global);
+    assert!(s.view(20, &m).layers.is_empty());
+    // a hold in progress
+    let save = s.layout().iter().find(|(_, c)| c.binding == Binding::SaveKit).map(|(c, _)| *c).unwrap();
+    let Control::Button(save) = save else { panic!() };
+    press(&mut s, &m, save, 30);
+    assert!(s.view(30, &m).layers.iter().any(|l| l.starts_with("HOLD 1 s")), "{:?}", s.view(30, &m).layers);
+    release(&mut s, &m, save, 40);
+    // sequencer layers
+    press(&mut s, &m, Button::Shift, 50);
+    press(&mut s, &m, Button::Top(7), 50); // mode 8
+    release(&mut s, &m, Button::Shift, 50);
+    press(&mut s, &m, Button::SoloArm, 60);
+    assert!(s.view(60, &m).layers.iter().any(|l| l.starts_with("TRACK GROUP: D1")));
+    release(&mut s, &m, Button::SoloArm, 60);
+    press(&mut s, &m, Button::Top(4), 70);
+    assert!(s.view(70, &m).layers.iter().any(|l| l == "STEP 5 HELD: locks"));
+    release(&mut s, &m, Button::Top(4), 80);
+}

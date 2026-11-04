@@ -12,6 +12,8 @@ use lxr_params::par;
 use lcxl3::{Button, Control, Input};
 
 mod perform;
+mod view;
+pub use view::{ControlView, EditView, View};
 pub use perform::{kit_params, voice_params, Macro, SLOTS};
 use perform::{ActiveMoment, Morph, Scaler};
 
@@ -216,6 +218,10 @@ pub struct Surface {
     /// Macro being learned and the changes recorded so far.
     learning: Option<(u8, Vec<Assign>)>,
     state_changed: bool,
+    /// Input from the plugin editor is being handled (it is not a hardware edit).
+    editor_input: bool,
+    edit_gen: u32,
+    last_edit: Option<EditView>,
 }
 
 impl Default for Surface {
@@ -270,6 +276,9 @@ impl Surface {
             macro_pos: [0; SLOTS],
             learning: None,
             state_changed: false,
+            editor_input: false,
+            edit_gen: 0,
+            last_edit: None,
         }
     }
 
@@ -1188,10 +1197,15 @@ impl Surface {
     fn show(&mut self, cell: &Cell, value: String) {
         let title = self.title(cell);
         self.last_touched = format!("{} {}", cell.label, value);
-        self.show_text(&title, &cell.label.clone(), &value);
+        self.show_coloured(&title, &cell.label.clone(), &value, cell.section.colour());
     }
 
     fn show_text(&mut self, title: &str, name: &str, value: &str) {
+        self.show_coloured(title, name, value, Section::Edit.colour());
+    }
+
+    fn show_coloured(&mut self, title: &str, name: &str, value: &str, colour: Rgb) {
+        self.record_edit(title.to_string(), name, value, colour);
         self.popup_gen = self.popup_gen.wrapping_add(1);
         self.popup = Some(Popup { gen: self.popup_gen, fields: [title.to_string(), name.to_string(), value.to_string()] });
     }
