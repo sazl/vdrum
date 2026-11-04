@@ -40,6 +40,8 @@ Status of the facts in this document:
 
 The controller thread is new; the audio thread, editor and their queues exist today. The controller never runs on the audio thread: it hands parameter writes to the same lock-free queue the editor uses, and reads the same changed-value flags the editor reads, so the controller's LEDs and screen follow host automation, editor edits and kit loads. Host MIDI keeps reaching the engine as now; in DAW mode the controller sends nothing to the host's MIDI inputs, so there is no double handling and no MIDI learn conflict.
 
+> **Correction (2026-11-04):** hosts can receive the device's DAW-port messages as well. Through the firmware's CC map these changed unrelated parameters, for example CC 103 on channel 1 (Track left) set Drum 1's overdrive. Since then the plugin passes no host CC to the engine: only MIDI-learned CCs act, and the firmware's CC/NRPN map is not used (see `plugin/README.md`, *MIDI*).
+
 ## Controls that are the same in every mode
 
 With 16 mode slots, mode selection uses the panel's own button numbering: the top row is printed 1 to 8 and the bottom row 9 to 16, so **Shift + button N selects mode N**. Shift is therefore only a mode-select key; nothing else uses Shift combinations.

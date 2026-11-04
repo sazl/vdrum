@@ -367,3 +367,24 @@ fn mutes_and_lfo_reset() {
     assert!(!crate::muted(&sh, [0x90, crate::params::DEFAULT_TRACK_NOTES[2], 100]));
     assert!(!crate::muted(&sh, [0x80, crate::params::DEFAULT_TRACK_NOTES[3], 0]));
 }
+
+#[test]
+fn host_ccs_do_not_reach_the_engine() {
+    // Through the firmware's map, CC 103 on channel 1 (the Launch Control XL 3's Track left
+    // button in DAW mode) sets Drum 1's overdrive, and CC 0 loads a kit.
+    let shared = Shared::new();
+    let mut e = crate::new_engine();
+    let before = e.get_parameter(lxr_params::par::DRIVE1);
+    apply_event(&mut *e, &shared, &Cell::new(false), Ev::midi([0xb0, 103, (before as u8 + 40) & 0x7f]));
+    e.tick();
+    assert_ne!(e.get_parameter(lxr_params::par::DRIVE1), before);
+    // The plugin drops every CC from the host before it reaches the engine.
+    for status in 0xb0u8..=0xbf {
+        for cc in 0u8..128 {
+            assert!(!crate::host_message_reaches_engine([status, cc, 64]), "{status:#x} {cc}");
+        }
+    }
+    for status in [0x80u8, 0x90, 0xa0, 0xc0, 0xd0, 0xe0, 0x9f] {
+        assert!(crate::host_message_reaches_engine([status, 36, 100]), "{status:#x}");
+    }
+}

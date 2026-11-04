@@ -127,9 +127,16 @@ change is applied at the start of the next tick.
 
 ## MIDI
 
-* **Raw MIDI to the engine.** All MIDI from the host goes to the engine as raw bytes through
-  `Engine::midi_byte`: note on/off, CC, program change, pitch bend and pressure. The firmware's MIDI
+* **MIDI to the engine.** MIDI from the host goes to the engine as raw bytes through
+  `Engine::midi_byte`: note on/off, program change, pitch bend and pressure. The firmware's MIDI
   parser decides what happens with them.
+* **No preset CC mapping.** Control change messages (status `Bn`) from the host never reach the
+  engine. A CC that is MIDI-learned changes its learned target (see *MIDI learn*); every other CC is
+  dropped. The firmware's own CC/NRPN map (CC 2–127 to parameters 1–126, NRPN through CC 99/98/6,
+  CC 0 bank change loading a kit) is therefore not used.
+  * Reason: hosts pass on MIDI from every input. The Launch Control XL 3's DAW port sends CC 5–36
+    on channel 16, and through the firmware map those CCs changed unrelated parameters. For
+    example, fader 2 (CC 6, NRPN data entry) changed the last NRPN-addressed parameter.
 * **Firmware behaviours worth knowing:**
   * A track triggers when the message is on its channel and the note matches. A track note of 0
     means any note.
@@ -148,13 +155,7 @@ change is applied at the start of the next tick.
     * The engine itself keeps the firmware defaults, so the scenario reference hashes still hold.
     * Projects saved with older versions restore their stored notes.
   * The global channel defaults to 0, which means off.
-  * CCs 2–127 control parameters 1–126. The channel rule is `midiParser_cc2voiceNr`: drum 1's CCs
-    follow the drum 2 channel (`midi_MidiChannels[n]` is the channel of track n+1).
-  * Parameters 128–246 use NRPN `index − 128`: CC 99 is the MSB, CC 98 the LSB and CC 6 carries
-    the 7-bit value.
-  * Note-off is ignored. CC 0 loads a kit (bank change). Program change on the global channel
-    selects the next pattern.
-  * Each control's tooltip shows its CC/NRPN.
+  * Note-off is ignored. Program change on the global channel selects the next pattern.
 * **MIDI learn.**
   * To learn: right-click a control, choose *MIDI learn*, then move a controller. The next CC on
     any channel is assigned.
@@ -256,7 +257,7 @@ change is applied at the start of the next tick.
   * Double-click resets to the default.
   * List parameters (waveforms, filter types, LFO and velocity targets, …) open a list on click.
     Mod-target lists offer the destination voice's range (`modTargetVoiceOffsets`).
-  * Tooltips show the full name, value, range, default, CC/NRPN, learned CC and stable ID.
+  * Tooltips show the full name, value, range, default, learned CC and stable ID.
 * **Window.** Resizable from the corner. Zoom with −/+ in 10 % steps from 50 % to 300 %
   (persisted); click the percentage to reset it to 100 %. Zoom scales the content and asks the host
   to scale the window by the same ratio; if the host refuses, the content is zoomed inside the
