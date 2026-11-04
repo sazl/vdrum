@@ -29,6 +29,11 @@ crossbeam-queue = "0.3"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rfd = "0.15"
+# Launch Control XL 3 (controller thread).
+# Launch Control XL 3 (controller thread); the version nih-plug's standalone already uses.
+midir = "0.9"
+lcxl3 = { path = "../crates/lcxl3" }
+vdrum-surface = { path = "../crates/vdrum-surface" }
 
 [dev-dependencies]
 sha2 = "0.10"

@@ -3,6 +3,7 @@
 //!
 //! See `plugin/README.md` for the timing model, MIDI handling and limitations.
 
+pub mod controller;
 pub mod editor;
 pub mod engine;
 pub mod fp;
@@ -66,6 +67,8 @@ pub struct VDrum {
     sum_aux_host: bool,
     meter_decay_per_sample: f32,
     meter_state: [f32; 4],
+    /// The Launch Control XL 3 controller thread (started in `initialize()`).
+    controller: Option<controller::Controller>,
 }
 
 impl Default for VDrum {
@@ -88,6 +91,7 @@ impl Default for VDrum {
             sum_aux_host: false,
             meter_decay_per_sample: 0.9999,
             meter_state: [0.0; 4],
+            controller: None,
         };
         if let Some(e) = s.engine.as_deref() {
             sync_mirror(e, &s.shared, false);
@@ -201,7 +205,15 @@ impl Plugin for VDrum {
             }
         }
         for (i, f) in self.params.faders.iter().enumerate() {
-            engine.set_fader_adc(i, params::fader_adc(f.value()));
+            let step = restore.faders.map(|v| v[i]).unwrap_or_else(|| f.value());
+            engine.set_fader_adc(i, params::fader_adc(step));
+            self.shared.fader_values[i].store(step, Ordering::Relaxed);
+            if step != f.value() {
+                // The controller moved it while the editor was closed: the editor copies it to
+                // the host parameter.
+                self.shared.extra_values[i].store(step, Ordering::Relaxed);
+                self.shared.extra_dirty[i].store(true, Ordering::Relaxed);
+            }
         }
         drop(ieee);
         sync_mirror(&*engine, &self.shared, false);
@@ -234,6 +246,9 @@ impl Plugin for VDrum {
         self.shared.has_aux.store(self.has_aux, Ordering::Relaxed);
         // Peak meters fall by 20 dB in about 300 ms.
         self.meter_decay_per_sample = 0.1f32.powf(1.0 / (0.3 * buffer_config.sample_rate));
+        if self.controller.is_none() {
+            self.controller = controller::Controller::start(self.shared.clone());
+        }
         true
     }
 
@@ -272,6 +287,12 @@ impl Plugin for VDrum {
                     }
                     sync_mirror(&*pipeline.engine, shared, true);
                 }
+                Command::Param(idx, val) => {
+                    pipeline.push_event(0, Ev::Param { idx, val, learned: true }, &mut apply);
+                }
+                Command::Fader(i, step) => {
+                    pipeline.push_event(0, Ev::Fader { index: i, adc: params::fader_adc(step) }, &mut apply);
+                }
             }
         }
 
@@ -301,6 +322,7 @@ impl Plugin for VDrum {
             let v = f.value();
             if v != self.last_fader[i] {
                 self.last_fader[i] = v;
+                shared.fader_values[i].store(v, Ordering::Relaxed);
                 pipeline.push_event(0, Ev::Fader { index: i as u8, adc: params::fader_adc(v) }, &mut apply);
             }
         }
@@ -343,6 +365,7 @@ impl Plugin for VDrum {
                         }
                         _ if extra < params::NUM_FADERS => {
                             let step = (v as i32 * params::FADER_MAX + 63) / 127;
+                            shared.fader_values[extra].store(step, Ordering::Relaxed);
                             let ev = Ev::Fader { index: extra as u8, adc: params::fader_adc(step) };
                             pipeline.push_event(timing, ev, &mut apply);
                             Some(step)

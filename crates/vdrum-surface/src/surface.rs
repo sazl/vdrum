@@ -44,6 +44,44 @@ impl Default for Settings {
     }
 }
 
+impl Settings {
+    /// `key=value` pairs separated by `;`, for the plugin's saved state.
+    pub fn to_text(&self) -> String {
+        format!(
+            "pad_velocity={};list_speed={};fader_pickup={};led_brightness={};screen_brightness={};popup_time={};encoder_curve={};host_clock={}",
+            self.pad_velocity,
+            self.list_speed,
+            self.fader_pickup as u8,
+            self.led_brightness,
+            self.screen_brightness,
+            self.popup_time,
+            self.encoder_curve,
+            self.host_clock as u8
+        )
+    }
+
+    /// Inverse of [`Settings::to_text`]; unknown keys and invalid values are ignored.
+    pub fn from_text(text: &str) -> Settings {
+        let mut s = Settings::default();
+        for pair in text.split(';') {
+            let Some((k, v)) = pair.split_once('=') else { continue };
+            let Ok(v) = v.trim().parse::<u8>() else { continue };
+            match k.trim() {
+                "pad_velocity" => s.pad_velocity = v.clamp(1, 127),
+                "list_speed" => s.list_speed = v.clamp(1, 8),
+                "fader_pickup" => s.fader_pickup = v != 0,
+                "led_brightness" => s.led_brightness = v.min(127),
+                "screen_brightness" => s.screen_brightness = v.min(127),
+                "popup_time" => s.popup_time = v.min(99),
+                "encoder_curve" => s.encoder_curve = v.min(2),
+                "host_clock" => s.host_clock = v != 0,
+                _ => {}
+            }
+        }
+        s
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default)]
 struct FaderState {
     /// Last position (0..=127), if the fader has moved since the plugin started.

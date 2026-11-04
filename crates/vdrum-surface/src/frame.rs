@@ -103,6 +103,12 @@ impl DeviceState {
         m
     }
 
+    /// Forget what the device shows, so that the next [`DeviceState::update`] sends everything
+    /// (after the device returned from one of its own modes).
+    pub fn invalidate(&mut self) {
+        *self = DeviceState::default();
+    }
+
     /// Messages that return the device to standalone mode.
     pub fn disconnect(&mut self) -> Vec<Vec<u8>> {
         *self = DeviceState::default();
