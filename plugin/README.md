@@ -210,7 +210,8 @@ change is applied at the start of the next tick.
   * `lcxl3-settings`: the Launch Control XL 3 controller settings;
   * `lcxl3-state`: the controller's snapshots and macros (JSON);
   * `kit-library`: the kit library (the selected slot, then one line per filled slot with the kit
-    file bytes hex encoded and the source file name; absent when the library is empty);
+    file bytes hex encoded and the source file name, then the LXR-02 pattern names and kit numbers;
+    absent when the library is empty);
   * `sequencer`: the sequencer's patterns and densities (JSON, only what differs from empty
     patterns; absent when all patterns are empty);
   * the editor size and zoom.
@@ -243,6 +244,36 @@ change is applied at the start of the next tick.
     the current kit into that slot only; *Save…* to a file stays separate. *Compare* compares with
     the slot's kit.
   * The library is not a file on disk: it lives in the plugin state (host project or preset).
+* **LXR-02 patterns and projects** (`plugin/src/lxr_files.rs`, from the firmware's
+  `presetManager.c`).
+  * *Library ▾ → Import patterns…* loads `.pat` files (`PatV03`, 3663 bytes) into the sequencer:
+    `NN-NAME.PAT` goes to pattern `NN + 1` (the firmware numbers files from `00`), any other file
+    to the first empty pattern. Empty patterns (no step on) are skipped. An import that replaces
+    patterns with steps asks first.
+  * *Import LXR-02 project folder…* imports the folder's kits and asks "Also import N patterns?
+    This replaces patterns NN to NN in the sequencer." (*Import kits and patterns*, *Kits only*,
+    *Cancel*).
+  * A pattern file's steps, timing (flam, shift), parameter locks, main steps, track lengths and
+    shuffle go to the sequencer as they are. Its name and kit number go to the library (the
+    *Patterns* view of the library panel, where right-click renames or exports one `.pat`). VDrum
+    does not change kits with patterns; the kit number is kept for export.
+  * The firmware's step byte has an active bit (0x80) next to the main-step bits; playback uses
+    only the main steps. Export sets the active bit from the main step, so a file where the two
+    differ is not exported byte-identical (the DLC project's patterns differ in this bit only).
+  * *Export LXR-02 project…* writes a folder an LXR-02 can load: `PRJ.NFO` (the current kit name),
+    `GLO.CFG` (the 30 global parameters), and for each of the 64 slots `NN-NAME.SND` (255 bytes;
+    an empty slot is the init kit, `NN-INITK.SND`), `NN-NAME.PAT` and an empty song `NN-EMPTY.SNG`.
+    File names are upper case, as a FAT card shows them. LXR-02 project files already in the
+    folder are replaced; other files stay.
+  * Before writing, the panel lists what the LXR-02 cannot hold: the open hi-hat (only its decay
+    is written, as the hi-hat's open decay `velod6_open`), track densities and Euclid settings (the
+    steps they produced are written), songs, and the controller state.
+  * Checked against the uploaded DLC project folder (not in the repository): importing it gives 16
+    kits and 16 patterns (48 init kits and 48 empty patterns skipped). Exporting that state gives
+    byte-identical `.SND` files for the 16 kits and byte-identical songs. The init kit slots differ
+    in 1 to 5 FX bytes (the firmware's `INITK` slots keep FX values from other kits; VDrum writes
+    its init kit). `GLO.CFG` and `PRJ.NFO` come from the plugin's state, not from the imported
+    folder, so they were not compared.
 
 ## GUI
 
