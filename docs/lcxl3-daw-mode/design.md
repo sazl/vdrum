@@ -173,6 +173,8 @@ Trigger note and MIDI channel per track, tempo, global channel, the seven voice 
 
 > **Addendum (kit library, 2026-11-04):** Page up/down now browses the plugin's kit library (64 slots) when it holds kits, and *Save kit* writes the selected library slot. With an empty library the folder browsing described here is unchanged. See `plugin/README.md`, "Kit library", and `editor-tabs-and-kit-library-plan.md`, Part C.
 
+> **Addendum (editor mode tabs, 2026-11-04):** the plugin editor has one tab per mode above (13 tabs, after a *Params* tab). Each draws the front panel from the surface's state, follows mode changes made on the controller ("Follow controller", on by default), sets the controller's mode when clicked, and accepts mouse edits that run through the same handlers as the device. A pill row shows the last hardware edit (1.5 s) and the active context layers. See `plugin/README.md`, "GUI", and `editor-tabs-and-kit-library-plan.md`, Part B.
+
 ## Device protocol used
 
 All messages go over the device's DAW In/Out USB port (the second interface on Windows). The guide states that in DAW mode surface controls report on that port only and that nothing is sent from the DIN outputs. SysEx header: `F0 00 20 29 02 15`.

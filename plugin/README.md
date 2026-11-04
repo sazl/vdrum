@@ -294,13 +294,14 @@ change is applied at the start of the next tick.
     destinations, the spelled-out target.
   * Values that differ from their default (the init kit, or the plugin default for globals) have an
     amber stripe. The top bar counts them.
-  * The default window is 1584 × 790 logical pixels (macOS points) and holds everything at 100 %
+  * The default window is 1584 × 836 logical pixels (macOS points) and holds everything at 100 %
     without scrolling. With room for the menu bar, a host's plugin window header and the Dock, it
     fits the MacBook Pro 16" default resolution (1728 × 1117) at 100 % and the MacBook Air 13"
     (1470 × 956) and MacBook Pro 14" (1512 × 982) at 90 % zoom (or with horizontal scrolling). The
     `default_size_fits_everything` test lays the editor out headlessly and checks this.
   * States saved by the layout with one shared hi-hat card (layout version 2) at its default size
-    (1392 × 790) open at the new default size; a size set by hand is kept.
+    (1392 × 790), and by the layout without tabs (version 3) at its default size (1584 × 790), open
+    at the new default size; a size set by hand is kept.
   * A right-hand column holds:
     * the FX bus, with P1–P4 labelled for the current FX type from the firmware's FX page and
       controls not used by the type dimmed;
@@ -315,6 +316,40 @@ change is applied at the start of the next tick.
   * List parameters (waveforms, filter types, LFO and velocity targets, …) open a list on click.
     Mod-target lists offer the destination voice's range (`modTargetVoiceOffsets`).
   * Tooltips show the full name, value, range, default, learned CC and stable ID.
+* **Tabs.** A tab bar under the top bar has *Params* (the parameter view above) and one tab per
+  Launch Control XL 3 mode: 1 Drum 1 to 7 Open hi-hat, 8 Sequencer, 9 Mix + FX, 10 Perform,
+  11 LFO + Mod, 12 Morph + Macro and 16 Global (`src/editor/panel.rs`). The selected tab is saved
+  with the editor state (`editor-tab`).
+  * A mode tab draws the controller's front panel from the surface view (see *Launch Control XL 3*,
+    *Editor view*): the screen, three rows of encoders with a value arc in their LED colour, the
+    faders, the 16 buttons and the side buttons with their LED colours. Proportions follow
+    `docs/lcxl3-daw-mode/source/render.py`; the photo-based PNGs in `docs/` are not used.
+  * Faders show a marker at the parameter value and the cap at the hardware position; a fader that
+    has moved but not picked up the value has a grey cap labelled "pickup".
+  * Clicking a mode tab sets the controller's mode. Clicking *Params* leaves it unchanged.
+  * **Follow controller** (checkbox next to the tabs, on by default, saved as
+    `follow-controller`): when the mode changes on the controller, the editor switches to that
+    mode's tab. While a mode tab is shown it always follows; the checkbox decides whether it also
+    switches away from *Params*.
+  * A chip next to the checkbox reads "Controller: connected", "not connected" (the surface runs
+    without a device) or "off" (`VDRUM_LCXL3=0`).
+* **Mouse edits in the mode tabs.** They are sent to the surface as controller input and run
+  through the same handlers as the device.
+  * Drag an encoder up or down: one step per 4 points; Shift for fine steps.
+  * Drag a fader: the press sends the parameter's current value (so the fader picks up at once),
+    then the drag moves it.
+  * Press a button with the left mouse button: pressed while the mouse button is down, released
+    with it (holds such as "hold 1 s" and held sequencer steps work this way).
+  * Right-click a button to latch it held; right-click again to release it. This allows
+    combinations such as a held step plus an encoder edit.
+  * Double-click an encoder or fader bound to an engine parameter to reset it to its default.
+  * Tooltips show the section, parameter name and ID, and value.
+* **Pills.** A row under the tabs, on every tab:
+  * the last edit made on the controller, filled with the section colour ("FILTER · Cutoff · 84"),
+    for 1.5 s after the edit. Mouse edits in the editor do not show it;
+  * one outlined pill per active context layer (for example "SHIFT: select mode",
+    "STEP 5 HELD: locks", "REC", "BROWSING KITS: Play loads", "HOLD 1 s: Save kit");
+  * one pill per button latched with the right mouse button.
 * **Window.** Resizable from the corner. Zoom with −/+ in 10 % steps from 50 % to 300 %
   (persisted); click the percentage to reset it to 100 %. Zoom scales the content and asks the host
   to scale the window by the same ratio; if the host refuses, the content is zoomed inside the
