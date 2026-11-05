@@ -313,6 +313,11 @@ fn sequencer_operations_reach_the_engine() {
     assert_eq!(e.seq_status().step[3], 2);
     e.seq(SeqEv::HostStop);
     assert!(!e.seq_status().running);
+    // silenced: the sequencer follows the clock but triggers no steps
+    e.seq(SeqEv::Silence(true));
+    assert!(e.seq_status().silent && e.0.vdrum.seq_silent);
+    e.seq(SeqEv::Silence(false));
+    assert!(!e.seq_status().silent);
 
     // a bulk load replaces everything
     let mut d = SeqData::default();

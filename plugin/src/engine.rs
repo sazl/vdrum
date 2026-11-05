@@ -49,6 +49,8 @@ pub enum SeqEv {
     NextPattern(u8),
     /// Start or stop on the internal clock.
     Run(bool),
+    /// Silence the sequencer (it keeps following the clock but triggers no steps).
+    Silence(bool),
     /// Host transport: start; the argument is the position of the next 16th note.
     HostStart(u32),
     /// Host transport: the position jumped; the argument is the position of the next 16th note.
@@ -98,6 +100,10 @@ pub trait Engine: Send {
     /// The sequencer's playback state.
     fn seq_status(&self) -> SeqStatus {
         SeqStatus::default()
+    }
+    /// The current LFO output (0..=1) of each track's voice. The default is 0.5 for all.
+    fn lfo_values(&self) -> [f32; 7] {
+        [0.5; 7]
     }
     /// Whether the engine stopped after an internal error (it then renders silence and ignores
     /// input until the plugin replaces it in `initialize()`).
@@ -323,6 +329,9 @@ impl Engine for LxrEngine {
             SeqEv::Run(on) => {
                 self.guarded(|e| e.vdrum_seq_run(on));
             }
+            SeqEv::Silence(on) => {
+                self.guarded(|e| e.vdrum.seq_silent = on);
+            }
             SeqEv::HostStart(n) => {
                 self.guarded(|e| e.vdrum_seq_host_start(n));
             }
@@ -387,6 +396,10 @@ impl Engine for LxrEngine {
         *faulted = r.is_err();
     }
 
+    fn lfo_values(&self) -> [f32; 7] {
+        self.0.vdrum_lfo_values()
+    }
+
     fn seq_status(&self) -> SeqStatus {
         let e = &self.0;
         SeqStatus {
@@ -395,6 +408,7 @@ impl Engine for LxrEngine {
             pending: e.seq_pendingPattern,
             step: e.seq_stepIndex,
             late: (12..24).contains(&e.seq_prescaleCounter),
+            silent: e.vdrum.seq_silent,
         }
     }
 

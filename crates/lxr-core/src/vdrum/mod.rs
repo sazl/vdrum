@@ -11,6 +11,7 @@
 //! * [`seq`]: pattern writes and host transport for the plugin's sequencer.
 
 pub mod open_hat;
+pub mod lfo_view;
 pub mod seq;
 
 use crate::prelude::*;
@@ -39,6 +40,8 @@ pub struct VdrumState {
     pub ohFaderAdcOld: u16,
     /// Parameter values of the open hi-hat (`activeParameters` semantics), indexed by `OH_*`.
     pub ohParams: [u8; OH_NUM_PARAMS],
+    /// The sequencer keeps running but triggers no steps (Play under the host clock).
+    pub seq_silent: bool,
 }
 
 impl VdrumState {
@@ -53,6 +56,7 @@ impl VdrumState {
         ohFaderValue: 0.0,
         ohFaderAdcOld: 0,
         ohParams: [0; OH_NUM_PARAMS],
+        seq_silent: false,
     };
 }
 

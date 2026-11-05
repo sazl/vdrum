@@ -110,6 +110,10 @@ impl Model for SharedModel<'_> {
         // A poisoned lock still holds valid data (edits are applied whole).
         Box::new(self.0.seq.lock().unwrap_or_else(|e| e.into_inner()))
     }
+    fn lfo(&self, t: u8) -> f32 {
+        self.0.lfo_values.get(t as usize).map_or(0.5, |v| f32::from_bits(v.load(Ordering::Relaxed)))
+    }
+
     fn seq_status(&self) -> SeqStatus {
         self.0.seq_status.load()
     }
@@ -145,6 +149,7 @@ pub fn seq_events(d: &SeqData, edit: &SeqEdit) -> Vec<SeqEv> {
         }
         SeqEdit::NextPattern(p) => vec![SeqEv::NextPattern(p.min(63))],
         SeqEdit::Run(on) => vec![SeqEv::Run(on)],
+        SeqEdit::Silence(on) => vec![SeqEv::Silence(on)],
     }
 }
 

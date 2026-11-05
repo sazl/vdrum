@@ -1,6 +1,6 @@
 # VDrum on Launch Control XL 3: DAW-mode design
 
-> Archived copy of the approved design (revision 2, 2026-11-03), kept for reference. Phases 1 to 7 of the implementation plan were merged into main on 2026-11-04; phase 8 (hardware test pass) is in progress: Shift + button mode selection was confirmed on the hardware on 2026-11-05. Later changes on main: encoder LED brightness follows the value (2026-11-05); Track left/right select the sequencer track in mode 8 and no longer change mode, and the selected track's knob LEDs pulse (2026-11-05). Statements below such as "Nothing here is implemented" describe the state when the design was written. Control tables: [control-tables.md](control-tables.md). The mappings come from `source/layout.py`; `source/render.py` draws the PNGs (`python3 source/render.py source <front-panel photo> images`; the photo is not in the repository).
+> Archived copy of the approved design (revision 2, 2026-11-03), kept for reference. Phases 1 to 7 of the implementation plan were merged into main on 2026-11-04; phase 8 (hardware test pass) is in progress: Shift + button mode selection was confirmed on the hardware on 2026-11-05. Later changes on main: encoder LED brightness follows the value (2026-11-05); Track left/right select the sequencer track in mode 8 and no longer change mode, and the selected track's knob LEDs pulse (2026-11-05); the controller quality-of-life changes of 2026-11-05 ([qol-plan.md](qol-plan.md)): live recording removed and Record = Clear, Solo/Arm sequencer view in any mode (sticky with Shift + Solo/Arm), track-group layer removed, Shift + Page for kits, Play stops or silences the sequencer, active mode pulses orange while Shift is held, LFO-mode top row follows the LFOs. The tables below are updated; passages that describe the earlier behaviour are marked. Statements below such as "Nothing here is implemented" describe the state when the design was written. Control tables: [control-tables.md](control-tables.md). The mappings come from `source/layout.py`; `source/render.py` draws the PNGs (`python3 source/render.py source <front-panel photo> images`; the photo is not in the repository).
 
 Nov 3, 2026 · @Sami
 
@@ -44,25 +44,25 @@ The controller thread is new; the audio thread, editor and their queues exist to
 
 ## Controls that are the same in every mode
 
-With 16 mode slots, mode selection uses the panel's own button numbering: the top row is printed 1 to 8 and the bottom row 9 to 16, so **Shift + button N selects mode N**. Shift is therefore only a mode-select key; nothing else uses Shift combinations.
+With 16 mode slots, mode selection uses the panel's own button numbering: the top row is printed 1 to 8 and the bottom row 9 to 16, so **Shift + button N selects mode N**. While Shift is held the 16 buttons show the mode slots: the active mode's button pulses orange, the other modes are dim white, the empty slots off. Since 2026-11-05 Shift also combines with Page up/down (kits) and Solo/Arm (sticky sequencer view).
 
 | Control | DAW CC (guide p.9) | Proposed function |
 | --- | --- | --- |
 | Shift + button 1 to 16 | 63 (ch 7) + 37 to 52 | Go to mode 1 to 16 (13 to 15 do nothing until assigned) |
-| Track left / right | 103 / 102 | Mode 8: select sequencer track 1 to 7. Nothing in other modes (changed 2026-11-05: modes are selected with Shift + button only). |
+| Track left / right | 103 / 102 | Sequencer view (mode 8, or Solo/Arm): select sequencer track 1 to 7; with Record held, clear that track's pattern. Nothing otherwise (modes are selected with Shift + button only). |
 | Button with the Novation logo | 104 | Back to the previous mode (toggles between the last two) |
-| Solo/Arm | 65 | Go to mode 8 (Sequencer). Inside mode 8, hold = track group layer. |
-| Mute/Select | 66 | Go to mode 10 (Perform). Inside mode 8, hold = pattern layer. |
-| Page up / down | 106 / 107 | Browse the kit library's filled slots (with an empty library: the kits in the current kit's folder); Play loads the shown kit, any other control cancels. In mode 8: bar 1 to 4. |
-| Play | 116 | Load the browsed kit while browsing. In mode 8 with the internal clock: start/stop. Otherwise audition the current track. |
-| Record | 118 | Record arm (latching). While armed and the sequencer runs, trigger pads and Perform triggers are written to the sequencer at the playhead, to the pressed track. |
+| Solo/Arm | 65 | Toggle the sequencer view: the 16 buttons are the step buttons of the selected track in any mode (always on in mode 8). Shift + Solo/Arm: sticky, the view stays on across mode changes. LED white while on, orange while sticky. |
+| Mute/Select | 66 | Go to mode 10 (Perform). In the sequencer view, hold = pattern layer (a tap still goes to Perform). |
+| Page up / down | 106 / 107 | Sequencer view: bar 1 to 4. Shift + Page up/down: browse the kit library's filled slots (with an empty library: the kits in the current kit's folder); Play loads the shown kit, any other control cancels. |
+| Play | 116 | Load the browsed kit while browsing. Otherwise, sequencer running: stop it (internal clock) or silence it until Play is pressed again (host clock; the host transport keeps running). Otherwise: start (mode 8, internal clock) or audition the current track (voice modes). |
+| Record | 118 | Clear (hold): + a step clears the step, + Track left/right clears the selected track's pattern (sequencer view only). Live recording was removed on 2026-11-05. |
 | Mode | none ("n/a" in the guide) | Owned by the device: DAW Mixer, DAW Control or custom modes. The plugin follows the report (CC 30, channel 7). |
 
-Bottom row where a mode does not need it (modes 1 to 7 and 16): trigger pads for the seven tracks, and button 8 = Accent (pads play at velocity 127 while held). With Record armed these pads record steps.
+Bottom row where a mode does not need it (modes 1 to 7 and 16): trigger pads for the seven tracks, and button 8 = Accent (pads play at velocity 127 while held).
 
 Screen (128 x 64 pixels, guide p.15):
 
-- Stationary display: mode number and name, kit name (mode 8: pattern, bar and the selected track, with the number of other edit-group tracks), last touched parameter.
+- Stationary display: mode number and name, kit name (mode 8: pattern, bar and the selected track; "silent" while Play has silenced the sequencer), last touched parameter.
 - Temporary display on every control change: section, parameter name, and the value as the LXR-02 menu shows it (`lxr_params::format_value`), so `LP2`, `1/16`, `D2 Coarse`, not raw numbers.
 - A fader that has not picked up its parameter yet shows the target value and the direction to move.
 
@@ -128,16 +128,16 @@ The closed and open hi-hat are now two voices with the same layout and separate 
 Goal: sequence any track, or several at once, without visiting its voice mode, with one knob per function. The design has three ideas.
 
 1. **Columns are tracks, knobs are pattern generators.** Each of columns 1 to 7 is one track: Fills (Euclid pulses), Rotate (Euclid offset), Length (1 to 64 steps, so tracks can run polymetric) and a Density fader (playback probability, top = every step plays). This builds a groove from the knobs alone, for all seven tracks at once. Fills uses the engine's Euclid generator (`euklid_setSteps`, `euklid_setRotation`) and rewrites that track's steps; hand-set steps are kept until Fills is turned. Column 8: shuffle, next pattern (switches at the bar end), entry velocity, and a Density-all fader for build-ups.
-2. **The 16 buttons are the 16 steps of the current bar, for the edit group.** The edit group is one or more tracks. Hold Solo/Arm: the top row shows the seven tracks; press to add or remove them from the group (button 8 = all or none). A step press then sets or clears that step on every track in the group at once: kick and open hat together, or all three drums. Where the group disagrees, a press sets the step on all. Page up/down moves between bars 1 to 4. Hold Mute/Select: the 16 buttons are patterns 1 to 16, queued to the bar end.
+2. **The 16 buttons are the 16 steps of the current bar, for the edit group.** *(Superseded 2026-11-05: the edit group was removed; steps are edited on the selected track only, and the step buttons are also available in other modes through the Solo/Arm sequencer view.)* The edit group is one or more tracks. Hold Solo/Arm: the top row shows the seven tracks; press to add or remove them from the group (button 8 = all or none). A step press then sets or clears that step on every track in the group at once: kick and open hat together, or all three drums. Where the group disagrees, a press sets the step on all. Page up/down moves between bars 1 to 4. Hold Mute/Select: the 16 buttons are patterns 1 to 16, queued to the bar end.
 
-   **Selected track (added 2026-11-05).** Track left/right select one of the seven tracks; the selected track becomes the edit group, the step buttons show its steps, the display shows it, and its column's knob LEDs pulse slowly (1.2 s period) at their value brightness. Solo/Arm can still add tracks to the group; the step buttons then show the selected track first.
-3. **Hold a step, turn a knob.** While one or more steps are held, knob rows 1 and 2 change meaning (second image): row 1 = step velocity, probability, note, flam/ratchet, micro-shift, and the values of the step's two automation locks; row 2 = lock targets (pitch, decay, cutoff, resonance, drive, pan, sample rate, FX send). Turning a row-2 knob stores a parameter lock on the held steps for each track in the group. The engine has two automation slots per step (`param1Nr/Val`, `param2Nr/Val`); a third lock replaces the oldest, and the screen says so. Row 3 and the faders keep their track functions.
+   **Selected track (added 2026-11-05).** Track left/right select one of the seven tracks; the selected track becomes the edit group, the step buttons show its steps, the display shows it, and its column's knob LEDs pulse slowly (1.2 s period) at their value brightness. ~~Solo/Arm can still add tracks to the group; the step buttons then show the selected track first.~~ (Removed 2026-11-05.)
+3. **Hold a step, turn a knob.** While one or more steps are held, knob rows 1 and 2 change meaning (second image): row 1 = step velocity, probability, note, flam/ratchet, micro-shift, and the values of the step's two automation locks; row 2 = lock targets (pitch, decay, cutoff, resonance, drive, pan, sample rate, FX send). Turning a row-2 knob stores a parameter lock on the held steps of the selected track (each track of the group until 2026-11-05). In the sequencer view of other modes, holding a step and moving any knob or fader that controls a parameter locks that parameter instead. The engine has two automation slots per step (`param1Nr/Val`, `param2Nr/Val`); a third lock replaces the oldest, and the screen says so. Row 3 and the faders keep their track functions.
 
 ![Mode 8: Sequencer, step held](images/mode-08-sequencer-step-held.png)
 
-Recording: with Record armed and the sequence running, trigger pads (modes 1 to 7, 16) and Perform triggers write steps at the playhead, so a part can be played in and then edited here.
+~~Recording: with Record armed and the sequence running, trigger pads (modes 1 to 7, 16) and Perform triggers write steps at the playhead, so a part can be played in and then edited here.~~ Removed 2026-11-05; Record is now Clear (see the table above).
 
-Clock: the engine's sequencer is driven from the host transport when hosted. The Global mode clock setting switches to the internal clock (`bpm`), for the standalone app, and then Play starts and stops it. How the plugin feeds the host transport to the engine is an implementation question (see the plan).
+Clock: the engine's sequencer is driven from the host transport when hosted. The Global mode clock setting switches to the internal clock (`bpm`), for the standalone app, and then Play starts and stops it. With the host clock, Play silences the running sequencer (it keeps following the host) until pressed again. How the plugin feeds the host transport to the engine is an implementation question (see the plan).
 
 ### Mode 9: Mix + FX
 

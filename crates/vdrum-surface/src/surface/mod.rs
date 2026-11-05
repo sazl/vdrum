@@ -146,12 +146,19 @@ struct Held {
     fired: bool,
 }
 
-/// A sequencer step button held down (mode 8).
+/// The value a parameter lock gets: moved by an encoder, or set by a fader.
+#[derive(Clone, Copy, Debug)]
+enum LockValue {
+    Delta(i32),
+    Set(u8),
+}
+
+/// A sequencer step button held down (sequencer view).
 #[derive(Clone, Copy, Debug)]
 struct HeldStep {
     /// Step 0..64 of the pattern.
     step: u8,
-    /// The press set the step on some track of the edit group.
+    /// The press set the step on the selected track.
     set_on_press: bool,
     /// A knob changed the step while it was held.
     edited: bool,
@@ -190,14 +197,15 @@ pub struct Surface {
     redo: Vec<Change>,
     /// Sequencer: bar shown on the step buttons (0..4).
     seq_bar: u8,
-    /// Sequencer edit group: bit `t` = track `t`.
-    group: u8,
-    /// Sequencer: the selected track (Track left/right), always in the edit group. The step
-    /// buttons show it and its knob LEDs pulse.
+    /// Sequencer view (Solo/Arm): the 16 buttons are the step buttons in any mode. Always on in
+    /// mode 8.
+    view: bool,
+    /// Shift + Solo/Arm: the sequencer view stays on when the mode changes.
+    sticky: bool,
+    /// Sequencer: the selected track (Track left/right). The step buttons show it and its knob
+    /// LEDs pulse in mode 8.
     seq_track: u8,
     held_steps: Vec<HeldStep>,
-    /// Record arm (latching).
-    record: bool,
     /// Velocity of steps set with the step buttons.
     entry_velocity: u8,
     /// A layer button (Solo/Arm, Mute/Select in mode 8) was used while held.
@@ -260,10 +268,10 @@ impl Surface {
             history: Vec::new(),
             redo: Vec::new(),
             seq_bar: 0,
-            group: 1,
+            view: false,
+            sticky: false,
             seq_track: 0,
             held_steps: Vec::new(),
-            record: false,
             entry_velocity: 100,
             layer_used: false,
             release_fired: false,
@@ -286,9 +294,20 @@ impl Surface {
         }
     }
 
-    /// The sequencer's edit group (bit `t` = track `t`).
-    pub fn edit_group(&self) -> u8 {
-        self.group
+    /// The sequencer view is active: the 16 buttons are the step buttons (always in mode 8).
+    pub fn seq_view(&self) -> bool {
+        self.view || self.mode == Mode::Sequencer
+    }
+
+    /// The sequencer view stays on across mode changes (Shift + Solo/Arm).
+    pub fn seq_view_sticky(&self) -> bool {
+        self.sticky
+    }
+
+    /// Rebuild the layout for the mode, the held steps (mode 8) and the sequencer view.
+    fn relayout(&mut self) {
+        let l = Layout::of(self.mode, !self.held_steps.is_empty());
+        self.layout = if self.view && self.mode != Mode::Sequencer { l.with_steps() } else { l };
     }
 
     /// The sequencer's selected track (0..7).
@@ -296,19 +315,26 @@ impl Surface {
         self.seq_track
     }
 
-    /// Whether Record is armed.
-    pub fn record_armed(&self) -> bool {
-        self.record
+
+    /// Clear track `t`'s pattern in the playing pattern: Euclid pulses off and every step back to
+    /// its default (off, no locks). Length and density stay.
+    fn clear_track(&mut self, t: u8, model: &dyn Model, out: &mut Vec<Action>) {
+        let pat = model.seq_status().pattern;
+        out.push(Action::Seq(SeqEdit::Euclid { pat, track: t, fills: 0, rotate: 0 }));
+        let edits: Vec<SeqEdit> = {
+            let d = model.seq();
+            (0..NUM_STEPS as u8)
+                .filter(|&step| d.step(pat, t, step) != StepData::default())
+                .map(|step| SeqEdit::Step { pat, track: t, step, data: StepData::default() })
+                .collect()
+        };
+        out.extend(edits.into_iter().map(Action::Seq));
+        self.show_coloured("Clear", "Track", &format!("{} {}", t + 1, TRACKS[t as usize]), TRACK_COLOURS[t as usize]);
     }
 
-    fn group_tracks(&self) -> impl Iterator<Item = u8> + '_ {
-        (0..7u8).filter(|t| self.group >> t & 1 != 0)
-    }
-
-    /// Select sequencer track `t`: it becomes the whole edit group (Solo/Arm adds tracks again).
+    /// Select sequencer track `t`.
     fn select_seq_track(&mut self, t: u8) {
         self.seq_track = t.min(6);
-        self.group = 1 << self.seq_track;
         self.show_coloured(
             "Sequencer",
             "Track",
@@ -379,7 +405,11 @@ impl Surface {
             self.prev_mode = self.mode;
             self.mode = mode;
         }
-        self.layout = Layout::of(mode, false);
+        if !self.sticky {
+            self.view = false;
+        }
+        self.held_steps.clear();
+        self.relayout();
         for f in &mut self.faders {
             f.picked = false;
         }
@@ -472,6 +502,14 @@ impl Surface {
 
     fn encoder(&mut self, c: Control, cell: &Cell, delta: i32, model: &dyn Model, out: &mut Vec<Action>) {
         let Control::Encoder { row, col } = c else { return };
+        // Sequencer view outside mode 8, step held: the control's parameter is locked on the step.
+        if self.mode != Mode::Sequencer && !self.held_steps.is_empty() {
+            match cell.binding {
+                Binding::Param(idx) => self.lock_param(cell, idx, LockValue::Delta(delta), model, out),
+                _ => self.show(cell, "cannot be locked".to_string()),
+            }
+            return;
+        }
         match cell.binding {
             Binding::Param(idx) => {
                 let Some(info) = lxr_params::info(idx) else { return };
@@ -627,10 +665,10 @@ impl Surface {
         self.show(cell, text);
     }
 
-    /// Change a field of the held steps on every track of the edit group.
+    /// Change a field of the held steps of the selected track.
     fn step_field(&mut self, cell: &Cell, field: StepField, delta: i32, model: &dyn Model, out: &mut Vec<Action>) {
         let pat = model.seq_status().pattern;
-        let tracks: Vec<u8> = self.group_tracks().collect();
+        let tracks = [self.seq_track];
         let mut text = None;
         {
             let d = model.seq();
@@ -687,18 +725,21 @@ impl Surface {
         self.show(cell, text.unwrap_or_else(|| "hold a step".to_string()));
     }
 
-    /// Store a parameter lock on the held steps for every track of the edit group.
+    /// Mode 8, step held: lock knob `k`'s parameter kind of the selected track on the held steps.
     fn lock_target(&mut self, cell: &Cell, k: u8, delta: i32, model: &dyn Model, out: &mut Vec<Action>) {
+        let idx = crate::layout::voice_param(self.seq_track, LOCK_KINDS[k as usize % 8]);
+        self.lock_param(cell, idx, LockValue::Delta(delta), model, out);
+    }
+
+    /// Store a lock of parameter `idx` on the held steps of the selected track. The engine's step
+    /// locks hold parameter numbers 0..254 only, so the open hi-hat's parameters cannot be locked.
+    fn lock_param(&mut self, cell: &Cell, idx: u16, value: LockValue, model: &dyn Model, out: &mut Vec<Action>) {
         let pat = model.seq_status().pattern;
-        // (track, parameter, current kit value as a CC value); the engine's step locks hold
-        // parameter numbers 0..254 only, so the open hi-hat's parameters cannot be locked.
-        let targets: Vec<(u8, u8, u8)> = self
-            .group_tracks()
-            .filter_map(|t| {
-                let idx = crate::layout::voice_param(t, LOCK_KINDS[k as usize % 8]);
-                let info = lxr_params::info(idx)?;
-                (idx < NO_LOCK as u16).then(|| (t, idx as u8, unscale(info.min, info.max, model.param(idx))))
-            })
+        // (track, parameter, current kit value as a CC value)
+        let targets: Vec<(u8, u8, u8)> = lxr_params::info(idx)
+            .filter(|_| idx < NO_LOCK as u16)
+            .map(|info| (self.seq_track, idx as u8, unscale(info.min, info.max, model.param(idx))))
+            .into_iter()
             .collect();
         let mut text = None;
         let mut replaced = None;
@@ -723,9 +764,12 @@ impl Surface {
                             }
                         },
                     };
-                    let v = (s.locks[slot].1 as i32 + delta).clamp(0, 127) as u8;
+                    let v = match value {
+                        LockValue::Delta(delta) => (s.locks[slot].1 as i32 + delta).clamp(0, 127) as u8,
+                        LockValue::Set(v) => v.min(127),
+                    };
                     s.locks[slot].1 = v;
-                    text.get_or_insert(v.to_string());
+                    text.get_or_insert(format!("{} {v}", lock_name(idx)));
                     if s != old {
                         out.push(Action::Seq(SeqEdit::Step { pat, track, step: h.step, data: s }));
                     }
@@ -745,6 +789,14 @@ impl Surface {
     }
 
     fn fader(&mut self, col: u8, cell: &Cell, raw: u8, model: &dyn Model, out: &mut Vec<Action>) {
+        if self.mode != Mode::Sequencer && !self.held_steps.is_empty() {
+            self.faders[col as usize] = FaderState { raw: Some(raw), picked: false };
+            match cell.binding {
+                Binding::Param(idx) => self.lock_param(cell, idx, LockValue::Set(raw), model, out),
+                _ => self.show(cell, "cannot be locked".to_string()),
+            }
+            return;
+        }
         let st = self.faders[col as usize];
         let (min, max, cur) = match cell.binding {
             Binding::Param(idx) => match lxr_params::info(idx) {
@@ -814,6 +866,17 @@ impl Surface {
         }
         match button {
             Button::Shift => self.shift = pressed,
+            // Shift + Solo/Arm: the sequencer view stays on across mode changes (sticky), or not
+            Button::SoloArm if self.shift => {
+                if pressed {
+                    self.sticky = !self.sticky;
+                    if self.sticky {
+                        self.view = true;
+                    }
+                    self.relayout();
+                    self.show_text("Sequencer view", "Sticky", if self.sticky { "on" } else { "off" });
+                }
+            }
             Button::Top(n) | Button::Bottom(n) if self.shift && pressed => {
                 let slot = if matches!(button, Button::Top(_)) { n + 1 } else { n + 9 };
                 match Mode::from_number(slot) {
@@ -821,14 +884,16 @@ impl Surface {
                     None => self.show_text("Mode", &format!("Slot {slot}"), "empty"),
                 }
             }
-            Button::Top(n) | Button::Bottom(n) if self.mode == Mode::Sequencer => {
+            Button::Top(n) | Button::Bottom(n) if self.seq_view() => {
                 let idx = if matches!(button, Button::Top(_)) { n } else { n + 8 };
                 self.seq_button(idx, pressed, model, out);
             }
-            // Track left/right select the sequencer track in mode 8 and do nothing elsewhere: modes
-            // are selected with Shift + button N.
-            Button::TrackLeft | Button::TrackRight if self.mode == Mode::Sequencer => {
-                if pressed {
+            // Track left/right select the sequencer track in the sequencer view and do nothing
+            // elsewhere: modes are selected with Shift + button N.
+            Button::TrackLeft | Button::TrackRight if self.seq_view() => {
+                if pressed && self.is_held(Control::Button(Button::Record)) {
+                    self.clear_track(self.seq_track, model, out);
+                } else if pressed {
                     let t = self.seq_track as i32 + if button == Button::TrackLeft { -1 } else { 1 };
                     self.select_seq_track(t.clamp(0, 6) as u8);
                 }
@@ -839,20 +904,28 @@ impl Surface {
                     self.set_mode(self.prev_mode);
                 }
             }
-            // In mode 8 Solo/Arm and Mute/Select are layers while held; a short press of
-            // Mute/Select that did not use the layer still goes to Perform.
-            Button::SoloArm | Button::MuteSelect if self.mode == Mode::Sequencer => {
-                if pressed {
-                    self.layer_used = false;
-                    let text = if button == Button::SoloArm { "edit group: top row" } else { "patterns 1 to 16" };
-                    self.show_text("Sequencer", if button == Button::SoloArm { "Tracks" } else { "Patterns" }, text);
-                } else if button == Button::MuteSelect && !self.layer_used {
-                    self.set_mode(Mode::Perform);
-                }
-            }
+            // Solo/Arm toggles the sequencer view (always on in mode 8).
             Button::SoloArm => {
                 if pressed {
-                    self.set_mode(Mode::Sequencer);
+                    if self.mode == Mode::Sequencer {
+                        self.show_text("Sequencer view", "always on", "in mode 8");
+                    } else {
+                        self.view = !self.view;
+                        self.held_steps.clear();
+                        self.relayout();
+                        let track = format!("{} {}", self.seq_track + 1, TRACKS[self.seq_track as usize]);
+                        self.show_text("Sequencer view", if self.view { "on" } else { "off" }, &track);
+                    }
+                }
+            }
+            // In the sequencer view Mute/Select is the pattern layer while held; a short press that
+            // did not use the layer still goes to Perform.
+            Button::MuteSelect if self.seq_view() => {
+                if pressed {
+                    self.layer_used = false;
+                    self.show_text("Sequencer", "Patterns", "patterns 1 to 16");
+                } else if !self.layer_used {
+                    self.set_mode(Mode::Perform);
                 }
             }
             Button::MuteSelect => {
@@ -860,42 +933,31 @@ impl Surface {
                     self.set_mode(Mode::Perform);
                 }
             }
-            Button::PageUp | Button::PageDown if self.mode == Mode::Sequencer => {
+            // Shift + Page up/down: browse the kits; Play loads the kit shown.
+            Button::PageUp | Button::PageDown if self.shift => {
+                if pressed {
+                    self.browsing = true;
+                    out.push(Action::KitBrowse(if button == Button::PageUp { -1 } else { 1 }));
+                }
+            }
+            Button::PageUp | Button::PageDown if self.seq_view() => {
                 if pressed {
                     let bar = self.seq_bar as i32 + if button == Button::PageUp { -1 } else { 1 };
                     self.seq_bar = bar.clamp(0, 3) as u8;
                     self.show_text("Sequencer", "Bar", &format!("{} of 4", self.seq_bar + 1));
                 }
             }
+            Button::PageUp | Button::PageDown => {}
+            // Record = Clear (2026-11-05): hold it and press a step (sequencer view) to clear that
+            // step, or Track left/right to clear the selected track's pattern.
             Button::Record => {
                 if pressed {
-                    self.record = !self.record;
-                    self.show_text("Sequencer", "Record", if self.record { "armed" } else { "off" });
-                }
-            }
-            Button::Play if pressed && !self.browsing && self.mode == Mode::Sequencer => {
-                if self.settings.host_clock {
-                    self.show_text("Sequencer", "Clock: host", "set Internal in Global");
-                } else {
-                    let run = !model.seq_status().running;
-                    out.push(Action::Seq(SeqEdit::Run(run)));
-                    self.show_text("Sequencer", "Internal clock", if run { "start" } else { "stop" });
-                }
-            }
-            Button::PageUp | Button::PageDown => {
-                if pressed {
-                    self.browsing = true;
-                    out.push(Action::KitBrowse(if button == Button::PageUp { -1 } else { 1 }));
+                    self.show_text("Clear", "hold +", "step / Track < >");
                 }
             }
             Button::Play => {
                 if pressed {
-                    if self.browsing {
-                        self.browsing = false;
-                        out.push(Action::KitLoadBrowsed);
-                    } else if let Some(track) = self.mode.track() {
-                        out.push(Action::Trigger { track, velocity: self.pad_velocity() });
-                    }
+                    self.play(model, out);
                 }
             }
             Button::Top(_) | Button::Bottom(_) => {
@@ -910,39 +972,53 @@ impl Surface {
         }
     }
 
-    /// A step button (or, in the layers, a track or pattern button) in mode 8.
+    /// Play: loads a browsed kit; otherwise stops a running sequencer (internal clock) or silences
+    /// it and lets it play again (host clock, which the plugin cannot stop); otherwise starts the
+    /// sequencer in mode 8 (internal clock) or plays the voice of a voice mode.
+    fn play(&mut self, model: &dyn Model, out: &mut Vec<Action>) {
+        if self.browsing {
+            self.browsing = false;
+            out.push(Action::KitLoadBrowsed);
+            return;
+        }
+        let st = model.seq_status();
+        if self.settings.host_clock && (st.running || st.silent) {
+            let silent = !st.silent;
+            out.push(Action::Seq(SeqEdit::Silence(silent)));
+            self.show_text("Sequencer", "Host clock", if silent { "silenced" } else { "playing" });
+        } else if !self.settings.host_clock && st.running {
+            out.push(Action::Seq(SeqEdit::Run(false)));
+            self.show_text("Sequencer", "Internal clock", "stop");
+        } else if self.mode == Mode::Sequencer {
+            if self.settings.host_clock {
+                self.show_text("Sequencer", "Clock: host", "set Internal in Global");
+            } else {
+                out.push(Action::Seq(SeqEdit::Run(true)));
+                self.show_text("Sequencer", "Internal clock", "start");
+            }
+        } else if let Some(track) = self.mode.track() {
+            out.push(Action::Trigger { track, velocity: self.pad_velocity() });
+        }
+    }
+
+    /// A step button (or, in the pattern layer, a pattern button) in the sequencer view.
     fn seq_button(&mut self, idx: u8, pressed: bool, model: &dyn Model, out: &mut Vec<Action>) {
         let st = model.seq_status();
+        if self.is_held(Control::Button(Button::Record)) {
+            if pressed {
+                let step = self.seq_bar * 16 + idx;
+                let track = self.seq_track;
+                out.push(Action::Seq(SeqEdit::Step { pat: st.pattern, track, step, data: StepData::default() }));
+                self.show_text("Clear", &format!("Step {}", step + 1), TRACKS[track as usize]);
+            }
+            return;
+        }
         if self.is_held(Control::Button(Button::MuteSelect)) {
             if pressed {
                 self.layer_used = true;
                 out.push(Action::Seq(SeqEdit::NextPattern(idx)));
                 let when = if st.running { "at bar end" } else { "now" };
                 self.show_text("Sequencer", &format!("Pattern {}", idx + 1), when);
-            }
-            return;
-        }
-        if self.is_held(Control::Button(Button::SoloArm)) && idx < 8 {
-            if pressed {
-                self.layer_used = true;
-                self.group = match idx {
-                    7 if self.group == 0x7f => 1,
-                    7 => 0x7f,
-                    t => {
-                        let g = self.group ^ (1 << t);
-                        if g == 0 {
-                            self.group
-                        } else {
-                            g
-                        }
-                    }
-                };
-                if self.group >> self.seq_track & 1 == 0 {
-                    let first = self.group_tracks().next().unwrap_or(0);
-                    self.seq_track = first;
-                }
-                let names: Vec<&str> = self.group_tracks().map(|t| TRACKS[t as usize]).collect();
-                self.show_text("Sequencer", "Edit group", &names.join(" "));
             }
             return;
         }
@@ -954,7 +1030,7 @@ impl Surface {
             }
             let edits: Vec<SeqEdit> = {
                 let d = model.seq();
-                self.group_tracks()
+                std::iter::once(self.seq_track)
                     .filter_map(|track| {
                         let s = d.step(pat, track, step);
                         (!s.on).then_some(SeqEdit::Step {
@@ -975,7 +1051,7 @@ impl Surface {
             if !h.set_on_press && !h.edited {
                 let edits: Vec<SeqEdit> = {
                     let d = model.seq();
-                    self.group_tracks()
+                    std::iter::once(self.seq_track)
                         .filter_map(|track| {
                             let s = d.step(pat, track, step);
                             s.on.then_some(SeqEdit::Step { pat, track, step, data: StepData { on: false, ..s } })
@@ -986,28 +1062,7 @@ impl Surface {
                 self.show_text("Sequencer", &format!("Step {}", step + 1), "off");
             }
         }
-        self.layout = Layout::of(self.mode, !self.held_steps.is_empty());
-    }
-
-    /// With Record armed and the sequencer running, a pad writes a step at the track's playhead
-    /// (the next step when more than half of the current one has passed).
-    fn record_hit(&mut self, track: u8, velocity: u8, model: &dyn Model, out: &mut Vec<Action>) {
-        let st = model.seq_status();
-        if !self.record || !st.running {
-            return;
-        }
-        let cur = st.step[track as usize % 7];
-        if cur < 0 {
-            return;
-        }
-        let edit = {
-            let d = model.seq();
-            let len = d.track(st.pattern, track).length.max(1);
-            let step = ((cur as u8).wrapping_add(st.late as u8)) % len;
-            let s = d.step(st.pattern, track, step);
-            SeqEdit::Step { pat: st.pattern, track, step, data: StepData { on: true, velocity, ..s } }
-        };
-        out.push(Action::Seq(edit));
+        self.relayout();
     }
 
     fn pad_velocity(&self) -> u8 {
@@ -1032,7 +1087,6 @@ impl Surface {
             Binding::Pad(track) | Binding::Trigger(track) => {
                 let velocity = self.pad_velocity();
                 out.push(Action::Trigger { track, velocity });
-                self.record_hit(track, velocity, model, out);
             }
             Binding::Accent => self.accent = true,
             Binding::CopyVoice => {
@@ -1255,49 +1309,80 @@ impl Surface {
             if matches!(c, Control::Fader(_)) {
                 continue;
             }
-            leds.push((*c, self.led(*c, cell, now, model)));
+            let led = match c {
+                Control::Button(b @ (Button::Top(_) | Button::Bottom(_))) if self.shift => self.mode_led(*b, now),
+                _ => self.led(*c, cell, now, model),
+            };
+            leds.push((*c, led));
         }
         // Navigation buttons: lit where they do something.
         let nav: Rgb = Section::Nav.colour();
-        for b in [Button::Logo, Button::SoloArm, Button::MuteSelect] {
+        for b in [Button::Logo, Button::MuteSelect] {
             leds.push((Control::Button(b), nav));
         }
-        // Track left/right only act in mode 8 (sequencer track); lit where they can move.
-        let seq = self.mode == Mode::Sequencer;
-        leds.push((Control::Button(Button::TrackLeft), if seq && self.seq_track > 0 { nav } else { (0, 0, 0) }));
-        leds.push((Control::Button(Button::TrackRight), if seq && self.seq_track < 6 { nav } else { (0, 0, 0) }));
-        let rec = if self.record { (255, 0, 0) } else { (64, 0, 0) };
+        let view = self.seq_view();
+        // Solo/Arm: sequencer view off (nav), on (white), sticky (orange)
+        let solo = match (self.sticky, view) {
+            (true, _) => MODE_ACTIVE,
+            (false, true) => (255, 255, 255),
+            (false, false) => nav,
+        };
+        leds.push((Control::Button(Button::SoloArm), solo));
+        // Track left/right only act in the sequencer view (sequencer track); lit where they can move.
+        leds.push((Control::Button(Button::TrackLeft), if view && self.seq_track > 0 { nav } else { (0, 0, 0) }));
+        leds.push((Control::Button(Button::TrackRight), if view && self.seq_track < 6 { nav } else { (0, 0, 0) }));
+        // Record = Clear: lit in the sequencer view, bright while held
+        let rec = match (view, self.is_held(Control::Button(Button::Record))) {
+            (false, _) => (0, 0, 0),
+            (true, false) => (64, 0, 0),
+            (true, true) => (255, 0, 0),
+        };
         leds.push((Control::Button(Button::Record), rec));
+        // Page up/down: kits with Shift, bars in the sequencer view
+        let (up, down) = if self.shift {
+            (nav, nav)
+        } else if view {
+            (if self.seq_bar > 0 { nav } else { (0, 0, 0) }, if self.seq_bar < 3 { nav } else { (0, 0, 0) })
+        } else {
+            ((0, 0, 0), (0, 0, 0))
+        };
+        leds.push((Control::Button(Button::PageUp), up));
+        leds.push((Control::Button(Button::PageDown), down));
+        // Play: red while silenced (host clock), green while running; otherwise start (mode 8,
+        // internal clock) or the voice of a voice mode
         let st = model.seq_status();
-        if self.mode == Mode::Sequencer {
-            let play = if self.settings.host_clock {
+        let play = if st.silent {
+            (255, 0, 0)
+        } else if st.running {
+            (0, 255, 0)
+        } else if self.mode == Mode::Sequencer {
+            if self.settings.host_clock {
                 (0, 0, 0)
-            } else if st.running {
-                (0, 255, 0)
             } else {
                 (0, 64, 0)
-            };
-            leds.push((Control::Button(Button::Play), play));
-            leds.push((Control::Button(Button::PageUp), if self.seq_bar > 0 { nav } else { (0, 0, 0) }));
-            leds.push((Control::Button(Button::PageDown), if self.seq_bar < 3 { nav } else { (0, 0, 0) }));
+            }
+        } else if let Some(t) = self.mode.track() {
+            Section::Pad(t).colour()
+        } else {
+            (0, 0, 0)
+        };
+        leds.push((Control::Button(Button::Play), play));
+        if self.mode == Mode::Sequencer {
             let next = if st.pending != st.pattern { format!(" > P{:02}", st.pending + 1) } else { String::new() };
-            let others = self.group_tracks().filter(|&t| t != self.seq_track).count();
-            let more = if others > 0 { format!(" +{others}") } else { String::new() };
+            let silent = if st.silent { " silent" } else { "" };
             let stationary = [
-                format!("{} {}{}", self.mode.number(), self.mode.name(), if self.record { " REC" } else { "" }),
-                format!("P{:02} bar {}/4{next}", st.pattern + 1, self.seq_bar + 1),
-                format!("Track {} {}{more}", self.seq_track + 1, TRACKS[self.seq_track as usize]),
+                format!("{} {}", self.mode.number(), self.mode.name()),
+                format!("P{:02} bar {}/4{next}{silent}", st.pattern + 1, self.seq_bar + 1),
+                format!("Track {} {}", self.seq_track + 1, TRACKS[self.seq_track as usize]),
             ];
             return Frame { leds, stationary, popup: self.popup.clone() };
         }
-        let play = if self.mode.track().is_some() { Section::Pad(self.mode.track().unwrap_or(0)).colour() } else { (0, 0, 0) };
-        leds.push((Control::Button(Button::Play), play));
         let stationary =
             [format!("{} {}", self.mode.number(), self.mode.name()), model.kit_name(), self.last_touched.clone()];
         Frame { leds, stationary, popup: self.popup.clone() }
     }
 
-    /// LED of step / layer button `idx` (0..16) in mode 8.
+    /// LED of step / pattern-layer button `idx` (0..16) in the sequencer view.
     fn seq_led(&self, idx: u8, model: &dyn Model) -> Rgb {
         let st = model.seq_status();
         if self.is_held(Control::Button(Button::MuteSelect)) {
@@ -1312,22 +1397,14 @@ impl Surface {
                 (60, 60, 60)
             };
         }
-        if self.is_held(Control::Button(Button::SoloArm)) && idx < 8 {
-            return match idx {
-                7 => (255, 255, 255),
-                t => on_off(TRACK_COLOURS[t as usize], self.group >> t & 1 != 0),
-            };
-        }
         let step = self.seq_bar * 16 + idx;
         let first = self.seq_track;
         if st.running && st.step[first as usize] == step as i8 {
             return (255, 255, 255);
         }
         let d = model.seq();
-        // the selected track first, then the other tracks of the edit group
-        let order = std::iter::once(first).chain(self.group_tracks().filter(move |&t| t != first));
-        if let Some(t) = order.into_iter().find(|&t| self.group >> t & 1 != 0 && d.step(st.pattern, t, step).on) {
-            let c = TRACK_COLOURS[t as usize];
+        if d.step(st.pattern, first, step).on {
+            let c = TRACK_COLOURS[first as usize];
             return if self.held_steps.iter().any(|h| h.step == step) { c } else { (c.0 / 2, c.1 / 2, c.2 / 2) };
         }
         if step < d.track(st.pattern, first).length {
@@ -1337,8 +1414,31 @@ impl Surface {
         }
     }
 
+    /// While Shift is held the 16 buttons show the mode slots: the active mode pulses orange, the
+    /// other modes are dim white and the empty slots are off.
+    fn mode_led(&self, b: Button, now: u64) -> Rgb {
+        let slot = match b {
+            Button::Top(n) => n + 1,
+            Button::Bottom(n) => n + 9,
+            _ => return (0, 0, 0),
+        };
+        match Mode::from_number(slot) {
+            Some(m) if m == self.mode => scale_rgb(MODE_ACTIVE, pulse(now)),
+            Some(_) => MODE_OTHER,
+            None => (0, 0, 0),
+        }
+    }
+
     fn led(&self, c: Control, cell: &Cell, now: u64, model: &dyn Model) -> Rgb {
         let col = cell.section.colour();
+        // LFO mode: top-row buttons 1 to 7 follow their track's LFO output, scaled by its amount
+        if self.mode == Mode::LfoMod && !matches!(cell.binding, Binding::SeqStep(_)) {
+            if let Control::Button(Button::Top(t)) = c {
+                if t < 7 {
+                    return scale_rgb(col, lfo_brightness(model.lfo(t), param_frac(model, crate::layout::voice_param(t, "lfo_amt"))));
+                }
+            }
+        }
         match cell.binding {
             Binding::Spare => (0, 0, 0),
             Binding::Param(idx) if matches!(c, Control::Button(_)) => match lxr_params::info(idx) {
@@ -1430,12 +1530,35 @@ pub fn value_brightness(col: Rgb, frac: f32) -> Rgb {
     (f(col.0), f(col.1), f(col.2))
 }
 
+/// Brightness of an LFO-mode button for LFO output `lfo` (0..=1) at amount `amt` (0..=1): a steady
+/// level at amount 0, swinging from [`PULSE_FLOOR`] to full at full amount.
+pub fn lfo_brightness(lfo: f32, amt: f32) -> f32 {
+    let amt = amt.clamp(0.0, 1.0);
+    let swing = PULSE_FLOOR + (1.0 - PULSE_FLOOR) * lfo.clamp(0.0, 1.0);
+    (1.0 - amt) * LFO_STEADY + amt * swing
+}
+
+/// Level of an LFO-mode button whose LFO amount is 0.
+pub const LFO_STEADY: f32 = 0.6;
+
+/// A parameter's value as a fraction of its range.
+fn param_frac(model: &dyn Model, idx: u16) -> f32 {
+    match lxr_params::info(idx) {
+        Some(i) if i.max > i.min => model.param(idx).saturating_sub(i.min) as f32 / (i.max - i.min) as f32,
+        _ => 0.0,
+    }
+}
+
 /// Period of the selected track's knob LED pulse in mode 8, in milliseconds.
 pub const PULSE_MS: u64 = 1200;
 /// Lowest level of the pulse (fraction of the value brightness).
 pub const PULSE_FLOOR: f32 = 0.08;
 
 /// Pulse level at time `now`: a raised cosine from [`PULSE_FLOOR`] to 1 and back over [`PULSE_MS`].
+/// Shift held: colour of the active mode's button (pulsing) and of the other modes' buttons.
+pub const MODE_ACTIVE: Rgb = (255, 80, 0);
+pub const MODE_OTHER: Rgb = (40, 40, 40);
+
 pub fn pulse(now: u64) -> f32 {
     let phase = (now % PULSE_MS) as f32 / PULSE_MS as f32;
     let up = 0.5 - 0.5 * (phase * std::f32::consts::TAU).cos();

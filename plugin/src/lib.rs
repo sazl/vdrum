@@ -392,6 +392,8 @@ impl Plugin for VDrum {
         let mut n_pulses = 0;
         let host_clock = shared.seq_host_clock.load(Ordering::Relaxed);
         if self.seq_host_clock != Some(host_clock) {
+            // a clock change ends a silenced sequencer (Play under the host clock)
+            pipeline.push_event(0, Ev::Seq(SeqEv::Silence(false)), &mut apply);
             if host_clock {
                 pipeline.push_event(0, Ev::Seq(SeqEv::Run(false)), &mut apply);
             } else {
@@ -571,6 +573,9 @@ impl Plugin for VDrum {
         );
 
         shared.seq_status.store(&pipeline.engine.seq_status());
+        for (out, v) in shared.lfo_values.iter().zip(pipeline.engine.lfo_values()) {
+            out.store(v.to_bits(), Ordering::Relaxed);
+        }
 
         let decay = self.meter_decay_per_sample.powi(frames as i32);
         for ((m, p), out) in self.meter_state.iter_mut().zip(peak).zip(&shared.meters) {

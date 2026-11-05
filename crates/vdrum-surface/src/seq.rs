@@ -165,6 +165,8 @@ pub enum SeqEdit {
     NextPattern(u8),
     /// Start or stop the sequencer (internal clock).
     Run(bool),
+    /// Silence the sequencer or let it play again (host clock: the host transport keeps running).
+    Silence(bool),
 }
 
 impl SeqData {
@@ -221,7 +223,7 @@ impl SeqData {
                     None => self.density_all = v,
                 }
             }
-            SeqEdit::NextPattern(_) | SeqEdit::Run(_) => {}
+            SeqEdit::NextPattern(_) | SeqEdit::Run(_) | SeqEdit::Silence(_) => {}
         }
     }
 
@@ -353,11 +355,13 @@ pub struct SeqStatus {
     pub step: [i8; NUM_TRACKS],
     /// More than half of the current step has passed (recorded notes go to the next step).
     pub late: bool,
+    /// Silenced with Play under the host clock: the sequencer follows the host but plays no steps.
+    pub silent: bool,
 }
 
 impl Default for SeqStatus {
     fn default() -> Self {
-        SeqStatus { running: false, pattern: 0, pending: 0, step: [-1; NUM_TRACKS], late: false }
+        SeqStatus { running: false, pattern: 0, pending: 0, step: [-1; NUM_TRACKS], late: false, silent: false }
     }
 }
 

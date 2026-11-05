@@ -390,6 +390,12 @@ impl Layout {
     }
 
     /// The layout of `mode`; `held` selects the sequencer's step-held layout.
+    /// The 16 buttons become the sequencer's step buttons (the sequencer view in any mode).
+    pub fn with_steps(mut self) -> Layout {
+        steps(&mut self);
+        self
+    }
+
     pub fn of(mode: Mode, held: bool) -> Layout {
         match mode {
             Mode::Voice(t @ 0..=2) => drum(t),
@@ -403,6 +409,13 @@ impl Layout {
             Mode::MorphMacro => morph_macro(),
             Mode::Global => global(),
         }
+    }
+}
+
+fn steps(m: &mut Layout) {
+    for c in 0..8u8 {
+        m.set(t(c + 1), format!("Step {}", c + 1), Section::Seq, Binding::SeqStep(c));
+        m.set(b(c + 1), format!("Step {}", c + 9), Section::Seq, Binding::SeqStep(c + 8));
     }
 }
 
@@ -530,10 +543,7 @@ fn sequencer(held: bool) -> Layout {
     m.set(k(2, 8), "Next pattern", Seq, Binding::SeqNextPattern);
     m.set(k(3, 8), "Entry velocity", Seq, Binding::SeqEntryVelocity);
     m.set(f(8), "Density all", Seq, Binding::SeqDensityAll);
-    for c in 0..8u8 {
-        m.set(t(c + 1), format!("Step {}", c + 1), Seq, Binding::SeqStep(c));
-        m.set(b(c + 1), format!("Step {}", c + 9), Seq, Binding::SeqStep(c + 8));
-    }
+    steps(&mut m);
     if held {
         let row1 = [
             ("Velocity", StepField::Velocity),

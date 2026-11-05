@@ -186,6 +186,7 @@ pub struct SeqStatusAtomics {
     pub pending: AtomicU8,
     pub step: [AtomicI8; 7],
     pub late: AtomicBool,
+    pub silent: AtomicBool,
 }
 
 impl SeqStatusAtomics {
@@ -196,6 +197,7 @@ impl SeqStatusAtomics {
             pending: AtomicU8::new(0),
             step: std::array::from_fn(|_| AtomicI8::new(-1)),
             late: AtomicBool::new(false),
+            silent: AtomicBool::new(false),
         }
     }
 
@@ -207,6 +209,7 @@ impl SeqStatusAtomics {
             a.store(v, Ordering::Relaxed);
         }
         self.late.store(s.late, Ordering::Relaxed);
+        self.silent.store(s.silent, Ordering::Relaxed);
     }
 
     pub fn load(&self) -> SeqStatus {
@@ -216,6 +219,7 @@ impl SeqStatusAtomics {
             pending: self.pending.load(Ordering::Relaxed),
             step: std::array::from_fn(|i| self.step[i].load(Ordering::Relaxed)),
             late: self.late.load(Ordering::Relaxed),
+            silent: self.silent.load(Ordering::Relaxed),
         }
     }
 }
@@ -265,6 +269,8 @@ pub struct Shared {
     /// The sequencer follows the host transport (true) or runs on the engine's own clock.
     pub seq_host_clock: AtomicBool,
     pub seq_status: SeqStatusAtomics,
+    /// Each track's LFO output (0..=1, `f32` bits), stored by the audio thread once per process call.
+    pub lfo_values: [AtomicU32; 7],
     /// Muted tracks (bit `t` = track `t`): the audio thread drops their note-ons and the
     /// sequencer skips them.
     pub mutes: AtomicU8,
@@ -315,6 +321,7 @@ impl Shared {
             seq: Mutex::new(SeqData::default()),
             seq_host_clock: AtomicBool::new(true),
             seq_status: SeqStatusAtomics::new(),
+            lfo_values: std::array::from_fn(|_| AtomicU32::new(0.5f32.to_bits())),
             mutes: AtomicU8::new(0),
             tempo: AtomicF32::new(120.0),
             surface_state: Mutex::new(String::new()),

@@ -357,7 +357,7 @@ change is applied at the start of the next tick.
   * the last edit made on the controller, filled with the section colour ("FILTER · Cutoff · 84"),
     for 1.5 s after the edit. Mouse edits in the editor do not show it;
   * one outlined pill per active context layer (for example "SHIFT: select mode",
-    "STEP 5 HELD: locks", "REC", "BROWSING KITS: Play loads", "HOLD 1 s: Save kit");
+    "STEP 5 HELD: locks", "STEPS: 2 D2", "BROWSING KITS: Play loads", "HOLD 1 s: Save kit");
   * one pill per button latched with the right mouse button.
 * **Window.** Resizable from the corner. Zoom with −/+ in 10 % steps from 50 % to 300 %
   (persisted); click the percentage to reset it to 100 %. Zoom scales the content and asks the host
@@ -391,7 +391,7 @@ logic in `crates/vdrum-surface`, messages in `crates/lcxl3`).
 * **Editor view.** Every frame (20 ms) in which it changed, the controller thread publishes a
   `vdrum_surface::View` in `Shared::surface_view`: the mode, every control of the mode (label,
   section and colour, LED colour, value text and position, parameter ID and name, fader position and
-  pickup), the context layers (Shift, track group, pattern select, held steps, Accent, Record, kit
+  pickup), the context layers (Shift, sequencer view, pattern select, held steps, Accent, kit
   browsing, Compare, macro learn, momentary effects, holds in progress), the last hardware edit and
   the screen lines.
 * **Editor input.** The editor sends mouse edits as `lcxl3::Input` messages and tab clicks as mode
@@ -401,6 +401,14 @@ logic in `crates/vdrum-surface`, messages in `crates/lcxl3`).
 * **Audio thread.** The controller never touches the engine. Parameter changes, fader moves and
   pad triggers go through the editor's lock-free command queue. LEDs and the screen read the
   shared parameter mirror, so they follow host automation, editor edits and kit loads.
+* **Mode buttons.** While Shift is held the 16 buttons show the mode slots: the active mode's button
+  pulses orange (`vdrum_surface::pulse`), the other modes are dim white and the empty slots (13 to
+  15) are off.
+* **LFO mode.** In mode 11 the top-row buttons 1 to 7 follow the LFO of track 1 to 7: the audio
+  thread publishes the seven LFO outputs once per block (`Lxr::vdrum_lfo_values`,
+  `Shared::lfo_values`) and the LED brightness is `(1 - amount) * 0.6 + amount * (0.08 + 0.92 *
+  lfo)` (`vdrum_surface::lfo_brightness`). LFOs faster than about 25 Hz alias at the 20 ms frame
+  rate.
 * **Encoder LEDs.** Each encoder LED shows its section or track colour, scaled by the value:
   10 % at the minimum, full brightness at the maximum (`vdrum_surface::value_brightness`). The
   device only does this by itself in its own modes; in DAW mode the plugin sets every LED.
@@ -408,11 +416,11 @@ logic in `crates/vdrum-surface`, messages in `crates/lcxl3`).
   editor copies them to the host parameters, and the saved state includes them while the editor is
   closed. The voice faders are saved separately (`faders`) for the same reason.
 * **Kits.**
-  * Page up/down shows the previous/next filled slot of the kit library ("Kit 03 · MALWA"); Play
-    loads it, any other control cancels.
+  * Shift + Page up/down shows the previous/next filled slot of the kit library ("Kit 03 · MALWA");
+    Play loads it, any other control cancels.
   * With an empty library, the controller works on the kit file last loaded or saved (in the editor
-    or on the controller; the path is saved with the plugin state as `kit-path`): Page up/down
-    shows the previous/next `.snd` file of that folder.
+    or on the controller; the path is saved with the plugin state as `kit-path`): Shift + Page
+    up/down shows the previous/next `.snd` file of that folder.
   * *Save kit* (Global, hold 1 s) writes the current kit into the selected library slot, or, when
     the kit is not from the library, overwrites the kit file.
   * *Compare* (Global, hold) plays the kit as last loaded or saved and returns to the edited kit on
@@ -424,7 +432,7 @@ logic in `crates/vdrum-surface`, messages in `crates/lcxl3`).
   clock, device brightness, popup time, encoder curve) are saved with the plugin state
   (`lcxl3-settings`).
 
-### Sequencer (mode 8)
+### Sequencer (mode 8 and the sequencer view)
 
 The engine's ported LXR-02 sequencer plays the patterns (7 tracks, 64 patterns, 64 steps per
 track). The controller edits the plugin's copy of the pattern data (`Shared::seq`,
@@ -441,25 +449,35 @@ discards edits of the playing pattern when the pattern changes.
     external clock input path (`seq_isSyncExternal` = 1, `trigger_clockReceived`). A jump of the
     host position (loop, locate) re-places the tracks. The rounded host tempo is passed to the
     engine for flams and shuffle. Stopping the transport stops the sequencer. The standalone app
-    has no transport, so nothing plays in this setting.
-  * *Internal*: the engine's own clock at the global tempo (`PAR_BPM`); Play starts (from step 1)
-    and stops it.
+    has no transport, so nothing plays in this setting. The plugin cannot stop the host transport:
+    Play (any mode) silences the running sequencer instead (`Lxr::vdrum.seq_silent`; it keeps
+    following the host but triggers no steps; Play LED red, "silent" on the mode 8 screen) until
+    Play is pressed again. Changing the clock setting ends it.
+  * *Internal*: the engine's own clock at the global tempo (`PAR_BPM`); Play starts it (from step
+    1) in mode 8 and stops it in any mode.
   * Pulses are applied at the start of the engine tick they fall into (up to 63 engine frames
     early, like MIDI). On the firmware's external clock path, odd 16th notes are delayed by the
     shuffle time even at shuffle 0, which ends one tick (1.45 ms) later.
-* **Steps.** The 16 buttons are the steps of the shown bar (Page up/down: bars 1 to 4) for the edit
-  group. A press sets the step on every group track where it is off (at the entry velocity); a
-  press and release without other changes clears it. Hold Solo/Arm: top row = the seven tracks of
-  the edit group (button 8: all or Drum 1). Hold Mute/Select: the 16 buttons queue patterns 1 to 16
+* **Sequencer view.** Solo/Arm toggles the sequencer view in any mode: the 16 buttons become the
+  step buttons of the selected track while knobs and faders keep the mode's functions. Mode 8
+  always has the view. A mode change (Shift + button N) ends the view unless it is sticky: Shift +
+  Solo/Arm toggles sticky (Solo/Arm LED white while the view is on, orange while sticky).
+* **Steps.** In the view the 16 buttons are the steps of the shown bar (Page up/down: bars 1 to 4)
+  of the selected track. A press sets the step if it is off (at the entry velocity); a press and
+  release without other changes clears it. Hold Mute/Select: the 16 buttons queue patterns 1 to 16
   (at the bar end while running); a short press without using the layer goes to Perform.
-* **Selected track.** Track left/right select track 1 to 7 (they do nothing in other modes; modes
-  are chosen with Shift + button N). The selected track becomes the edit group, the step buttons
-  show its steps, the screen's third line shows it ("Track 2 D2", with "+N" for other group
-  tracks added with Solo/Arm), and its column's knob LEDs pulse at their value brightness
-  (`vdrum_surface::pulse`, raised cosine, 1.2 s period, 8 % floor).
-* **Held steps.** Knob row 1: velocity, probability, note, flam/ratchet, micro-shift, the two lock
-  values, clear locks. Row 2: parameter locks (pitch, decay, cutoff, resonance, drive, pan, sample
-  rate, FX send) for every group track. A lock starts at the kit's current value; a third lock
+* **Selected track.** In the view Track left/right select track 1 to 7 (they do nothing outside
+  it; modes are chosen with Shift + button N). The step buttons show the selected track's steps;
+  in mode 8 the screen's third line shows it ("Track 2 D2") and its column's knob LEDs pulse at
+  their value brightness (`vdrum_surface::pulse`, raised cosine, 1.2 s period, 8 % floor). Steps
+  are edited on the selected track only (the Solo/Arm track-group layer was removed on 2026-11-05).
+* **Held steps, other modes.** In the view outside mode 8, holding a step and turning a knob or
+  moving a fader that controls a parameter stores a lock of that parameter on the step (knob:
+  starts at the kit value and moves; fader: set to the fader position); the kit value does not
+  change. Controls without a parameter cannot lock.
+* **Held steps, mode 8.** Knob row 1: velocity, probability, note, flam/ratchet, micro-shift, the
+  two lock values, clear locks. Row 2: parameter locks (pitch, decay, cutoff, resonance, drive, pan,
+  sample rate, FX send) for the selected track. A lock starts at the kit's current value; a third lock
   replaces the older one. Locks use the step's two automation slots, which hold parameter numbers
   0 to 254 and CC values 0 to 127: the open hi-hat's parameters (numbers from 302) cannot be locked.
 * **Generators.** Fills and Rotate set Euclid pulses and rotation and rewrite the track's steps
@@ -468,10 +486,10 @@ discards edits of the playing pattern when the pattern changes.
   `euklid_generate`, which only covers lengths up to 16. Density faders scale the probability of
   every step of the track (Density all: of every track) in the engine copy; the saved step
   probability is unchanged.
-* **Record.** With Record armed and the sequencer running, a trigger pad writes a step at the
-  track's playhead (the next step when more than half of the step has passed). The pad also
-  triggers at once, so a step written ahead plays again when the sequencer reaches it (as on the
-  LXR-02, whose `seq_stepToSkip` is set but not read).
+* **Record = Clear.** In the view, hold Record and press a step: the step is cleared (off, default
+  velocity and timing, no locks). Hold Record and press Track left or right: the selected track's
+  pattern is cleared (Euclid pulses off, every step back to default; length and density stay).
+  Record's LED is dim red in the view, bright while held. Live recording was removed on 2026-11-05.
 * **Pattern changes** keep the kit. The firmware's default `PAR_PATTERN_MODE` 1 loads the
   pattern's kit slot from the engine's kit memory on every pattern change, which undid kit edits;
   the plugin sets it to 0 (it is not a host parameter).
