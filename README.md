@@ -22,6 +22,23 @@ macOS universal: `cargo xtask bundle-universal vdrum --release`; AU and macOS ap
 Linux needs the X11/GL/ALSA/JACK development packages listed in `.github/workflows/ci.yml`.
 Details: [plugin/README.md](plugin/README.md).
 
+## Releases
+
+Pushing a tag `v*` runs `.github/workflows/release.yml`, which attaches these files to a GitHub release
+(a pre-release when the tag contains `-`, for example `v0.2.0-rc.1`):
+
+| File | Contents |
+|---|---|
+| `VDrum-<tag>-vst3-all-platforms.zip` | one `VDrum.vst3` bundle with the Linux x86_64, Windows x86_64 and macOS universal binaries (VST3 multi-platform bundle layout) |
+| `VDrum-<tag>-<os>-clap.zip`, `VDrum-<tag>-<os>-vst3.zip` | per-OS CLAP and VST3; `<os>` is `linux-x86_64`, `windows-x86_64` or `macos-universal` |
+| `VDrum-<tag>-macos-app.zip` | standalone `VDrum.app` (universal) |
+| `VDrum-<tag>-macos-au.zip` | AUv2 `VDrum.component` (universal) |
+| `SHA256SUMS.txt` | SHA-256 of each zip |
+
+The macOS files are ad-hoc signed and not notarized. The workflow can also be started by hand
+(Actions, Release, Run workflow); it then builds and checks the files and keeps them as a workflow
+artifact without publishing.
+
 ## Verify
 
 ```sh

@@ -50,7 +50,7 @@ The standalone takes `--backend {auto,jack,alsa,dummy}`, `--sample-rate` and `--
 (run `--help` for the full list). Its default rate is 48000 Hz; pass `--sample-rate 44100` to hear
 the engine output without resampling.
 
-### AUv2 and standalone app (macOS, untested)
+### AUv2 and standalone app (macOS)
 
 ```sh
 cargo xtask bundle-universal vdrum --release
@@ -59,8 +59,9 @@ cmake --build target/au --config Release
 ```
 
 This uses clap-wrapper v0.9.1 (commit `eb8b1901`) and produces `VDrum.component` (type `aumu`,
-manufacturer `VDrm`, subtype `VDr1`) and `VDrum.app`. Each embeds a copy of `VDrum.clap`. Nobody has
-built this on macOS yet, so it should be treated as unverified until macOS CI runs it.
+manufacturer `VDrm`, subtype `VDr1`) and `VDrum.app`. Each embeds a copy of `VDrum.clap`. CI builds
+both on GitHub's macOS runners and runs `auval` on the component; the release workflow ad-hoc signs
+them. They are not notarized, so Gatekeeper asks for confirmation on first start (right-click, Open).
 
 ## Audio
 

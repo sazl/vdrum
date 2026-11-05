@@ -8,13 +8,18 @@
 #   cmake -S au -B target/au -G Xcode -DVDRUM_CLAP=$PWD/target/bundled/VDrum.clap
 #   cmake --build target/au --config Release
 #
-# UNTESTED: this project has not been built yet (no macOS machine/CI was available).
+# Built by .github/workflows/ci.yml and release.yml on GitHub's macOS runners.
 
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.24)
 set(CMAKE_OSX_DEPLOYMENT_TARGET 10.13 CACHE STRING "Minimum macOS version")
 set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Architectures (must match the CLAP)")
 
 project(vdrum-au VERSION 0.1.0 LANGUAGES C CXX)
+
+# The AudioUnit SDK that clap-wrapper downloads needs C++17 (std::byte, class template argument
+# deduction); without this the Xcode generator builds it as C++98/11 and fails.
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if (NOT APPLE)
     message(FATAL_ERROR "The AUv2/standalone wrapper project is for macOS only")
@@ -39,6 +44,13 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(clap-wrapper)
 
+# clap-wrapper compiles its own sources with -Werror. Its bundled fmt triggers deprecation warnings
+# with the libc++ of current Xcode (char_traits<char8_type>, literal operator spacing), which
+# would fail the build; keep them as warnings. -Wno-error is appended after clap-wrapper's -Werror.
+if (TARGET clap-wrapper-compile-options)
+    target_compile_options(clap-wrapper-compile-options INTERFACE -Wno-error)
+endif ()
+
 # Audio Unit v2 instrument ('aumu'). The codes are VDrum's own (4 characters, the manufacturer code
 # needs an upper case letter).
 add_library(VDrum_auv2 MODULE)
@@ -51,7 +63,6 @@ target_add_auv2_wrapper(
     MANUFACTURER_NAME "VDrum"
     MANUFACTURER_CODE "VDrm"
     SUBTYPE_CODE "VDr1"
-    MACOS_EMBEDDED_CLAP_LOCATION "${VDRUM_CLAP}"
 )
 
 # Standalone app hosting the CLAP.
@@ -63,5 +74,16 @@ target_add_standalone_wrapper(
     BUNDLE_VERSION "${PROJECT_VERSION}"
     HOSTED_CLAP_NAME "VDrum"
     PLUGIN_INDEX 0
-    MACOS_EMBEDDED_CLAP_LOCATION "${VDRUM_CLAP}"
 )
+
+# Embed VDrum.clap in Contents/PlugIns of both bundles, where the wrappers look for it first.
+# clap-wrapper's own MACOS_EMBEDDED_CLAP_LOCATION is not used: it copies relative to the
+# LIBRARY_OUTPUT_DIRECTORY property, which is unset here, so with the Xcode generator the copy
+# landed in the source folder (au/VDrum.component) instead of the built bundle.
+foreach (tgt VDrum_auv2 VDrum_standalone)
+    add_custom_command(TARGET ${tgt} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_BUNDLE_DIR:${tgt}>/Contents/PlugIns/VDrum.clap"
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_DIR:${tgt}>/Contents/PlugIns"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${VDRUM_CLAP}" "$<TARGET_BUNDLE_DIR:${tgt}>/Contents/PlugIns/VDrum.clap"
+        VERBATIM)
+endforeach ()
