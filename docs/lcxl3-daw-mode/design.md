@@ -68,7 +68,7 @@ Screen (128 x 64 pixels, guide p.15):
 
 LEDs:
 
-- Encoder LEDs take the colour of the parameter's section (voice modes) or of the track (column-per-track modes).
+- Encoder LEDs take the colour of the parameter's section (voice modes) or of the track (column-per-track modes). Their brightness follows the value, as in the device's own modes: 10 % of the colour at the minimum, full at the maximum (added 2026-11-05). In DAW mode the device does not do this itself; the plugin sends each LED's RGB value.
 - Toggles: bright when on, dim when off. Cycle buttons: section colour, briefly white on change.
 - Trigger pads and Perform triggers flash when their track plays, from any source. Muted tracks are red.
 - Sequencer steps: lit in the track colour where a step is set, white at the playhead.

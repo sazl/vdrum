@@ -329,8 +329,10 @@ fn device_state_sends_only_changes() {
     assert!(d.update(&s.frame(0, &m)).is_empty());
     turn(&mut s, &m, 0, 0, 1);
     let msgs = d.update(&s.frame(0, &m));
-    // popup (3 fields + trigger) and the stationary's last-touched line (3 fields + trigger)
-    assert_eq!(msgs.len(), 8, "{msgs:x?}");
+    // popup (3 fields + trigger), the stationary's last-touched line (3 fields + trigger) and the
+    // encoder's LED, whose brightness follows the value
+    assert_eq!(msgs.len(), 9, "{msgs:x?}");
+    assert_eq!(msgs.iter().filter(|m| m[6..8] == [0x01, 0x53]).count(), 1, "{msgs:x?}");
     assert!(msgs.iter().all(|m| m[..6] == lcxl3::SYSEX_HEADER));
     assert!(d.update(&s.frame(0, &m)).is_empty());
     // leaving DAW mode
@@ -897,4 +899,25 @@ fn view_shows_controls_layers_and_hardware_edits_only() {
     press(&mut s, &m, Button::Top(4), 70);
     assert!(s.view(70, &m).layers.iter().any(|l| l == "STEP 5 HELD: locks"));
     release(&mut s, &m, Button::Top(4), 80);
+}
+
+#[test]
+fn encoder_led_brightness_follows_the_value() {
+    let m = Fake::new();
+    let mut s = Surface::new();
+    let enc = Control::Encoder { row: 0, col: 0 };
+    let led = |s: &Surface| s.frame(0, &m).leds.iter().find(|(c, _)| *c == enc).map(|x| x.1).unwrap();
+    let sum = |c: (u8, u8, u8)| c.0 as u32 + c.1 as u32 + c.2 as u32;
+    turn(&mut s, &m, 0, 0, -63);
+    turn(&mut s, &m, 0, 0, -63);
+    turn(&mut s, &m, 0, 0, -63);
+    let low = led(&s);
+    turn(&mut s, &m, 0, 0, 63);
+    turn(&mut s, &m, 0, 0, 63);
+    turn(&mut s, &m, 0, 0, 63);
+    let high = led(&s);
+    assert!(sum(low) > 0, "the minimum stays visible: {low:?}");
+    assert!(sum(high) > sum(low) * 4, "{low:?} {high:?}");
+    assert_eq!(vdrum_surface::value_brightness((200, 100, 0), 1.0), (200, 100, 0));
+    assert_eq!(vdrum_surface::value_brightness((200, 100, 0), 0.0), (20, 10, 0));
 }
