@@ -8,13 +8,18 @@
 #   cmake -S au -B target/au -G Xcode -DVDRUM_CLAP=$PWD/target/bundled/VDrum.clap
 #   cmake --build target/au --config Release
 #
-# UNTESTED: this project has not been built yet (no macOS machine/CI was available).
+# Built by .github/workflows/ci.yml and release.yml on GitHub's macOS runners.
 
 cmake_minimum_required(VERSION 3.21)
 set(CMAKE_OSX_DEPLOYMENT_TARGET 10.13 CACHE STRING "Minimum macOS version")
 set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Architectures (must match the CLAP)")
 
 project(vdrum-au VERSION 0.1.0 LANGUAGES C CXX)
+
+# The AudioUnit SDK that clap-wrapper downloads needs C++17 (std::byte, class template argument
+# deduction); without this the Xcode generator builds it as C++98/11 and fails.
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if (NOT APPLE)
     message(FATAL_ERROR "The AUv2/standalone wrapper project is for macOS only")

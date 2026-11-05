@@ -11,7 +11,7 @@
 # publish: on a `v*` tag, a GitHub release with those files (a pre-release when the tag has a
 #          `-`, for example v0.2.0-rc.1).
 #
-# Pushes to a branch that change this file run build and package only (dry run, files kept as a
+# Pushes to a branch that change this file or au/ run build and package only (dry run, files kept as a
 # workflow artifact), so the pipeline can be tested before it is merged.
 name: Release
 
@@ -19,7 +19,7 @@ on:
   push:
     tags: ['v*']
     branches: ['**']
-    paths: ['.github/workflows/release.yml']
+    paths: ['.github/workflows/release.yml', 'au/**']
   workflow_dispatch:
 
 permissions:
