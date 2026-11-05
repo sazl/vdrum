@@ -126,7 +126,7 @@ def render(mode):
         10: ("10 PERFORM", "Kit: Initkit", "SD Decay  64"),
         16: ("16 GLOBAL", "D1 note", "C1 (36)"),
         9: ("9 MIX + FX", "FX type", "del"),
-        8: ("8 SEQ  P01 B1", "Group: D1 SD", "SD Fills 4/16"),
+        8: ("8 SEQ  P01 B1", "Track 1 D1 +1", "SD Fills 4/16"),
         "8h": ("8 SEQ  step 5", "Lock Cutoff", "D1 64 > 90"),
         11: ("11 LFO + MOD", "SD LFO dest", "SD Coarse"),
         12: ("12 MORPH", "D1 Morph > S2", "50%"),

@@ -49,7 +49,7 @@ With 16 mode slots, mode selection uses the panel's own button numbering: the to
 | Control | DAW CC (guide p.9) | Proposed function |
 | --- | --- | --- |
 | Shift + button 1 to 16 | 63 (ch 7) + 37 to 52 | Go to mode 1 to 16 (13 to 15 do nothing until assigned) |
-| Track left / right | 103 / 102 | Previous / next mode, skipping empty slots |
+| Track left / right | 103 / 102 | Mode 8: select sequencer track 1 to 7. Nothing in other modes (changed 2026-11-05: modes are selected with Shift + button only). |
 | Button with the Novation logo | 104 | Back to the previous mode (toggles between the last two) |
 | Solo/Arm | 65 | Go to mode 8 (Sequencer). Inside mode 8, hold = track group layer. |
 | Mute/Select | 66 | Go to mode 10 (Perform). Inside mode 8, hold = pattern layer. |
@@ -62,7 +62,7 @@ Bottom row where a mode does not need it (modes 1 to 7 and 16): trigger pads for
 
 Screen (128 x 64 pixels, guide p.15):
 
-- Stationary display: mode number and name, kit name (mode 8: pattern, bar and edit group), last touched parameter.
+- Stationary display: mode number and name, kit name (mode 8: pattern, bar and the selected track, with the number of other edit-group tracks), last touched parameter.
 - Temporary display on every control change: section, parameter name, and the value as the LXR-02 menu shows it (`lxr_params::format_value`), so `LP2`, `1/16`, `D2 Coarse`, not raw numbers.
 - A fader that has not picked up its parameter yet shows the target value and the direction to move.
 
@@ -129,6 +129,8 @@ Goal: sequence any track, or several at once, without visiting its voice mode, w
 
 1. **Columns are tracks, knobs are pattern generators.** Each of columns 1 to 7 is one track: Fills (Euclid pulses), Rotate (Euclid offset), Length (1 to 64 steps, so tracks can run polymetric) and a Density fader (playback probability, top = every step plays). This builds a groove from the knobs alone, for all seven tracks at once. Fills uses the engine's Euclid generator (`euklid_setSteps`, `euklid_setRotation`) and rewrites that track's steps; hand-set steps are kept until Fills is turned. Column 8: shuffle, next pattern (switches at the bar end), entry velocity, and a Density-all fader for build-ups.
 2. **The 16 buttons are the 16 steps of the current bar, for the edit group.** The edit group is one or more tracks. Hold Solo/Arm: the top row shows the seven tracks; press to add or remove them from the group (button 8 = all or none). A step press then sets or clears that step on every track in the group at once: kick and open hat together, or all three drums. Where the group disagrees, a press sets the step on all. Page up/down moves between bars 1 to 4. Hold Mute/Select: the 16 buttons are patterns 1 to 16, queued to the bar end.
+
+   **Selected track (added 2026-11-05).** Track left/right select one of the seven tracks; the selected track becomes the edit group, the step buttons show its steps, the display shows it, and its column's knob LEDs pulse slowly (1.2 s period) at their value brightness. Solo/Arm can still add tracks to the group; the step buttons then show the selected track first.
 3. **Hold a step, turn a knob.** While one or more steps are held, knob rows 1 and 2 change meaning (second image): row 1 = step velocity, probability, note, flam/ratchet, micro-shift, and the values of the step's two automation locks; row 2 = lock targets (pitch, decay, cutoff, resonance, drive, pan, sample rate, FX send). Turning a row-2 knob stores a parameter lock on the held steps for each track in the group. The engine has two automation slots per step (`param1Nr/Val`, `param2Nr/Val`); a third lock replaces the oldest, and the screen says so. Row 3 and the faders keep their track functions.
 
 ![Mode 8: Sequencer, step held](images/mode-08-sequencer-step-held.png)
@@ -217,7 +219,7 @@ The work is split into phases, each delivered as its own pull request and never 
 
 **Unverified (needs a real LCXL3 or a code check):**
 
-- Whether Shift + top/bottom-row button combinations reach the host in DAW mode, or whether the device reserves some Shift combinations for its own functions. Mode selection depends on this. Fallback: Track buttons for previous/next mode only.
+- Whether Shift + top/bottom-row button combinations reach the host in DAW mode, or whether the device reserves some Shift combinations for its own functions. Mode selection depends on this. Fallback: Track buttons for previous/next mode only. (2026-11-05: Sami reports Shift + button does not change mode on the hardware; cause not known yet. `VDRUM_LCXL3_LOG` logs what the device sends.)
 - Whether a held button plus encoder turns arrive cleanly enough for step-held editing (mode 8) without accidental step toggles on release.
 - Display text field lengths per arrangement; the screen texts in the images are illustrative.
 - The parameter value range the engine's per-step parameter locks (`param1Val`, `param2Val`) accept, and whether every parameter can be a lock target.

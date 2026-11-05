@@ -374,6 +374,8 @@ logic in `crates/vdrum-surface`, messages in `crates/lcxl3`).
 * **Ports.** The ports are picked by name: names containing `LCXL3` or "Launch Control XL" and
   "3", preferring one with "DAW", otherwise the device's second port. `VDRUM_LCXL3_PORT=<text>`
   picks the ports whose names contain `<text>` instead. `VDRUM_LCXL3=0` disables the controller.
+  `VDRUM_LCXL3_LOG=<file>` appends every message received from the device to `<file>` (time, bytes
+  in hex, decoded form), to check what the hardware sends.
   The port names have not been checked on a real device.
 * **One owner.** Only one plugin instance per process drives the device. Instances in other
   processes (another host) are not coordinated. The other instances still run their surface for
@@ -445,6 +447,11 @@ discards edits of the playing pattern when the pattern changes.
   press and release without other changes clears it. Hold Solo/Arm: top row = the seven tracks of
   the edit group (button 8: all or Drum 1). Hold Mute/Select: the 16 buttons queue patterns 1 to 16
   (at the bar end while running); a short press without using the layer goes to Perform.
+* **Selected track.** Track left/right select track 1 to 7 (they do nothing in other modes; modes
+  are chosen with Shift + button N). The selected track becomes the edit group, the step buttons
+  show its steps, the screen's third line shows it ("Track 2 D2", with "+N" for other group
+  tracks added with Solo/Arm), and its column's knob LEDs pulse at their value brightness
+  (`vdrum_surface::pulse`, raised cosine, 1.2 s period, 8 % floor).
 * **Held steps.** Knob row 1: velocity, probability, note, flam/ratchet, micro-shift, the two lock
   values, clear locks. Row 2: parameter locks (pitch, decay, cutoff, resonance, drive, pan, sample
   rate, FX send) for every group track. A lock starts at the kit's current value; a third lock

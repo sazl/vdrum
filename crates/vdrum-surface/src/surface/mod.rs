@@ -192,6 +192,9 @@ pub struct Surface {
     seq_bar: u8,
     /// Sequencer edit group: bit `t` = track `t`.
     group: u8,
+    /// Sequencer: the selected track (Track left/right), always in the edit group. The step
+    /// buttons show it and its knob LEDs pulse.
+    seq_track: u8,
     held_steps: Vec<HeldStep>,
     /// Record arm (latching).
     record: bool,
@@ -258,6 +261,7 @@ impl Surface {
             redo: Vec::new(),
             seq_bar: 0,
             group: 1,
+            seq_track: 0,
             held_steps: Vec::new(),
             record: false,
             entry_velocity: 100,
@@ -287,6 +291,11 @@ impl Surface {
         self.group
     }
 
+    /// The sequencer's selected track (0..7).
+    pub fn seq_track(&self) -> u8 {
+        self.seq_track
+    }
+
     /// Whether Record is armed.
     pub fn record_armed(&self) -> bool {
         self.record
@@ -294,6 +303,18 @@ impl Surface {
 
     fn group_tracks(&self) -> impl Iterator<Item = u8> + '_ {
         (0..7u8).filter(|t| self.group >> t & 1 != 0)
+    }
+
+    /// Select sequencer track `t`: it becomes the whole edit group (Solo/Arm adds tracks again).
+    fn select_seq_track(&mut self, t: u8) {
+        self.seq_track = t.min(6);
+        self.group = 1 << self.seq_track;
+        self.show_coloured(
+            "Sequencer",
+            "Track",
+            &format!("{} {}", self.seq_track + 1, TRACKS[self.seq_track as usize]),
+            TRACK_COLOURS[self.seq_track as usize],
+        );
     }
 
     /// Show a message in the popup (for results the plugin reports, such as kit names).
@@ -804,11 +825,15 @@ impl Surface {
                 let idx = if matches!(button, Button::Top(_)) { n } else { n + 8 };
                 self.seq_button(idx, pressed, model, out);
             }
-            Button::TrackLeft | Button::TrackRight => {
+            // Track left/right select the sequencer track in mode 8 and do nothing elsewhere: modes
+            // are selected with Shift + button N.
+            Button::TrackLeft | Button::TrackRight if self.mode == Mode::Sequencer => {
                 if pressed {
-                    self.set_mode(self.mode.step(if button == Button::TrackLeft { -1 } else { 1 }));
+                    let t = self.seq_track as i32 + if button == Button::TrackLeft { -1 } else { 1 };
+                    self.select_seq_track(t.clamp(0, 6) as u8);
                 }
             }
+            Button::TrackLeft | Button::TrackRight => {}
             Button::Logo => {
                 if pressed {
                     self.set_mode(self.prev_mode);
@@ -912,6 +937,10 @@ impl Surface {
                         }
                     }
                 };
+                if self.group >> self.seq_track & 1 == 0 {
+                    let first = self.group_tracks().next().unwrap_or(0);
+                    self.seq_track = first;
+                }
                 let names: Vec<&str> = self.group_tracks().map(|t| TRACKS[t as usize]).collect();
                 self.show_text("Sequencer", "Edit group", &names.join(" "));
             }
@@ -1230,9 +1259,13 @@ impl Surface {
         }
         // Navigation buttons: lit where they do something.
         let nav: Rgb = Section::Nav.colour();
-        for b in [Button::TrackLeft, Button::TrackRight, Button::Logo, Button::SoloArm, Button::MuteSelect] {
+        for b in [Button::Logo, Button::SoloArm, Button::MuteSelect] {
             leds.push((Control::Button(b), nav));
         }
+        // Track left/right only act in mode 8 (sequencer track); lit where they can move.
+        let seq = self.mode == Mode::Sequencer;
+        leds.push((Control::Button(Button::TrackLeft), if seq && self.seq_track > 0 { nav } else { (0, 0, 0) }));
+        leds.push((Control::Button(Button::TrackRight), if seq && self.seq_track < 6 { nav } else { (0, 0, 0) }));
         let rec = if self.record { (255, 0, 0) } else { (64, 0, 0) };
         leds.push((Control::Button(Button::Record), rec));
         let st = model.seq_status();
@@ -1248,11 +1281,12 @@ impl Surface {
             leds.push((Control::Button(Button::PageUp), if self.seq_bar > 0 { nav } else { (0, 0, 0) }));
             leds.push((Control::Button(Button::PageDown), if self.seq_bar < 3 { nav } else { (0, 0, 0) }));
             let next = if st.pending != st.pattern { format!(" > P{:02}", st.pending + 1) } else { String::new() };
-            let group: Vec<&str> = self.group_tracks().map(|t| TRACKS[t as usize]).collect();
+            let others = self.group_tracks().filter(|&t| t != self.seq_track).count();
+            let more = if others > 0 { format!(" +{others}") } else { String::new() };
             let stationary = [
                 format!("{} {}{}", self.mode.number(), self.mode.name(), if self.record { " REC" } else { "" }),
                 format!("P{:02} bar {}/4{next}", st.pattern + 1, self.seq_bar + 1),
-                group.join(" "),
+                format!("Track {} {}{more}", self.seq_track + 1, TRACKS[self.seq_track as usize]),
             ];
             return Frame { leds, stationary, popup: self.popup.clone() };
         }
@@ -1285,12 +1319,14 @@ impl Surface {
             };
         }
         let step = self.seq_bar * 16 + idx;
-        let Some(first) = self.group_tracks().next() else { return (0, 0, 0) };
+        let first = self.seq_track;
         if st.running && st.step[first as usize] == step as i8 {
             return (255, 255, 255);
         }
         let d = model.seq();
-        if let Some(t) = self.group_tracks().find(|&t| d.step(st.pattern, t, step).on) {
+        // the selected track first, then the other tracks of the edit group
+        let order = std::iter::once(first).chain(self.group_tracks().filter(move |&t| t != first));
+        if let Some(t) = order.into_iter().find(|&t| self.group >> t & 1 != 0 && d.step(st.pattern, t, step).on) {
             let c = TRACK_COLOURS[t as usize];
             return if self.held_steps.iter().any(|h| h.step == step) { c } else { (c.0 / 2, c.1 / 2, c.2 / 2) };
         }
@@ -1367,10 +1403,18 @@ impl Surface {
             Binding::Compare => on_off(col, self.comparing),
             Binding::PasteVoice => on_off(col, self.clipboard.as_ref().is_some_and(|(g, _)| Some(*g) == self.mode.track().map(copy_group))),
             // encoders with a value: brightness follows the value, as in the device's own modes
-            _ if matches!(c, Control::Encoder { .. }) => match view::range_of(self, cell, model) {
-                Some((min, max, cur)) if max > min => value_brightness(col, cur.saturating_sub(min) as f32 / (max - min) as f32),
-                _ => col,
-            },
+            _ if matches!(c, Control::Encoder { .. }) => {
+                let lit = match view::range_of(self, cell, model) {
+                    Some((min, max, cur)) if max > min => value_brightness(col, cur.saturating_sub(min) as f32 / (max - min) as f32),
+                    _ => col,
+                };
+                // mode 8: the selected track's knobs pulse, at their value brightness
+                if self.mode == Mode::Sequencer && cell.section == Section::SeqTrack(self.seq_track) {
+                    scale_rgb(lit, pulse(now))
+                } else {
+                    lit
+                }
+            }
             _ => col,
         }
     }
@@ -1382,6 +1426,23 @@ pub const ENCODER_LED_FLOOR: f32 = 0.1;
 /// `col` scaled by an encoder's value position `frac` (0..=1), from [`ENCODER_LED_FLOOR`] to full.
 pub fn value_brightness(col: Rgb, frac: f32) -> Rgb {
     let k = ENCODER_LED_FLOOR + (1.0 - ENCODER_LED_FLOOR) * frac.clamp(0.0, 1.0);
+    let f = |v: u8| (v as f32 * k).round() as u8;
+    (f(col.0), f(col.1), f(col.2))
+}
+
+/// Period of the selected track's knob LED pulse in mode 8, in milliseconds.
+pub const PULSE_MS: u64 = 1200;
+/// Lowest level of the pulse (fraction of the value brightness).
+pub const PULSE_FLOOR: f32 = 0.08;
+
+/// Pulse level at time `now`: a raised cosine from [`PULSE_FLOOR`] to 1 and back over [`PULSE_MS`].
+pub fn pulse(now: u64) -> f32 {
+    let phase = (now % PULSE_MS) as f32 / PULSE_MS as f32;
+    let up = 0.5 - 0.5 * (phase * std::f32::consts::TAU).cos();
+    PULSE_FLOOR + (1.0 - PULSE_FLOOR) * up
+}
+
+fn scale_rgb(col: Rgb, k: f32) -> Rgb {
     let f = |v: u8| (v as f32 * k).round() as u8;
     (f(col.0), f(col.1), f(col.2))
 }

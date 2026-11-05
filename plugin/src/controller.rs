@@ -14,6 +14,9 @@
 //! * One plugin instance per process owns the device; others leave it alone.
 //! * `VDRUM_LCXL3=0` disables the controller. `VDRUM_LCXL3_PORT=<text>` selects the ports whose
 //!   names contain `<text>` instead of the automatic choice.
+//! * `VDRUM_LCXL3_LOG=<file>` appends every message received from the device to `<file>` (time in
+//!   milliseconds, the bytes in hex and how the plugin decoded them), for checking what the device
+//!   sends on real hardware.
 //! * The device is looked for every [`SCAN_MS`] while it is not connected, and checked for at the
 //!   same interval while it is.
 
@@ -506,9 +509,40 @@ impl Session {
     }
 }
 
+/// Appends the received messages to the file named by `VDRUM_LCXL3_LOG`, if set.
+struct InputLog(Option<std::fs::File>);
+
+impl InputLog {
+    fn from_env() -> InputLog {
+        let file = std::env::var_os("VDRUM_LCXL3_LOG")
+            .filter(|p| !p.is_empty())
+            .and_then(|p| std::fs::OpenOptions::new().create(true).append(true).open(p).ok());
+        InputLog(file)
+    }
+
+    fn note(&mut self, t: u64, text: &str) {
+        if let Some(f) = self.0.as_mut() {
+            use std::io::Write;
+            let _ = writeln!(f, "{t:>9} {text}");
+        }
+    }
+
+    fn received(&mut self, t: u64, msgs: &[Vec<u8>]) {
+        if self.0.is_none() {
+            return;
+        }
+        for m in msgs {
+            let hex: Vec<String> = m.iter().map(|b| format!("{b:02X}")).collect();
+            let text = format!("IN  {}  {:?}", hex.join(" "), lcxl3::decode(m));
+            self.note(t, &text);
+        }
+    }
+}
+
 fn run(shared: &Shared, stop: &AtomicBool) {
     let start = Instant::now();
     let now = || start.elapsed().as_millis() as u64;
+    let mut log = InputLog::from_env();
     let mut session = Session::new(shared);
     let mut conn: Option<Connection> = None;
     let mut next_scan = 0u64;
@@ -526,6 +560,9 @@ fn run(shared: &Shared, stop: &AtomicBool) {
                 if opened.is_none() {
                     OWNER.store(false, Ordering::Release);
                 }
+                if let Some(c) = &opened {
+                    log.note(t, &format!("connected: in {:?}", c.in_name));
+                }
                 conn = opened;
             }
             shared.controller_connected.store(conn.is_some(), Ordering::Relaxed);
@@ -533,6 +570,7 @@ fn run(shared: &Shared, stop: &AtomicBool) {
         match conn.as_mut() {
             Some(c) => {
                 let received: Vec<Vec<u8>> = c.rx.try_iter().collect();
+                log.received(t, &received);
                 let out = session.step(shared, t, received);
                 if !out.is_empty() && !c.send_all(out) {
                     conn = None;
@@ -740,10 +778,16 @@ mod tests {
         s.step(&shared, 90, [vec![0xBF, 77 + 1, 65]]);
         let v = shared.surface_view.lock().unwrap().clone().unwrap();
         assert!(v.edit.is_some());
-        // nothing changed: no new snapshot
+        // in mode 8 the selected track's knob LEDs pulse, so the view keeps changing
         let g = shared.surface_view_gen.load(Ordering::Relaxed);
-        s.step(&shared, 200, []);
-        s.step(&shared, 230, []);
+        s.step(&shared, 400, []);
+        assert!(shared.surface_view_gen.load(Ordering::Relaxed) > g);
+        // elsewhere, with nothing changed: no new snapshot
+        let _ = shared.surface_input.push(EditorInput::SetMode(vdrum_surface::Mode::Voice(0)));
+        s.step(&shared, 430, []);
+        let g = shared.surface_view_gen.load(Ordering::Relaxed);
+        s.step(&shared, 500, []);
+        s.step(&shared, 530, []);
         assert_eq!(shared.surface_view_gen.load(Ordering::Relaxed), g);
     }
 
