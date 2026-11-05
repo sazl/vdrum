@@ -98,7 +98,7 @@ def vid(v, kind):
 def nav(mode):
     m = {
         "PAGE": ("Kit browse", "up / down", "NAV", "nav"),
-        "TRACK": ("Mode - / +", "prev / next", "NAV", "nav"),
+        "TRACK": ("(unused)", "mode 8 only", "NAV", "nav"),
         "REC": ("Record arm", "pads record", "NAV", "toggle"),
         "PLAY": ("Play", "audition / load", "NAV", "press"),
         "SHIFT": ("Shift", "+ button 1-16", "NAV", "hold"),
@@ -220,6 +220,7 @@ def sequencer_mode():
     m["SOLO"] = ("Group (hold)", "top row: tracks", "SEQ", "hold")
     m["MUTE"] = ("Pattern (hold)", "buttons: 1-16", "SEQ", "hold")
     m["PAGE"] = ("Bar", "1-4 up / down", "SEQ", "nav")
+    m["TRACK"] = ("Track - / +", "select 1-7", "SEQ", "nav")
     m["PLAY"] = ("Start / stop", "internal clock", "SEQ", "press")
     for c, t in enumerate(TRACKS, 1):
         m[f"K1{c}"] = (f"{t} Fills", "Euclid pulses", "SEQ_T", "enc")

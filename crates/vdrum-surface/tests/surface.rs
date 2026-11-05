@@ -4,7 +4,7 @@ use lcxl3::{Button, Control, Input};
 use lxr_params::{par, ParamKind, Voice};
 use std::cell::RefCell;
 use std::collections::{BTreeSet, HashMap};
-use vdrum_surface::layout::{b, f, k, t, voice_param};
+use vdrum_surface::layout::{b, f, k, t, voice_param, TRACK_COLOURS};
 use vdrum_surface::*;
 use vdrum_surface::layout;
 
@@ -169,16 +169,12 @@ fn shift_and_buttons_select_modes() {
     // without Shift the top row is the voice's buttons, not mode select
     press(&mut s, &m, Button::Top(0), 0);
     assert_eq!(s.mode(), Mode::Voice(6));
-    // track buttons step through the modes, skipping empty slots
+    // the track buttons do not change mode (only Shift + button does)
     press(&mut s, &m, Button::TrackRight, 0);
-    assert_eq!(s.mode(), Mode::Sequencer);
-    s.set_mode(Mode::MorphMacro);
-    press(&mut s, &m, Button::TrackRight, 0);
-    assert_eq!(s.mode(), Mode::Global);
-    press(&mut s, &m, Button::TrackRight, 0);
-    assert_eq!(s.mode(), Mode::Voice(0));
     press(&mut s, &m, Button::TrackLeft, 0);
-    assert_eq!(s.mode(), Mode::Global);
+    assert_eq!(s.mode(), Mode::Voice(6));
+    s.set_mode(Mode::Voice(0));
+    s.set_mode(Mode::Global);
     // the logo button returns to the previous mode
     press(&mut s, &m, Button::Logo, 0);
     assert_eq!(s.mode(), Mode::Voice(0));
@@ -596,6 +592,83 @@ fn edit_group_sets_steps_on_several_tracks() {
     assert_eq!(s.edit_group(), 0x7f);
     press(&mut s, &m, Button::Top(7), 0);
     assert_eq!(s.edit_group(), 1);
+}
+
+#[test]
+fn track_buttons_select_the_sequencer_track() {
+    let m = Fake::new();
+    let mut s = Surface::new();
+    s.set_mode(Mode::Sequencer);
+    assert_eq!(s.seq_track(), 0);
+    // a step on Drum 1 and one on Drum 2
+    let on = StepData { on: true, ..StepData::default() };
+    m.apply(&[Action::Seq(SeqEdit::Step { pat: 0, track: 0, step: 0, data: on })]);
+    m.apply(&[Action::Seq(SeqEdit::Step { pat: 0, track: 1, step: 1, data: on })]);
+    let led = |s: &Surface, b: Button| s.frame(0, &m).leds.iter().find(|(c, _)| *c == Control::Button(b)).unwrap().1;
+    let half = |c: (u8, u8, u8)| (c.0 / 2, c.1 / 2, c.2 / 2);
+    assert_eq!(led(&s, Button::Top(0)), half(TRACK_COLOURS[0]));
+    assert_ne!(led(&s, Button::Top(1)), half(TRACK_COLOURS[1]));
+    assert_eq!(led(&s, Button::TrackLeft), (0, 0, 0), "nothing left of track 1");
+    // Track right: track 2 is selected and is the edit group; the step buttons show its steps
+    press(&mut s, &m, Button::TrackRight, 0);
+    release(&mut s, &m, Button::TrackRight, 0);
+    assert_eq!(s.mode(), Mode::Sequencer);
+    assert_eq!(s.seq_track(), 1);
+    assert_eq!(s.edit_group(), 0b10);
+    assert_eq!(led(&s, Button::Top(1)), half(TRACK_COLOURS[1]));
+    assert_ne!(led(&s, Button::Top(0)), half(TRACK_COLOURS[0]));
+    let fr = s.frame(0, &m);
+    assert_eq!(fr.stationary[2], "Track 2 D2", "{:?}", fr.stationary);
+    assert!(fr.popup.is_some_and(|p| p.fields[2] == "2 D2"));
+    // a press sets the step on the selected track
+    press(&mut s, &m, Button::Top(5), 0);
+    release(&mut s, &m, Button::Top(5), 0);
+    assert!(m.seq.borrow().step(0, 1, 5).on && !m.seq.borrow().step(0, 0, 5).on);
+    // it stops at track 7
+    for _ in 0..10 {
+        press(&mut s, &m, Button::TrackRight, 0);
+    }
+    assert_eq!(s.seq_track(), 6);
+    assert_eq!(led(&s, Button::TrackRight), (0, 0, 0));
+    press(&mut s, &m, Button::TrackLeft, 0);
+    assert_eq!(s.seq_track(), 5);
+    // Solo/Arm still adds tracks; the display shows how many more
+    press(&mut s, &m, Button::SoloArm, 0);
+    press(&mut s, &m, Button::Top(0), 0);
+    release(&mut s, &m, Button::SoloArm, 0);
+    assert_eq!(s.edit_group(), 0b10_0001);
+    assert_eq!(s.frame(0, &m).stationary[2], "Track 6 CH +1");
+    // removing the selected track from the group selects another track of the group
+    press(&mut s, &m, Button::SoloArm, 0);
+    press(&mut s, &m, Button::Top(5), 0);
+    release(&mut s, &m, Button::SoloArm, 0);
+    assert_eq!(s.edit_group(), 1);
+    assert_eq!(s.seq_track(), 0);
+}
+
+#[test]
+fn selected_track_knobs_pulse_at_their_value_brightness() {
+    let m = Fake::new();
+    let mut s = Surface::new();
+    s.set_mode(Mode::Sequencer);
+    press(&mut s, &m, Button::TrackRight, 0); // track 2
+    let enc = |row: u8, col: u8, now: u64| {
+        s.frame(now, &m).leds.iter().find(|(c, _)| *c == Control::Encoder { row, col }).unwrap().1
+    };
+    // the selected column (2) changes over a pulse period; another column does not
+    let lum = |c: (u8, u8, u8)| c.0 as u32 + c.1 as u32 + c.2 as u32;
+    let low = enc(0, 1, 0);
+    let high = enc(0, 1, PULSE_MS / 2);
+    assert!(lum(high) > lum(low) * 4, "{low:?} {high:?}");
+    assert_eq!(enc(0, 0, 0), enc(0, 0, PULSE_MS / 2));
+    // at the peak the LED is the value brightness (as in other columns)
+    assert_eq!(high, enc(0, 1, PULSE_MS + PULSE_MS / 2));
+    assert!((pulse(PULSE_MS / 2) - 1.0).abs() < 1e-6 && (pulse(0) - PULSE_FLOOR).abs() < 1e-6);
+    // outside mode 8 nothing pulses
+    s.set_mode(Mode::Perform);
+    let a = s.frame(0, &m).leds;
+    let b = s.frame(PULSE_MS / 2, &m).leds;
+    assert_eq!(a, b);
 }
 
 #[test]
