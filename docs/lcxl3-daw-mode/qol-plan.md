@@ -44,14 +44,15 @@ Live recording (Record arm; pads and Perform triggers write steps at the playhea
 `record`, `record_hit`, the REC marker on the screen, and the docs. Implemented; Record does
 nothing (LED off) until its new function is chosen.
 
-Suggested new functions, one to choose (decision card in the thread):
+Chosen (Sami, 2026-11-05): **Clear**. Implemented:
 
-| Option | What it does |
-| --- | --- |
-| Save kit (hold 1 s) | Stores the current kit to its library slot. Today this is only in the Global mode list and the editor. The hold avoids accidental overwrites. |
-| Tap tempo | Taps set `PAR_BPM` (internal clock). No effect with the host clock, which is the default. |
-| Copy / paste | Hold Record + step N copies; hold Record + another step pastes (step data and locks). |
-| Clear | Hold Record + step N clears that step on the edit group; hold Record + Track < / > clears the selected track's pattern. |
+- Hold Record + a step button (mode 8, later the sequencer view): clears that step (off, default
+  velocity and timing, no locks) on every track of the edit group. The step is not toggled.
+- Hold Record + Track < or >: clears the selected track's pattern in the playing pattern (Euclid
+  pulses off, every step back to default). Length and density stay; the selection does not move.
+- LED: dim red in mode 8, bright while held; off elsewhere.
+
+Other options offered were Save kit (hold 1 s), Tap tempo and Copy / paste.
 
 ## 5. Play stops a running sequencer
 

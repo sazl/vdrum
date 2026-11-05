@@ -1020,3 +1020,36 @@ fn lfo_mode_top_row_follows_each_lfo() {
     assert_ne!(b, led(&s, 1));
     let _ = &mut s;
 }
+
+#[test]
+fn record_clears_steps_and_tracks() {
+    let m = Fake::new();
+    let mut s = Surface::new();
+    s.set_mode(Mode::Sequencer);
+    let on = StepData { on: true, velocity: 90, ..StepData::default() };
+    for (track, step) in [(0, 2), (0, 5), (1, 2), (0, 40)] {
+        m.apply(&[Action::Seq(SeqEdit::Step { pat: 0, track, step, data: on })]);
+    }
+    // hold Record + step 3: cleared on the edit group (Drum 1) only, and the step is not toggled
+    press(&mut s, &m, Button::Record, 0);
+    press(&mut s, &m, Button::Top(2), 0);
+    release(&mut s, &m, Button::Top(2), 0);
+    assert_eq!(m.seq.borrow().step(0, 0, 2), StepData::default());
+    assert!(m.seq.borrow().step(0, 1, 2).on);
+    assert!(m.seq.borrow().step(0, 0, 5).on);
+    // hold Record + Track >: clears the selected track's whole pattern; the selection stays
+    press(&mut s, &m, Button::TrackRight, 0);
+    assert_eq!(s.seq_track(), 0);
+    assert!(!m.seq.borrow().step(0, 0, 5).on && !m.seq.borrow().step(0, 0, 40).on);
+    assert!(m.seq.borrow().step(0, 1, 2).on, "other tracks stay");
+    release(&mut s, &m, Button::Record, 0);
+    // without Record, Track > selects again and a step press sets the step
+    press(&mut s, &m, Button::TrackRight, 0);
+    assert_eq!(s.seq_track(), 1);
+    // live recording is gone: pads never write steps
+    s.set_mode(Mode::Voice(0));
+    m.status.borrow_mut().running = true;
+    press(&mut s, &m, Button::Record, 0);
+    let a = press(&mut s, &m, Button::Bottom(3), 0);
+    assert!(seq_edits(&a).is_empty());
+}

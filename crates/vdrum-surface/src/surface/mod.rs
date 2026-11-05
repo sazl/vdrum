@@ -297,6 +297,22 @@ impl Surface {
         (0..7u8).filter(|t| self.group >> t & 1 != 0)
     }
 
+    /// Clear track `t`'s pattern in the playing pattern: Euclid pulses off and every step back to
+    /// its default (off, no locks). Length and density stay.
+    fn clear_track(&mut self, t: u8, model: &dyn Model, out: &mut Vec<Action>) {
+        let pat = model.seq_status().pattern;
+        out.push(Action::Seq(SeqEdit::Euclid { pat, track: t, fills: 0, rotate: 0 }));
+        let edits: Vec<SeqEdit> = {
+            let d = model.seq();
+            (0..NUM_STEPS as u8)
+                .filter(|&step| d.step(pat, t, step) != StepData::default())
+                .map(|step| SeqEdit::Step { pat, track: t, step, data: StepData::default() })
+                .collect()
+        };
+        out.extend(edits.into_iter().map(Action::Seq));
+        self.show_coloured("Clear", "Track", &format!("{} {}", t + 1, TRACKS[t as usize]), TRACK_COLOURS[t as usize]);
+    }
+
     /// Select sequencer track `t`: it becomes the whole edit group (Solo/Arm adds tracks again).
     fn select_seq_track(&mut self, t: u8) {
         self.seq_track = t.min(6);
@@ -820,7 +836,9 @@ impl Surface {
             // Track left/right select the sequencer track in mode 8 and do nothing elsewhere: modes
             // are selected with Shift + button N.
             Button::TrackLeft | Button::TrackRight if self.mode == Mode::Sequencer => {
-                if pressed {
+                if pressed && self.is_held(Control::Button(Button::Record)) {
+                    self.clear_track(self.seq_track, model, out);
+                } else if pressed {
                     let t = self.seq_track as i32 + if button == Button::TrackLeft { -1 } else { 1 };
                     self.select_seq_track(t.clamp(0, 6) as u8);
                 }
@@ -859,8 +877,13 @@ impl Surface {
                     self.show_text("Sequencer", "Bar", &format!("{} of 4", self.seq_bar + 1));
                 }
             }
-            // Live recording was removed (2026-11-05); the new function is still to be chosen.
-            Button::Record => {}
+            // Record = Clear (2026-11-05): hold it and press a step (mode 8) to clear that step on
+            // the edit group, or Track left/right to clear the selected track's pattern.
+            Button::Record => {
+                if pressed {
+                    self.show_text("Clear", "hold +", "step / Track < >");
+                }
+            }
             Button::Play if pressed && !self.browsing && self.mode == Mode::Sequencer => {
                 if self.settings.host_clock {
                     self.show_text("Sequencer", "Clock: host", "set Internal in Global");
@@ -901,6 +924,18 @@ impl Surface {
     /// A step button (or, in the layers, a track or pattern button) in mode 8.
     fn seq_button(&mut self, idx: u8, pressed: bool, model: &dyn Model, out: &mut Vec<Action>) {
         let st = model.seq_status();
+        if self.is_held(Control::Button(Button::Record)) {
+            if pressed {
+                let step = self.seq_bar * 16 + idx;
+                let tracks: Vec<u8> = self.group_tracks().collect();
+                for &track in &tracks {
+                    out.push(Action::Seq(SeqEdit::Step { pat: st.pattern, track, step, data: StepData::default() }));
+                }
+                let names: Vec<&str> = tracks.iter().map(|&t| TRACKS[t as usize]).collect();
+                self.show_text("Clear", &format!("Step {}", step + 1), &names.join(" "));
+            }
+            return;
+        }
         if self.is_held(Control::Button(Button::MuteSelect)) {
             if pressed {
                 self.layer_used = true;
@@ -1232,7 +1267,13 @@ impl Surface {
         let seq = self.mode == Mode::Sequencer;
         leds.push((Control::Button(Button::TrackLeft), if seq && self.seq_track > 0 { nav } else { (0, 0, 0) }));
         leds.push((Control::Button(Button::TrackRight), if seq && self.seq_track < 6 { nav } else { (0, 0, 0) }));
-        leds.push((Control::Button(Button::Record), (0, 0, 0)));
+        // Record = Clear: lit in mode 8, bright while held
+        let rec = match (self.mode == Mode::Sequencer, self.is_held(Control::Button(Button::Record))) {
+            (false, _) => (0, 0, 0),
+            (true, false) => (64, 0, 0),
+            (true, true) => (255, 0, 0),
+        };
+        leds.push((Control::Button(Button::Record), rec));
         let st = model.seq_status();
         if self.mode == Mode::Sequencer {
             let play = if self.settings.host_clock {
