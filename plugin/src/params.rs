@@ -670,14 +670,24 @@ unsafe impl Params for VDrumParams {
         if let Ok(s) = serde_json::to_string(&learn) {
             m.insert("midi_learn".into(), s);
         }
-        let faders: Vec<i32> = self.shared.fader_values.iter().map(|f| f.load(Ordering::Relaxed)).collect();
+        // The host parameter, unless the controller moved the fader and the host parameter has not
+        // caught up yet (the editor copies it while open). Independent of whether `process` ran.
+        let faders: Vec<i32> = (0..NUM_FADERS)
+            .map(|i| {
+                if self.shared.extra_dirty[i].load(Ordering::Relaxed) {
+                    self.shared.fader_values[i].load(Ordering::Relaxed)
+                } else {
+                    self.faders[i].value()
+                }
+            })
+            .collect();
         if let Ok(s) = serde_json::to_string(&faders) {
             m.insert("faders".into(), s);
         }
         if let Ok(s) = self.shared.surface_settings.lock() {
-            if !s.is_empty() {
-                m.insert("lcxl3-settings".into(), s.clone());
-            }
+            // Always the normalised text, so that the state does not depend on whether the
+            // controller thread has stored its settings yet.
+            m.insert("lcxl3-settings".into(), vdrum_surface::Settings::from_text(&s).to_text());
         }
         if let Ok(s) = self.shared.surface_state.lock() {
             if !s.is_empty() {
@@ -768,7 +778,17 @@ unsafe impl Params for VDrumParams {
         if let Some(s) = serialized.get("faders") {
             if let Ok(v) = serde_json::from_str::<Vec<i32>>(s) {
                 if v.len() == NUM_FADERS {
-                    restore.faders = Some(std::array::from_fn(|i| v[i].clamp(0, FADER_MAX)));
+                    let v: [i32; NUM_FADERS] = std::array::from_fn(|i| v[i].clamp(0, FADER_MAX));
+                    // Saving again before the next `initialize` must give the same state.
+                    for (i, x) in v.into_iter().enumerate() {
+                        self.shared.fader_values[i].store(x, Ordering::Relaxed);
+                        let differs = x != self.faders[i].value();
+                        if differs {
+                            self.shared.extra_values[i].store(x, Ordering::Relaxed);
+                        }
+                        self.shared.extra_dirty[i].store(differs, Ordering::Relaxed);
+                    }
+                    restore.faders = Some(v);
                 }
             }
         }
@@ -926,6 +946,8 @@ mod tests {
         sh.values[lxr_params::par::COARSE1 as usize].store(99, Ordering::Relaxed);
         sh.dirty[lxr_params::par::COARSE1 as usize].store(true, Ordering::Relaxed);
         sh.fader_values[3].store(12, Ordering::Relaxed);
+        sh.extra_values[3].store(12, Ordering::Relaxed);
+        sh.extra_dirty[3].store(true, Ordering::Relaxed);
         *sh.surface_settings.lock().unwrap() = "pad_velocity=50".into();
         let f = p.serialize_fields();
         let sh2 = Arc::new(Shared::new());
@@ -934,7 +956,12 @@ mod tests {
         let r = sh2.restore.lock().unwrap();
         assert_eq!(r.kit.as_ref().unwrap().values[lxr_params::par::COARSE1 as usize], 99);
         assert_eq!(r.faders.unwrap()[3], 12);
-        assert_eq!(*sh2.surface_settings.lock().unwrap(), "pad_velocity=50");
+        assert!(sh2.surface_settings.lock().unwrap().contains("pad_velocity=50"));
+        // saving again before `initialize` gives the same fader and settings fields
+        drop(r);
+        let f2 = p2.serialize_fields();
+        assert_eq!(f2["faders"], f["faders"]);
+        assert_eq!(f2["lcxl3-settings"], f["lcxl3-settings"]);
     }
 
     #[test]

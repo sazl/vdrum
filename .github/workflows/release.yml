@@ -1,0 +1,245 @@
+# SPDX-License-Identifier: GPL-3.0-only
+#
+# Release builds of VDrum.
+#
+# build:   per OS, bundle CLAP + VST3 (`cargo xtask bundle`, universal x86_64 + arm64 on macOS);
+#          on macOS also the standalone app and the AUv2 (clap-wrapper, au/CMakeLists.txt),
+#          ad-hoc signed.
+# package: one VST3 bundle that holds the Linux, Windows and macOS binaries (VST3 multi-platform
+#          bundle layout), per-OS CLAP and VST3 zips, and the macOS app zip. Checks the layout of
+#          every archive.
+# publish: on a `v*` tag, a GitHub release with those files (a pre-release when the tag has a
+#          `-`, for example v0.2.0-rc.1).
+#
+# Pushes to a branch that change this file run build and package only (dry run, files kept as a
+# workflow artifact), so the pipeline can be tested before it is merged.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+    branches: ['**']
+    paths: ['.github/workflows/release.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  CARGO_NET_RETRY: 10
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    name: build (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 75
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - name: linux-x86_64
+            os: ubuntu-22.04
+            bundle: bundle
+          - name: windows-x86_64
+            os: windows-latest
+            bundle: bundle
+          - name: macos-universal
+            os: macos-latest
+            bundle: bundle-universal
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            pkg-config libasound2-dev libjack-jackd2-dev libgl-dev libglx-dev libx11-dev \
+            libx11-xcb-dev libxcb1-dev libxcb-dri2-0-dev libxcb-icccm4-dev libxcb-render0-dev \
+            libxcb-shape0-dev libxcb-shm0-dev libxcb-xfixes0-dev libxcursor-dev libxkbcommon-dev \
+            libwayland-dev libglib2.0-dev
+
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable --profile minimal --no-self-update
+          rustup default stable
+          if [ "$RUNNER_OS" = macOS ]; then
+            rustup target add x86_64-apple-darwin aarch64-apple-darwin
+          fi
+          rustc --version --verbose
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          key: release-${{ matrix.name }}
+
+      - name: Bundle CLAP, VST3 and standalone
+        run: |
+          cargo xtask ${{ matrix.bundle }} vdrum --release --locked
+          ls -la target/bundled
+
+      - name: Build the macOS app and AUv2 (clap-wrapper)
+        if: runner.os == 'macOS'
+        run: |
+          cmake -S au -B target/au -G Xcode -DVDRUM_CLAP="$PWD/target/bundled/VDrum.clap"
+          cmake --build target/au --config Release
+          comp=$(find target/au -type d -name VDrum.component -path '*Release*' -prune -print | head -n 1)
+          app=$(find target/au -type d -name VDrum.app -path '*Release*' -prune -print | head -n 1)
+          if [ -z "$comp" ] || [ -z "$app" ]; then
+            echo "::error::VDrum.component / VDrum.app not found under target/au"
+            exit 1
+          fi
+          mkdir -p target/mac
+          cp -R "$comp" "$app" target/mac/
+          # Ad-hoc signatures: arm64 macOS does not load unsigned code. Not notarized.
+          for b in target/mac/VDrum.app target/mac/VDrum.component target/bundled/VDrum.clap target/bundled/VDrum.vst3; do
+            codesign --force --deep --sign - "$b"
+            codesign --verify --deep --strict "$b"
+          done
+          lipo -info target/mac/VDrum.app/Contents/MacOS/*
+
+      - name: Stage
+        run: |
+          out="stage/${{ matrix.name }}"
+          mkdir -p "$out"
+          cp -R target/bundled/VDrum.clap target/bundled/VDrum.vst3 "$out/"
+          if [ "$RUNNER_OS" = macOS ]; then cp -R target/mac/VDrum.app target/mac/VDrum.component "$out/"; fi
+          # tar keeps executable bits, symlinks and the macOS bundle structure through the artifact.
+          tar -czf "stage-${{ matrix.name }}.tar.gz" -C stage "${{ matrix.name }}"
+          find stage -maxdepth 4 | sort
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: stage-${{ matrix.name }}
+          path: stage-${{ matrix.name }}.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
+  package:
+    name: package
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          pattern: stage-*
+          path: in
+          merge-multiple: true
+
+      - name: Version
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = tag ]; then
+            ver="${GITHUB_REF_NAME}"
+          else
+            ver="v$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name=="vdrum") | .version')-${GITHUB_SHA::7}"
+          fi
+          echo "VERSION=$ver" >> "$GITHUB_ENV"
+          echo "$ver"
+
+      - name: Package
+        run: |
+          set -euo pipefail
+          mkdir -p stage dist
+          for f in in/stage-*.tar.gz; do tar -xzf "$f" -C stage; done
+          find stage -maxdepth 3 | sort
+          L=stage/linux-x86_64 W=stage/windows-x86_64 M=stage/macos-universal
+          zipdir() { # <zip> <dir> <entries...>: zip entries relative to dir, keeping symlinks
+            local zip="$PWD/dist/$1" dir="$2"; shift 2
+            (cd "$dir" && zip -qry "$zip" "$@")
+          }
+          readme() { # <dir> <text>
+            printf '%s\n' "$2" > "$1/README.txt"
+            cp LICENSE "$1/"
+          }
+
+          # One VST3 bundle for all three platforms (VST3 SDK "merged bundle" layout):
+          # Contents/x86_64-linux/VDrum.so, Contents/x86_64-win/VDrum.vst3, Contents/MacOS/VDrum.
+          u=stage/vst3-all/VDrum.vst3
+          mkdir -p "$u"
+          for p in "$L" "$W" "$M"; do cp -R "$p/VDrum.vst3/." "$u/"; done
+          readme stage/vst3-all "VDrum $VERSION: one VST3 bundle for Linux (x86_64), Windows (x86_64) and macOS (x86_64 + arm64). Copy VDrum.vst3 to your VST3 folder."
+          zipdir "VDrum-$VERSION-vst3-all-platforms.zip" stage/vst3-all VDrum.vst3 README.txt LICENSE
+
+          for os in linux-x86_64 windows-x86_64 macos-universal; do
+            readme "stage/$os" "VDrum $VERSION for $os."
+            zipdir "VDrum-$VERSION-$os-clap.zip" "stage/$os" VDrum.clap README.txt LICENSE
+            zipdir "VDrum-$VERSION-$os-vst3.zip" "stage/$os" VDrum.vst3 README.txt LICENSE
+          done
+          readme "$M" "VDrum $VERSION for macOS (x86_64 + arm64). Ad-hoc signed, not notarized: on first start, right-click VDrum.app and choose Open. VDrum.component is the Audio Unit (copy it to ~/Library/Audio/Plug-Ins/Components)."
+          zipdir "VDrum-$VERSION-macos-app.zip" "$M" VDrum.app README.txt LICENSE
+          zipdir "VDrum-$VERSION-macos-au.zip" "$M" VDrum.component README.txt LICENSE
+          (cd dist && sha256sum *.zip > SHA256SUMS.txt)
+          ls -la dist
+
+      - name: Check the archives
+        run: |
+          set -euo pipefail
+          cd dist
+          need() { # <zip> <entry>
+            unzip -l "$1" | awk '{print $4}' | grep -qx "$2" || { echo "::error::$1 lacks $2"; unzip -l "$1"; exit 1; }
+          }
+          all="VDrum-$VERSION-vst3-all-platforms.zip"
+          need "$all" VDrum.vst3/Contents/x86_64-linux/VDrum.so
+          need "$all" VDrum.vst3/Contents/x86_64-win/VDrum.vst3
+          need "$all" VDrum.vst3/Contents/MacOS/VDrum
+          need "$all" VDrum.vst3/Contents/Info.plist
+          need "VDrum-$VERSION-linux-x86_64-clap.zip" VDrum.clap
+          need "VDrum-$VERSION-windows-x86_64-clap.zip" VDrum.clap
+          need "VDrum-$VERSION-macos-universal-clap.zip" VDrum.clap/Contents/MacOS/VDrum
+          need "VDrum-$VERSION-macos-app.zip" VDrum.app/Contents/Info.plist
+          need "VDrum-$VERSION-macos-au.zip" VDrum.component/Contents/Info.plist
+          # the binaries are what they claim to be
+          tmp=$(mktemp -d)
+          unzip -q "$all" -d "$tmp"
+          file "$tmp/VDrum.vst3/Contents/x86_64-linux/VDrum.so" | tee /dev/stderr | grep -q 'ELF 64-bit.*x86-64'
+          file "$tmp/VDrum.vst3/Contents/x86_64-win/VDrum.vst3" | tee /dev/stderr | grep -q 'PE32+ executable.*x86-64'
+          file "$tmp/VDrum.vst3/Contents/MacOS/VDrum" | tee /dev/stderr | grep -q 'universal binary'
+          sha256sum -c SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: VDrum-${{ env.VERSION }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: publish
+    needs: package
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          pattern: VDrum-*
+          path: dist
+          merge-multiple: true
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          flags=(--generate-notes --title "VDrum $TAG")
+          case "$TAG" in *-*) flags+=(--prerelease) ;; esac
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --verify-tag "${flags[@]}"
+          fi
