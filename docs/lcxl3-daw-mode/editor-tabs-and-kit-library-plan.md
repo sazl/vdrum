@@ -1,6 +1,6 @@
 # Plan: editor tabs, separate hi-hat columns, kit and pattern library
 
-**Status:** revision 2 (2026-11-04), with Sami's answers to the first draft's questions. Nothing in this plan is implemented yet.
+**Status:** revision 2 (2026-11-04), with Sami's answers to the first draft's questions. Implemented and merged on 2026-11-04: PR #12 (host CCs), #13 (Part A), #14 and #15 (Part C), #16 and #17 (Part B). Hardware checks are still open (see *Not verifiable here*).
 
 This plan covers three requested changes to the VDrum plugin editor:
 
@@ -53,7 +53,7 @@ The LXR-02 firmware source is the `third_party/lxr-firmware` submodule, `Core/Sr
   - The sizes add up to 3663 bytes, the size of every `.PAT` in the zip.
   - Reading code: `preset_loadPatternSD` and the data reader. Writing code: `preset_savePatternSD` and `preset_writePatternData`.
 - **`.SNG`, `GLO.CFG`, `PRJ.NFO`:** written by `preset_saveSong…`, `preset_saveGlobals` and `preset_saveAll`. Their exact layout is read from the same file during implementation.
-- **`.syx`:** the request mentions `.syx` files, but the uploaded zip contains none. The firmware's MIDI parser ignores SysEx data (`MidiParser.c`: "we don't interpret sysex data right now"), so there is no LXR-02 SysEx kit format to support. This plan treats kit files as `.SND`; see open question 1.
+- **`.syx`:** the request mentions `.syx` files, but the uploaded zip contains none. The firmware's MIDI parser ignores SysEx data (`MidiParser.c`: "we don't interpret sysex data right now"), so there is no LXR-02 SysEx kit format to support. This plan treats kit files as `.SND`; Sami confirmed this (see *Open questions*).
 - **Uploaded zip (`Hrtl_LXR-02_DLC2.zip`):** two project folders, `DLCkits (kits only)` and `DLCprjct (w demo patterns)`.
   - Each folder has 64 `.SND`, 64 `.PAT` and 64 `.SNG` files plus `GLO.CFG` and `PRJ.NFO`.
   - 16 kits are named, `00-LAMBO` to `15-MIST_`; the other 48 are `INITK`.
@@ -216,4 +216,6 @@ One pull request per part. Each updates the docs: an addendum to `design.md`, `d
 
 ## Open questions
 
-1. **`.syx` files:** the zip has no `.syx` files, and the LXR-02 firmware has no SysEx kit format. Is "`.syx`" meant as the `.SND` kit files? If you have `.syx` files from another source, please share one so its format can be checked.
+None open.
+
+1. **`.syx` files (resolved 2026-11-04):** the zip has no `.syx` files, and the LXR-02 firmware has no SysEx kit format. Sami confirmed that "`.syx`" meant the `.SND` kit files. Kits import on their own with *Import kits…* (`.SND`), patterns on their own with *Import patterns…* (`.PAT`), and both together from a project folder.
