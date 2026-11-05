@@ -97,13 +97,13 @@ def vid(v, kind):
 
 def nav(mode):
     m = {
-        "PAGE": ("Kit browse", "up / down", "NAV", "nav"),
-        "TRACK": ("(unused)", "mode 8 only", "NAV", "nav"),
-        "REC": ("Record arm", "pads record", "NAV", "toggle"),
-        "PLAY": ("Play", "audition / load", "NAV", "press"),
+        "PAGE": ("Bar (view)", "Shift: kits", "NAV", "nav"),
+        "TRACK": ("Track (view)", "select 1-7", "NAV", "nav"),
+        "REC": ("Clear (hold)", "+ step / Track", "NAV", "hold"),
+        "PLAY": ("Play", "stop / load / pad", "NAV", "press"),
         "SHIFT": ("Shift", "+ button 1-16", "NAV", "hold"),
         "MODE": ("Device mode", "handled by device", "NAV", "nav"),
-        "SOLO": ("Sequencer", "mode 8", "NAV", "nav"),
+        "SOLO": ("Step view", "Shift: sticky", "NAV", "nav"),
         "MUTE": ("Perform", "mode 10", "NAV", "nav"),
         "LOGO": ("Back", "last mode", "NAV", "nav"),
     }
@@ -217,11 +217,11 @@ def hat_mode(v):
 
 def sequencer_mode():
     m = nav(8)
-    m["SOLO"] = ("Group (hold)", "top row: tracks", "SEQ", "hold")
+    m["SOLO"] = ("Step view", "always on", "SEQ", "nav")
     m["MUTE"] = ("Pattern (hold)", "buttons: 1-16", "SEQ", "hold")
     m["PAGE"] = ("Bar", "1-4 up / down", "SEQ", "nav")
     m["TRACK"] = ("Track - / +", "select 1-7", "SEQ", "nav")
-    m["PLAY"] = ("Start / stop", "internal clock", "SEQ", "press")
+    m["PLAY"] = ("Start / stop", "host: silence", "SEQ", "press")
     for c, t in enumerate(TRACKS, 1):
         m[f"K1{c}"] = (f"{t} Fills", "Euclid pulses", "SEQ_T", "enc")
         m[f"K2{c}"] = (f"{t} Rotate", "Euclid offset", "SEQ_T", "enc")
@@ -232,8 +232,8 @@ def sequencer_mode():
     m["K38"] = ("Entry velocity", "new steps", "SEQ", "enc")
     m["F8"] = ("Density all", "scales all tracks", "SEQ", "fader")
     for c in range(1, 9):
-        m[f"T{c}"] = (f"Step {c}", "group tracks", "SEQ", "toggle")
-        m[f"B{c}"] = (f"Step {c + 8}", "group tracks", "SEQ", "toggle")
+        m[f"T{c}"] = (f"Step {c}", "selected track", "SEQ", "toggle")
+        m[f"B{c}"] = (f"Step {c + 8}", "selected track", "SEQ", "toggle")
     return m
 
 

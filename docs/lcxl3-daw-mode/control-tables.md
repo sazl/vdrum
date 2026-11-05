@@ -81,7 +81,7 @@ The same mappings as the images, as text. \[cycle\] steps through a list, \[on/o
 
 ## Mode 8: Sequencer
 
-Side buttons: Track left/right select the sequencer track 1 to 7 (it becomes the edit group, the step buttons show its steps and its column's knob LEDs pulse); hold Solo/Arm for the track group, hold Mute/Select for patterns, Page up/down for bars 1 to 4. Outside mode 8 Track left/right do nothing.
+Side buttons: Track left/right select the sequencer track 1 to 7 (the step buttons show its steps and its column's knob LEDs pulse); hold Mute/Select for patterns, Page up/down for bars 1 to 4, hold Record + a step or Track left/right to clear. The same step buttons, track and bar selection are available in every mode through the Solo/Arm sequencer view (see design.md); there, holding a step and moving a knob or fader that controls a parameter locks it. Mode 11: the top-row LEDs follow each track's LFO.
 
 | Row | 1 DRUM 1 | 2 DRUM 2 | 3 DRUM 3 | 4 SNARE | 5 CYMBAL | 6 CL. HAT | 7 OP. HAT | 8 PATTERN |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -89,8 +89,8 @@ Side buttons: Track left/right select the sequencer track 1 to 7 (it becomes the
 | Knob row 2 | D1 Rotate: Euclid offset | D2 Rotate: Euclid offset | D3 Rotate: Euclid offset | SD Rotate: Euclid offset | CY Rotate: Euclid offset | CH Rotate: Euclid offset | OH Rotate: Euclid offset | Next pattern: queued to bar end |
 | Knob row 3 | D1 Length: 1-64 steps | D2 Length: 1-64 steps | D3 Length: 1-64 steps | SD Length: 1-64 steps | CY Length: 1-64 steps | CH Length: 1-64 steps | OH Length: 1-64 steps | Entry velocity: new steps |
 | Fader | D1 Density: play probability | D2 Density: play probability | D3 Density: play probability | SD Density: play probability | CY Density: play probability | CH Density: play probability | OH Density: play probability | Density all: scales all tracks |
-| Top button | Step 1 \[on/off\]: group tracks | Step 2 \[on/off\]: group tracks | Step 3 \[on/off\]: group tracks | Step 4 \[on/off\]: group tracks | Step 5 \[on/off\]: group tracks | Step 6 \[on/off\]: group tracks | Step 7 \[on/off\]: group tracks | Step 8 \[on/off\]: group tracks |
-| Bottom button | Step 9 \[on/off\]: group tracks | Step 10 \[on/off\]: group tracks | Step 11 \[on/off\]: group tracks | Step 12 \[on/off\]: group tracks | Step 13 \[on/off\]: group tracks | Step 14 \[on/off\]: group tracks | Step 15 \[on/off\]: group tracks | Step 16 \[on/off\]: group tracks |
+| Top button | Step 1 \[on/off\]: selected track | Step 2 \[on/off\]: selected track | Step 3 \[on/off\]: selected track | Step 4 \[on/off\]: selected track | Step 5 \[on/off\]: selected track | Step 6 \[on/off\]: selected track | Step 7 \[on/off\]: selected track | Step 8 \[on/off\]: selected track |
+| Bottom button | Step 9 \[on/off\]: selected track | Step 10 \[on/off\]: selected track | Step 11 \[on/off\]: selected track | Step 12 \[on/off\]: selected track | Step 13 \[on/off\]: selected track | Step 14 \[on/off\]: selected track | Step 15 \[on/off\]: selected track | Step 16 \[on/off\]: selected track |
 
 ## Mode 8: Sequencer, step held
 
