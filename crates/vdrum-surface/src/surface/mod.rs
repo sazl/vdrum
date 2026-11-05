@@ -1366,9 +1366,24 @@ impl Surface {
             Binding::Redo => on_off(col, !self.redo.is_empty()),
             Binding::Compare => on_off(col, self.comparing),
             Binding::PasteVoice => on_off(col, self.clipboard.as_ref().is_some_and(|(g, _)| Some(*g) == self.mode.track().map(copy_group))),
+            // encoders with a value: brightness follows the value, as in the device's own modes
+            _ if matches!(c, Control::Encoder { .. }) => match view::range_of(self, cell, model) {
+                Some((min, max, cur)) if max > min => value_brightness(col, cur.saturating_sub(min) as f32 / (max - min) as f32),
+                _ => col,
+            },
             _ => col,
         }
     }
+}
+
+/// Lowest brightness of an encoder LED (value at its minimum), so the section colour stays visible.
+pub const ENCODER_LED_FLOOR: f32 = 0.1;
+
+/// `col` scaled by an encoder's value position `frac` (0..=1), from [`ENCODER_LED_FLOOR`] to full.
+pub fn value_brightness(col: Rgb, frac: f32) -> Rgb {
+    let k = ENCODER_LED_FLOOR + (1.0 - ENCODER_LED_FLOOR) * frac.clamp(0.0, 1.0);
+    let f = |v: u8| (v as f32 * k).round() as u8;
+    (f(col.0), f(col.1), f(col.2))
 }
 
 /// Name of a lockable parameter (short).

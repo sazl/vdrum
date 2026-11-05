@@ -393,6 +393,9 @@ logic in `crates/vdrum-surface`, messages in `crates/lcxl3`).
 * **Audio thread.** The controller never touches the engine. Parameter changes, fader moves and
   pad triggers go through the editor's lock-free command queue. LEDs and the screen read the
   shared parameter mirror, so they follow host automation, editor edits and kit loads.
+* **Encoder LEDs.** Each encoder LED shows its section or track colour, scaled by the value:
+  10 % at the minimum, full brightness at the maximum (`vdrum_surface::value_brightness`). The
+  device only does this by itself in its own modes; in DAW mode the plugin sets every LED.
 * **Host parameters.** Controller changes are flagged like changes from MIDI (see below): the
   editor copies them to the host parameters, and the saved state includes them while the editor is
   closed. The voice faders are saved separately (`faders`) for the same reason.
