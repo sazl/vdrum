@@ -98,6 +98,9 @@ jobs:
             echo "::error::VDrum.component / VDrum.app not found under target/au"
             exit 1
           fi
+          for b in "$comp" "$app"; do
+            [ -f "$b/Contents/PlugIns/VDrum.clap/Contents/MacOS/VDrum" ] || { echo "::error::$b lacks the embedded VDrum.clap"; exit 1; }
+          done
           mkdir -p target/mac
           cp -R "$comp" "$app" target/mac/
           # Ad-hoc signatures: arm64 macOS does not load unsigned code. Not notarized.
@@ -200,6 +203,8 @@ jobs:
           need "VDrum-$VERSION-macos-universal-clap.zip" VDrum.clap/Contents/MacOS/VDrum
           need "VDrum-$VERSION-macos-app.zip" VDrum.app/Contents/Info.plist
           need "VDrum-$VERSION-macos-au.zip" VDrum.component/Contents/Info.plist
+          need "VDrum-$VERSION-macos-app.zip" VDrum.app/Contents/PlugIns/VDrum.clap/Contents/MacOS/VDrum
+          need "VDrum-$VERSION-macos-au.zip" VDrum.component/Contents/PlugIns/VDrum.clap/Contents/MacOS/VDrum
           # the binaries are what they claim to be
           tmp=$(mktemp -d)
           unzip -q "$all" -d "$tmp"

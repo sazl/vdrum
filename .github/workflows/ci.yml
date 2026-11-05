@@ -190,6 +190,9 @@ jobs:
             find target/au -maxdepth 4 \( -name '*.component' -o -name '*.app' \)
             exit 1
           fi
+          for b in "$comp" "$app"; do
+            [ -f "$b/Contents/PlugIns/VDrum.clap/Contents/MacOS/VDrum" ] || { echo "::error::$b lacks the embedded VDrum.clap"; exit 1; }
+          done
           # Ad-hoc sign the bundles (and the embedded CLAP): arm64 macOS does not load unsigned code.
           codesign --force --deep --sign - "$comp"
           codesign --force --deep --sign - "$app"

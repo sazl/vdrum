@@ -10,7 +10,7 @@
 #
 # Built by .github/workflows/ci.yml and release.yml on GitHub's macOS runners.
 
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.24)
 set(CMAKE_OSX_DEPLOYMENT_TARGET 10.13 CACHE STRING "Minimum macOS version")
 set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Architectures (must match the CLAP)")
 
@@ -63,7 +63,6 @@ target_add_auv2_wrapper(
     MANUFACTURER_NAME "VDrum"
     MANUFACTURER_CODE "VDrm"
     SUBTYPE_CODE "VDr1"
-    MACOS_EMBEDDED_CLAP_LOCATION "${VDRUM_CLAP}"
 )
 
 # Standalone app hosting the CLAP.
@@ -75,5 +74,16 @@ target_add_standalone_wrapper(
     BUNDLE_VERSION "${PROJECT_VERSION}"
     HOSTED_CLAP_NAME "VDrum"
     PLUGIN_INDEX 0
-    MACOS_EMBEDDED_CLAP_LOCATION "${VDRUM_CLAP}"
 )
+
+# Embed VDrum.clap in Contents/PlugIns of both bundles, where the wrappers look for it first.
+# clap-wrapper's own MACOS_EMBEDDED_CLAP_LOCATION is not used: it copies relative to the
+# LIBRARY_OUTPUT_DIRECTORY property, which is unset here, so with the Xcode generator the copy
+# landed in the source folder (au/VDrum.component) instead of the built bundle.
+foreach (tgt VDrum_auv2 VDrum_standalone)
+    add_custom_command(TARGET ${tgt} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_BUNDLE_DIR:${tgt}>/Contents/PlugIns/VDrum.clap"
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_DIR:${tgt}>/Contents/PlugIns"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${VDRUM_CLAP}" "$<TARGET_BUNDLE_DIR:${tgt}>/Contents/PlugIns/VDrum.clap"
+        VERBATIM)
+endforeach ()
