@@ -1,6 +1,6 @@
 # Control tables
 
-The same mappings as the images, as text. \[cycle\] steps through a list, \[on/off\] latches, \[hold\] acts while held, \[press\] acts once. Identifiers are lxr-params IDs (host parameter IDs) or plugin IDs; (new) marks an ID that does not exist yet (open hi-hat voice 7, voice fader 7). DAW-mode CCs: knob rows 13-20, 21-28, 29-36; faders 5-12; top buttons 37-44; bottom buttons 45-52. Left-hand buttons are the same in every mode ([design.md](design.md), "Controls that are the same in every mode"). Generated from source/layout.py.
+The same mappings as the images, as text. \[cycle\] steps through a list, \[on/off\] latches, \[hold\] acts while held, \[press\] acts once. Identifiers are lxr-params IDs (host parameter IDs) or plugin IDs; (new) marks an ID that was new in the design (open hi-hat voice 7, voice fader 7; added in phase 1). DAW-mode CCs: knob rows 13-20, 21-28, 29-36; faders 5-12; top buttons 37-44; bottom buttons 45-52. Left-hand buttons: [design.md](design.md), "Controls that are the same in every mode" (mode 8 differs, see below). Generated from source/layout.py.
 
 ## Mode 1: Drum 1
 
@@ -80,6 +80,8 @@ The same mappings as the images, as text. \[cycle\] steps through a list, \[on/o
 | Bottom button | D1 pad \[press\] | D2 pad \[press\] | D3 pad \[press\] | SD pad \[press\] | CY pad \[press\] | CH pad \[press\] | OH pad \[press\] | Accent \[hold\]: pads at vel 127 |
 
 ## Mode 8: Sequencer
+
+Side buttons: Track left/right select the sequencer track 1 to 7 (it becomes the edit group, the step buttons show its steps and its column's knob LEDs pulse); hold Solo/Arm for the track group, hold Mute/Select for patterns, Page up/down for bars 1 to 4. Outside mode 8 Track left/right do nothing.
 
 | Row | 1 DRUM 1 | 2 DRUM 2 | 3 DRUM 3 | 4 SNARE | 5 CYMBAL | 6 CL. HAT | 7 OP. HAT | 8 PATTERN |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |

@@ -1,6 +1,6 @@
 # VDrum on Launch Control XL 3: DAW-mode design
 
-> Archived copy of the approved design (revision 2, 2026-11-03), kept for reference. Phases 1 to 7 of the implementation plan were merged into main on 2026-11-04; phase 8 (hardware test pass) has not been done. Statements below such as "Nothing here is implemented" describe the state when the design was written. Control tables: [control-tables.md](control-tables.md). The mappings come from `source/layout.py`; `source/render.py` draws the PNGs (`python3 source/render.py source <front-panel photo> images`; the photo is not in the repository).
+> Archived copy of the approved design (revision 2, 2026-11-03), kept for reference. Phases 1 to 7 of the implementation plan were merged into main on 2026-11-04; phase 8 (hardware test pass) is in progress: Shift + button mode selection was confirmed on the hardware on 2026-11-05. Later changes on main: encoder LED brightness follows the value (2026-11-05); Track left/right select the sequencer track in mode 8 and no longer change mode, and the selected track's knob LEDs pulse (2026-11-05). Statements below such as "Nothing here is implemented" describe the state when the design was written. Control tables: [control-tables.md](control-tables.md). The mappings come from `source/layout.py`; `source/render.py` draws the PNGs (`python3 source/render.py source <front-panel photo> images`; the photo is not in the repository).
 
 Nov 3, 2026 · @Sami
 
@@ -219,13 +219,13 @@ The work is split into phases, each delivered as its own pull request and never 
 
 **Unverified (needs a real LCXL3 or a code check):**
 
-- Whether Shift + top/bottom-row button combinations reach the host in DAW mode, or whether the device reserves some Shift combinations for its own functions. Mode selection depends on this. Fallback: Track buttons for previous/next mode only. (2026-11-05: Sami reports Shift + button does not change mode on the hardware; cause not known yet. `VDRUM_LCXL3_LOG` logs what the device sends.)
+- ~~Whether Shift + top/bottom-row button combinations reach the host in DAW mode.~~ Confirmed on the hardware (2026-11-05): Shift + button N selects mode N. `VDRUM_LCXL3_LOG=<file>` logs every message the device sends, for checks like this one.
 - Whether a held button plus encoder turns arrive cleanly enough for step-held editing (mode 8) without accidental step toggles on release.
 - Display text field lengths per arrangement; the screen texts in the images are illustrative.
 - The parameter value range the engine's per-step parameter locks (`param1Val`, `param2Val`) accept, and whether every parameter can be a lock target.
 - RGB SysEx LED update rate the device tolerates while the sequencer playhead moves.
 
-**Open questions:**
+**Open questions** (as written on 2026-11-03; 1, 2, 3 and 5 were settled by the implementation, see `plugin/README.md`; host transport uses the engine's external-clock path rather than a direct call; 4 is still open):
 
 1. How should host transport reach the engine sequencer: a direct call from the plugin's process block (proposed), or synthesised MIDI clock/start/SPP into the engine's existing MIDI path?
 2. Should the momentary effects act on all voices, or only on voices routed to the FX send (proposed: all voices)?
