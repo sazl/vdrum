@@ -47,8 +47,13 @@ On Linux the build needs the ALSA, JACK, X11/xcb, GL and Wayland client developm
 libxkbcommon-dev libwayland-dev`. Wayland is required because the rfd file dialog depends on it.
 
 The standalone takes `--backend {auto,jack,alsa,dummy}`, `--sample-rate` and `--period-size`
-(run `--help` for the full list). Its default rate is 48000 Hz; pass `--sample-rate 44100` to hear
-the engine output without resampling.
+(run `--help` for the full list). It plays on the system's default output device. nih-plug's
+CoreAudio/WASAPI/ALSA backend opens that device only at the exact rate and period size it is given,
+and otherwise falls back to the silent dummy backend. So when `--sample-rate` is not passed,
+`src/main.rs` passes the default output device's own rate (for example 44100 Hz on a Mac whose
+output runs at 44.1 kHz). The period size stays 512 unless the device does not accept it, in which
+case the nearest size it accepts is used. With `--backend jack` neither is changed. Pass
+`--sample-rate 44100` to hear the engine output without resampling.
 
 ### AUv2 and standalone app (macOS)
 
