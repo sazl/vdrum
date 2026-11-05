@@ -62,6 +62,6 @@ the "Hardware clock" option, the output is resampled and therefore no longer byt
 | Platform | Status |
 |---|---|
 | Linux x86_64 | built and tested: standalone, CLAP, VST3 (tests and validators above) |
-| Windows x86_64 | cross-compiled with `x86_64-pc-windows-gnu` (DLL + EXE build); not run |
-| macOS (CLAP, VST3, AU via clap-wrapper, standalone app) | configured (`au/CMakeLists.txt`, CI workflow); not built |
-| GitHub Actions workflow | present; not run (Actions not enabled for the repository) |
+| Windows x86_64 | built and tested in CI (MSVC): tests, CLAP and VST3 with clap-validator and pluginval (pluginval's editor test skipped: no OpenGL on the runner) |
+| macOS universal (CLAP, VST3, AU via clap-wrapper, standalone app) | built and tested in CI: tests, clap-validator, pluginval (editor test skipped: no OpenGL on the runner), `auval` on the AU. Not run on hardware |
+| Release workflow | `.github/workflows/release.yml`: builds, packages and checks the release files; publishes on `v*` tags |

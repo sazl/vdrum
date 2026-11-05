@@ -44,6 +44,13 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(clap-wrapper)
 
+# clap-wrapper compiles its own sources with -Werror. Its bundled fmt triggers deprecation warnings
+# with the libc++ of current Xcode (char_traits<char8_type>, literal operator spacing), which
+# would fail the build; keep them as warnings. -Wno-error is appended after clap-wrapper's -Werror.
+if (TARGET clap-wrapper-compile-options)
+    target_compile_options(clap-wrapper-compile-options INTERFACE -Wno-error)
+endif ()
+
 # Audio Unit v2 instrument ('aumu'). The codes are VDrum's own (4 characters, the manufacturer code
 # needs an upper case letter).
 add_library(VDrum_auv2 MODULE)
