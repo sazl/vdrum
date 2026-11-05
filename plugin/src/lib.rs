@@ -392,6 +392,8 @@ impl Plugin for VDrum {
         let mut n_pulses = 0;
         let host_clock = shared.seq_host_clock.load(Ordering::Relaxed);
         if self.seq_host_clock != Some(host_clock) {
+            // a clock change ends a silenced sequencer (Play under the host clock)
+            pipeline.push_event(0, Ev::Seq(SeqEv::Silence(false)), &mut apply);
             if host_clock {
                 pipeline.push_event(0, Ev::Seq(SeqEv::Run(false)), &mut apply);
             } else {

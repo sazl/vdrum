@@ -186,6 +186,7 @@ pub struct SeqStatusAtomics {
     pub pending: AtomicU8,
     pub step: [AtomicI8; 7],
     pub late: AtomicBool,
+    pub silent: AtomicBool,
 }
 
 impl SeqStatusAtomics {
@@ -196,6 +197,7 @@ impl SeqStatusAtomics {
             pending: AtomicU8::new(0),
             step: std::array::from_fn(|_| AtomicI8::new(-1)),
             late: AtomicBool::new(false),
+            silent: AtomicBool::new(false),
         }
     }
 
@@ -207,6 +209,7 @@ impl SeqStatusAtomics {
             a.store(v, Ordering::Relaxed);
         }
         self.late.store(s.late, Ordering::Relaxed);
+        self.silent.store(s.silent, Ordering::Relaxed);
     }
 
     pub fn load(&self) -> SeqStatus {
@@ -216,6 +219,7 @@ impl SeqStatusAtomics {
             pending: self.pending.load(Ordering::Relaxed),
             step: std::array::from_fn(|i| self.step[i].load(Ordering::Relaxed)),
             late: self.late.load(Ordering::Relaxed),
+            silent: self.silent.load(Ordering::Relaxed),
         }
     }
 }

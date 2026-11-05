@@ -127,11 +127,11 @@ impl Surface {
         if self.shift {
             v.push("SHIFT: select mode".to_string());
         }
-        if self.mode == Mode::Sequencer {
-            if self.is_held(Control::Button(Button::SoloArm)) {
-                let g: Vec<&str> = self.group_tracks().map(|t| TRACKS[t as usize]).collect();
-                v.push(format!("TRACK GROUP: {}", if g.is_empty() { "none".to_string() } else { g.join(" ") }));
-            }
+        if self.mode != Mode::Sequencer && self.view {
+            let sticky = if self.sticky { " (sticky)" } else { "" };
+            v.push(format!("STEPS: {} {}{sticky}", self.seq_track + 1, TRACKS[self.seq_track as usize]));
+        }
+        if self.seq_view() {
             if self.is_held(Control::Button(Button::MuteSelect)) {
                 v.push("PATTERN: select".to_string());
             }

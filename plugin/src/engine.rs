@@ -49,6 +49,8 @@ pub enum SeqEv {
     NextPattern(u8),
     /// Start or stop on the internal clock.
     Run(bool),
+    /// Silence the sequencer (it keeps following the clock but triggers no steps).
+    Silence(bool),
     /// Host transport: start; the argument is the position of the next 16th note.
     HostStart(u32),
     /// Host transport: the position jumped; the argument is the position of the next 16th note.
@@ -327,6 +329,9 @@ impl Engine for LxrEngine {
             SeqEv::Run(on) => {
                 self.guarded(|e| e.vdrum_seq_run(on));
             }
+            SeqEv::Silence(on) => {
+                self.guarded(|e| e.vdrum.seq_silent = on);
+            }
             SeqEv::HostStart(n) => {
                 self.guarded(|e| e.vdrum_seq_host_start(n));
             }
@@ -403,6 +408,7 @@ impl Engine for LxrEngine {
             pending: e.seq_pendingPattern,
             step: e.seq_stepIndex,
             late: (12..24).contains(&e.seq_prescaleCounter),
+            silent: e.vdrum.seq_silent,
         }
     }
 

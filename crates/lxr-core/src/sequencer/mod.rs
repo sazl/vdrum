@@ -684,8 +684,8 @@ impl Lxr {
         let mask: u32 = if sa < 32 { 1u32 << sa } else { 0 };
 
         for track in 0..NUM_TRACKS as u8 {
-            // if track is not muted
-            if (self.seq_mutedTracks as u32 >> track) & 1 != 0 {
+            // if track is not muted (VDrum: or the whole sequencer silenced)
+            if (self.seq_mutedTracks as u32 >> track) & 1 != 0 || self.vdrum.seq_silent {
                 continue;
             }
             let ap = self.seq_activePattern;

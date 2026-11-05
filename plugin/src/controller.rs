@@ -149,6 +149,7 @@ pub fn seq_events(d: &SeqData, edit: &SeqEdit) -> Vec<SeqEv> {
         }
         SeqEdit::NextPattern(p) => vec![SeqEv::NextPattern(p.min(63))],
         SeqEdit::Run(on) => vec![SeqEv::Run(on)],
+        SeqEdit::Silence(on) => vec![SeqEv::Silence(on)],
     }
 }
 
