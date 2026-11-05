@@ -11,6 +11,7 @@
 //! * [`seq`]: pattern writes and host transport for the plugin's sequencer.
 
 pub mod open_hat;
+pub mod lfo_view;
 pub mod seq;
 
 use crate::prelude::*;

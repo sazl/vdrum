@@ -31,6 +31,10 @@ pub trait Model {
     fn seq_status(&self) -> SeqStatus {
         SeqStatus::default()
     }
+    /// The current LFO output (0..=1) of track `t`'s voice.
+    fn lfo(&self, _t: u8) -> f32 {
+        0.5
+    }
     /// Muted tracks (bit `t` = track `t`).
     fn mutes(&self) -> u8 {
         0

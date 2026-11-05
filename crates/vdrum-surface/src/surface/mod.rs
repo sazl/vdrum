@@ -196,8 +196,6 @@ pub struct Surface {
     /// buttons show it and its knob LEDs pulse.
     seq_track: u8,
     held_steps: Vec<HeldStep>,
-    /// Record arm (latching).
-    record: bool,
     /// Velocity of steps set with the step buttons.
     entry_velocity: u8,
     /// A layer button (Solo/Arm, Mute/Select in mode 8) was used while held.
@@ -263,7 +261,6 @@ impl Surface {
             group: 1,
             seq_track: 0,
             held_steps: Vec::new(),
-            record: false,
             entry_velocity: 100,
             layer_used: false,
             release_fired: false,
@@ -294,11 +291,6 @@ impl Surface {
     /// The sequencer's selected track (0..7).
     pub fn seq_track(&self) -> u8 {
         self.seq_track
-    }
-
-    /// Whether Record is armed.
-    pub fn record_armed(&self) -> bool {
-        self.record
     }
 
     fn group_tracks(&self) -> impl Iterator<Item = u8> + '_ {
@@ -867,12 +859,8 @@ impl Surface {
                     self.show_text("Sequencer", "Bar", &format!("{} of 4", self.seq_bar + 1));
                 }
             }
-            Button::Record => {
-                if pressed {
-                    self.record = !self.record;
-                    self.show_text("Sequencer", "Record", if self.record { "armed" } else { "off" });
-                }
-            }
+            // Live recording was removed (2026-11-05); the new function is still to be chosen.
+            Button::Record => {}
             Button::Play if pressed && !self.browsing && self.mode == Mode::Sequencer => {
                 if self.settings.host_clock {
                     self.show_text("Sequencer", "Clock: host", "set Internal in Global");
@@ -989,27 +977,6 @@ impl Surface {
         self.layout = Layout::of(self.mode, !self.held_steps.is_empty());
     }
 
-    /// With Record armed and the sequencer running, a pad writes a step at the track's playhead
-    /// (the next step when more than half of the current one has passed).
-    fn record_hit(&mut self, track: u8, velocity: u8, model: &dyn Model, out: &mut Vec<Action>) {
-        let st = model.seq_status();
-        if !self.record || !st.running {
-            return;
-        }
-        let cur = st.step[track as usize % 7];
-        if cur < 0 {
-            return;
-        }
-        let edit = {
-            let d = model.seq();
-            let len = d.track(st.pattern, track).length.max(1);
-            let step = ((cur as u8).wrapping_add(st.late as u8)) % len;
-            let s = d.step(st.pattern, track, step);
-            SeqEdit::Step { pat: st.pattern, track, step, data: StepData { on: true, velocity, ..s } }
-        };
-        out.push(Action::Seq(edit));
-    }
-
     fn pad_velocity(&self) -> u8 {
         if self.accent {
             127
@@ -1032,7 +999,6 @@ impl Surface {
             Binding::Pad(track) | Binding::Trigger(track) => {
                 let velocity = self.pad_velocity();
                 out.push(Action::Trigger { track, velocity });
-                self.record_hit(track, velocity, model, out);
             }
             Binding::Accent => self.accent = true,
             Binding::CopyVoice => {
@@ -1266,8 +1232,7 @@ impl Surface {
         let seq = self.mode == Mode::Sequencer;
         leds.push((Control::Button(Button::TrackLeft), if seq && self.seq_track > 0 { nav } else { (0, 0, 0) }));
         leds.push((Control::Button(Button::TrackRight), if seq && self.seq_track < 6 { nav } else { (0, 0, 0) }));
-        let rec = if self.record { (255, 0, 0) } else { (64, 0, 0) };
-        leds.push((Control::Button(Button::Record), rec));
+        leds.push((Control::Button(Button::Record), (0, 0, 0)));
         let st = model.seq_status();
         if self.mode == Mode::Sequencer {
             let play = if self.settings.host_clock {
@@ -1284,7 +1249,7 @@ impl Surface {
             let others = self.group_tracks().filter(|&t| t != self.seq_track).count();
             let more = if others > 0 { format!(" +{others}") } else { String::new() };
             let stationary = [
-                format!("{} {}{}", self.mode.number(), self.mode.name(), if self.record { " REC" } else { "" }),
+                format!("{} {}", self.mode.number(), self.mode.name()),
                 format!("P{:02} bar {}/4{next}", st.pattern + 1, self.seq_bar + 1),
                 format!("Track {} {}{more}", self.seq_track + 1, TRACKS[self.seq_track as usize]),
             ];
@@ -1339,6 +1304,14 @@ impl Surface {
 
     fn led(&self, c: Control, cell: &Cell, now: u64, model: &dyn Model) -> Rgb {
         let col = cell.section.colour();
+        // LFO mode: top-row buttons 1 to 7 follow their track's LFO output, scaled by its amount
+        if self.mode == Mode::LfoMod {
+            if let Control::Button(Button::Top(t)) = c {
+                if t < 7 {
+                    return scale_rgb(col, lfo_brightness(model.lfo(t), param_frac(model, crate::layout::voice_param(t, "lfo_amt"))));
+                }
+            }
+        }
         match cell.binding {
             Binding::Spare => (0, 0, 0),
             Binding::Param(idx) if matches!(c, Control::Button(_)) => match lxr_params::info(idx) {
@@ -1428,6 +1401,25 @@ pub fn value_brightness(col: Rgb, frac: f32) -> Rgb {
     let k = ENCODER_LED_FLOOR + (1.0 - ENCODER_LED_FLOOR) * frac.clamp(0.0, 1.0);
     let f = |v: u8| (v as f32 * k).round() as u8;
     (f(col.0), f(col.1), f(col.2))
+}
+
+/// Brightness of an LFO-mode button for LFO output `lfo` (0..=1) at amount `amt` (0..=1): a steady
+/// level at amount 0, swinging from [`PULSE_FLOOR`] to full at full amount.
+pub fn lfo_brightness(lfo: f32, amt: f32) -> f32 {
+    let amt = amt.clamp(0.0, 1.0);
+    let swing = PULSE_FLOOR + (1.0 - PULSE_FLOOR) * lfo.clamp(0.0, 1.0);
+    (1.0 - amt) * LFO_STEADY + amt * swing
+}
+
+/// Level of an LFO-mode button whose LFO amount is 0.
+pub const LFO_STEADY: f32 = 0.6;
+
+/// A parameter's value as a fraction of its range.
+fn param_frac(model: &dyn Model, idx: u16) -> f32 {
+    match lxr_params::info(idx) {
+        Some(i) if i.max > i.min => model.param(idx).saturating_sub(i.min) as f32 / (i.max - i.min) as f32,
+        _ => 0.0,
+    }
 }
 
 /// Period of the selected track's knob LED pulse in mode 8, in milliseconds.

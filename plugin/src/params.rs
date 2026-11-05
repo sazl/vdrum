@@ -265,6 +265,8 @@ pub struct Shared {
     /// The sequencer follows the host transport (true) or runs on the engine's own clock.
     pub seq_host_clock: AtomicBool,
     pub seq_status: SeqStatusAtomics,
+    /// Each track's LFO output (0..=1, `f32` bits), stored by the audio thread once per process call.
+    pub lfo_values: [AtomicU32; 7],
     /// Muted tracks (bit `t` = track `t`): the audio thread drops their note-ons and the
     /// sequencer skips them.
     pub mutes: AtomicU8,
@@ -315,6 +317,7 @@ impl Shared {
             seq: Mutex::new(SeqData::default()),
             seq_host_clock: AtomicBool::new(true),
             seq_status: SeqStatusAtomics::new(),
+            lfo_values: std::array::from_fn(|_| AtomicU32::new(0.5f32.to_bits())),
             mutes: AtomicU8::new(0),
             tempo: AtomicF32::new(120.0),
             surface_state: Mutex::new(String::new()),

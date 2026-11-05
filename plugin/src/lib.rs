@@ -571,6 +571,9 @@ impl Plugin for VDrum {
         );
 
         shared.seq_status.store(&pipeline.engine.seq_status());
+        for (out, v) in shared.lfo_values.iter().zip(pipeline.engine.lfo_values()) {
+            out.store(v.to_bits(), Ordering::Relaxed);
+        }
 
         let decay = self.meter_decay_per_sample.powi(frames as i32);
         for ((m, p), out) in self.meter_state.iter_mut().zip(peak).zip(&shared.meters) {

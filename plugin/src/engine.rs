@@ -99,6 +99,10 @@ pub trait Engine: Send {
     fn seq_status(&self) -> SeqStatus {
         SeqStatus::default()
     }
+    /// The current LFO output (0..=1) of each track's voice. The default is 0.5 for all.
+    fn lfo_values(&self) -> [f32; 7] {
+        [0.5; 7]
+    }
     /// Whether the engine stopped after an internal error (it then renders silence and ignores
     /// input until the plugin replaces it in `initialize()`).
     fn faulted(&self) -> bool {
@@ -385,6 +389,10 @@ impl Engine for LxrEngine {
             e.vdrum_seq_loaded();
         }));
         *faulted = r.is_err();
+    }
+
+    fn lfo_values(&self) -> [f32; 7] {
+        self.0.vdrum_lfo_values()
     }
 
     fn seq_status(&self) -> SeqStatus {

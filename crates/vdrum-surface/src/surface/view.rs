@@ -138,9 +138,6 @@ impl Surface {
             for h in &self.held_steps {
                 v.push(format!("STEP {} HELD: locks", h.step + 1));
             }
-            if self.record {
-                v.push("REC".to_string());
-            }
         }
         if self.accent {
             v.push("ACCENT".to_string());

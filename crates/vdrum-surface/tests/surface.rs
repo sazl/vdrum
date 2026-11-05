@@ -18,6 +18,7 @@ struct Fake {
     seq: RefCell<SeqData>,
     status: RefCell<SeqStatus>,
     mutes: RefCell<u8>,
+    lfo: RefCell<[f32; 7]>,
 }
 
 impl Fake {
@@ -83,6 +84,9 @@ impl Model for Fake {
     }
     fn mutes(&self) -> u8 {
         *self.mutes.borrow()
+    }
+    fn lfo(&self, t: u8) -> f32 {
+        self.lfo.borrow()[t as usize]
     }
 }
 
@@ -760,28 +764,19 @@ fn pattern_layer_queues_patterns() {
 }
 
 #[test]
-fn record_writes_pad_hits_at_the_playhead() {
+fn pads_do_not_record_steps() {
+    // live recording was removed: Record does nothing and pads never write steps
     let m = Fake::new();
     let mut s = Surface::new();
     press(&mut s, &m, Button::Record, 0);
-    assert!(s.record_armed());
-    // stopped: nothing is recorded
-    let a = press(&mut s, &m, Button::Bottom(3), 0);
-    assert!(seq_edits(&a).is_empty());
     {
         let mut st = m.status.borrow_mut();
         st.running = true;
         st.step = [5; 7];
-        st.late = true;
     }
-    press(&mut s, &m, Button::Bottom(3), 0); // snare pad
-    let st = m.seq.borrow().step(0, 3, 6);
-    assert!(st.on);
-    assert_eq!(st.velocity, 100);
-    // the next step wraps at the track length
-    m.status.borrow_mut().step = [15; 7];
-    press(&mut s, &m, Button::Bottom(3), 0);
-    assert!(m.seq.borrow().step(0, 3, 0).on);
+    let a = press(&mut s, &m, Button::Bottom(3), 0);
+    assert!(seq_edits(&a).is_empty());
+    assert!(!s.frame(0, &m).stationary[0].contains("REC"));
 }
 
 #[test]
@@ -993,4 +988,35 @@ fn encoder_led_brightness_follows_the_value() {
     assert!(sum(high) > sum(low) * 4, "{low:?} {high:?}");
     assert_eq!(vdrum_surface::value_brightness((200, 100, 0), 1.0), (200, 100, 0));
     assert_eq!(vdrum_surface::value_brightness((200, 100, 0), 0.0), (20, 10, 0));
+}
+
+#[test]
+fn lfo_mode_top_row_follows_each_lfo() {
+    let m = Fake::new();
+    let mut s = Surface::new();
+    s.set_mode(Mode::LfoMod);
+    let led = |s: &Surface, n: u8| s.frame(0, &m).leds.iter().find(|(c, _)| *c == Control::Button(Button::Top(n))).unwrap().1;
+    let lum = |c: (u8, u8, u8)| c.0 as u32 + c.1 as u32 + c.2 as u32;
+    let amt = voice_param(0, "lfo_amt");
+    let max = lxr_params::info(amt).unwrap().max;
+    m.params.borrow_mut().insert(amt, max);
+    // full amount: LFO at its top = full, at its bottom = the floor
+    m.lfo.borrow_mut()[0] = 1.0;
+    let hi = led(&s, 0);
+    m.lfo.borrow_mut()[0] = 0.0;
+    let lo = led(&s, 0);
+    assert!(lum(hi) > lum(lo) * 5, "{hi:?} {lo:?}");
+    // amount 0: steady, whatever the LFO does
+    m.params.borrow_mut().insert(amt, lxr_params::info(amt).unwrap().min);
+    let a = led(&s, 0);
+    m.lfo.borrow_mut()[0] = 1.0;
+    assert_eq!(a, led(&s, 0));
+    assert!((lfo_brightness(0.3, 0.0) - LFO_STEADY).abs() < 1e-6);
+    // the tracks are independent; button 8 is not an LFO
+    m.params.borrow_mut().insert(voice_param(1, "lfo_amt"), lxr_params::info(voice_param(1, "lfo_amt")).unwrap().max);
+    m.lfo.borrow_mut()[1] = 0.0;
+    let b = led(&s, 1);
+    m.lfo.borrow_mut()[1] = 1.0;
+    assert_ne!(b, led(&s, 1));
+    let _ = &mut s;
 }
