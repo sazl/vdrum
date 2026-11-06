@@ -306,8 +306,8 @@ every track at once (at the pad velocity, or 127 while Accent is held).
    existing tests show the helpers (`press`, `release`, `turn`, `fader`).
 
 8. **Check and document**: `python3 tools/surface_spec/run.py check`, `cargo test -p vdrum-surface`;
-   add the behaviour to the table above and, if it changes what a mode does, to `design.md` and
-   `control-tables.md`.
+   add the behaviour to the table above. `build` regenerates the control tables and mode images in
+   `generated/`.
 
 ### Adding or changing a parameter id
 
