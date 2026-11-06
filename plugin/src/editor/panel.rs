@@ -4,8 +4,8 @@
 //! tab bar.
 //!
 //! The drawing comes from the controller thread's [`View`]; mouse actions go back to the surface as
-//! device input ([`EditorInput`]), so they behave as on the device. Positions follow the design's
-//! `docs/lcxl3-daw-mode/source/render.py` (panel units, scaled to the window).
+//! device input ([`EditorInput`]), so they behave as on the device. Positions follow the
+//! design's former `render.py` (panel units, scaled to the window; removed from the repository).
 
 use super::{Color32, FontId, Rect, Sense, Stroke, StrokeKind, Ui};
 use crate::params::{EditorInput, Shared, VDrumParams};

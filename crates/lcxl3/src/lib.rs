@@ -12,6 +12,7 @@ pub mod control;
 pub mod input;
 pub mod display;
 pub mod encode;
+pub mod emulator;
 
 pub use control::{Button, Control};
 pub use input::{decode, Input};

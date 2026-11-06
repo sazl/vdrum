@@ -8,7 +8,7 @@ This plan covers three requested changes to the VDrum plugin editor:
 2. Global tabs: tab 1 is the current parameter view. Tabs 2 to 14 each show one Launch Control XL 3 mode on a drawing of the front panel, in sync with the hardware.
 3. A library of kits (and patterns), saved with the plugin state and selectable from the editor and from the controller, with import and an LXR-02-compatible export.
 
-Related documents: [design.md](design.md) (the LCXL3 DAW-mode design), [control-tables.md](control-tables.md), [../ARCHITECTURE.md](../ARCHITECTURE.md).
+Related documents: [surface-spec.md](surface-spec.md) (the LCXL3 surface spec), [generated/control-tables.md](generated/control-tables.md), [../ARCHITECTURE.md](../ARCHITECTURE.md).
 
 ## Decisions (Sami, 2026-11-04)
 
@@ -100,7 +100,7 @@ The data moves through `Shared`:
 
 - **Drawing:** each mode tab draws the LCXL3 front panel with the egui painter: three rows of 8 encoders, 8 faders, 16 buttons, the left-hand buttons and the screen.
   - The PNGs in `docs/lcxl3-daw-mode/images/` are not used. They are built from a photo that is not in the repository, they would add about 17 MB to the plugin, and they cannot show live values.
-  - The proportions and label positions follow `source/render.py`: a dark panel, the label above each control, and the section colour.
+  - The proportions and label positions follow the former `source/render.py` (removed 2026-11-06): a dark panel, the label above each control, and the section colour.
 - **Controls:**
   - Encoders show a value arc in their LED colour.
   - Faders show the cap at the hardware position, and a marker at the parameter value while the fader has not picked it up.
@@ -197,7 +197,7 @@ An export loses data the LXR-02 cannot hold. The export dialog lists these losse
 
 ## Delivery
 
-One pull request per part. Each updates the docs: an addendum to `design.md`, `docs/ARCHITECTURE.md` and the plugin `README.md`.
+One pull request per part. Each updates the docs: `surface-spec.md`, `docs/ARCHITECTURE.md` and the plugin `README.md`.
 
 | PR | Content |
 | --- | --- |

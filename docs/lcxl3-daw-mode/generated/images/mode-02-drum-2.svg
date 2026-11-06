@@ -1,0 +1,226 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 239" width="1000" height="956">
+<title>Launch Control XL 3 top panel</title>
+<defs><radialGradient id="cap" cx="45%" cy="40%" r="60%"><stop offset="0" stop-color="#626166"/><stop offset="1" stop-color="#58575c"/></radialGradient><filter id="sh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0.8" dy="1.2" stdDeviation="0.9" flood-color="#000" flood-opacity="0.55"/></filter><filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="0.35"/></filter></defs>
+<rect x="0" y="0" width="250" height="239" rx="1.89" fill="#3c3b3f" id="panel"/>
+<g id="screen"><rect x="7.67" y="19.56" width="29.63" height="18.84" rx="2.02" fill="#1b1a1d"/><rect x="8.27" y="20.16" width="28.43" height="17.64" rx="1.42" fill="#050507"/><rect x="9.88" y="22.68" width="25.2" height="12.6" rx="0" id="screen-active" fill="#050507" data-pixels="128x64"/>
+</g>
+<rect x="10.08" y="52.76" width="24.65" height="12.44" rx="1.4" fill="#252428" stroke="#151417" stroke-width="0.4" filter="url(#sh)"/>
+<line x1="22.4" y1="54.76" x2="22.4" y2="63.2" stroke="#151417" stroke-width="1.2" stroke-linecap="round"/>
+<text x="22.52" y="50.01" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="2.3" font-weight="400" text-anchor="middle" dominant-baseline="central" fill="#c9c9cd" >Page</text>
+<rect x="10.08" y="82.92" width="24.65" height="12.45" rx="1.4" fill="#252428" stroke="#151417" stroke-width="0.4" filter="url(#sh)"/>
+<line x1="22.4" y1="84.92" x2="22.4" y2="93.37" stroke="#151417" stroke-width="1.2" stroke-linecap="round"/>
+<text x="22.52" y="80.01" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="2.3" font-weight="400" text-anchor="middle" dominant-baseline="central" fill="#c9c9cd" >Track</text>
+<text x="22.52" y="98.44" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="2.3" font-weight="400" text-anchor="middle" dominant-baseline="central" fill="#c9c9cd" >└ Settings ┘</text>
+<rect x="10.08" y="116.39" width="24.65" height="24.42" rx="1.4" fill="#252428" stroke="#151417" stroke-width="0.4" filter="url(#sh)"/>
+<line x1="12.08" y1="128.6" x2="32.73" y2="128.6" stroke="#151417" stroke-width="1" stroke-linecap="round"/>
+<rect x="10.08" y="157.97" width="24.65" height="24.57" rx="1.4" fill="#252428" stroke="#151417" stroke-width="0.4" filter="url(#sh)"/>
+<line x1="12.08" y1="169.94" x2="32.73" y2="169.94" stroke="#151417" stroke-width="1" stroke-linecap="round"/>
+<text x="22.52" y="186.01" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="2.3" font-weight="400" text-anchor="middle" dominant-baseline="central" fill="#c9c9cd" >Edit</text>
+<line x1="67.58" y1="119.23" x2="73.58" y2="119.23" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="68.61" y1="126.77" x2="72.55" y2="126.77" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="67.58" y1="134.31" x2="73.58" y2="134.31" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="68.61" y1="141.85" x2="72.55" y2="141.85" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="67.58" y1="149.39" x2="73.58" y2="149.39" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="68.61" y1="156.93" x2="72.55" y2="156.93" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="67.58" y1="164.47" x2="73.58" y2="164.47" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="68.61" y1="172.01" x2="72.55" y2="172.01" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="67.58" y1="179.55" x2="73.58" y2="179.55" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="91.67" y1="119.23" x2="97.67" y2="119.23" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="92.7" y1="126.77" x2="96.64" y2="126.77" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="91.67" y1="134.31" x2="97.67" y2="134.31" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="92.7" y1="141.85" x2="96.64" y2="141.85" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="91.67" y1="149.39" x2="97.67" y2="149.39" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="92.7" y1="156.93" x2="96.64" y2="156.93" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="91.67" y1="164.47" x2="97.67" y2="164.47" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="92.7" y1="172.01" x2="96.64" y2="172.01" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="91.67" y1="179.55" x2="97.67" y2="179.55" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="115.77" y1="119.23" x2="121.77" y2="119.23" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="116.8" y1="126.77" x2="120.74" y2="126.77" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="115.77" y1="134.31" x2="121.77" y2="134.31" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="116.8" y1="141.85" x2="120.74" y2="141.85" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="115.77" y1="149.39" x2="121.77" y2="149.39" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="116.8" y1="156.93" x2="120.74" y2="156.93" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="115.77" y1="164.47" x2="121.77" y2="164.47" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="116.8" y1="172.01" x2="120.74" y2="172.01" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="115.77" y1="179.55" x2="121.77" y2="179.55" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="139.88" y1="119.23" x2="145.87" y2="119.23" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="140.9" y1="126.77" x2="144.84" y2="126.77" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="139.88" y1="134.31" x2="145.87" y2="134.31" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="140.9" y1="141.85" x2="144.84" y2="141.85" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="139.88" y1="149.39" x2="145.87" y2="149.39" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="140.9" y1="156.93" x2="144.84" y2="156.93" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="139.88" y1="164.47" x2="145.87" y2="164.47" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="140.9" y1="172.01" x2="144.84" y2="172.01" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="139.88" y1="179.55" x2="145.87" y2="179.55" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="163.97" y1="119.23" x2="169.96" y2="119.23" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="164.99" y1="126.77" x2="168.93" y2="126.77" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="163.97" y1="134.31" x2="169.96" y2="134.31" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="164.99" y1="141.85" x2="168.93" y2="141.85" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="163.97" y1="149.39" x2="169.96" y2="149.39" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="164.99" y1="156.93" x2="168.93" y2="156.93" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="163.97" y1="164.47" x2="169.96" y2="164.47" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="164.99" y1="172.01" x2="168.93" y2="172.01" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="163.97" y1="179.55" x2="169.96" y2="179.55" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="188.06" y1="119.23" x2="194.06" y2="119.23" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="189.09" y1="126.77" x2="193.03" y2="126.77" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="188.06" y1="134.31" x2="194.06" y2="134.31" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="189.09" y1="141.85" x2="193.03" y2="141.85" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="188.06" y1="149.39" x2="194.06" y2="149.39" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="189.09" y1="156.93" x2="193.03" y2="156.93" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="188.06" y1="164.47" x2="194.06" y2="164.47" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="189.09" y1="172.01" x2="193.03" y2="172.01" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="188.06" y1="179.55" x2="194.06" y2="179.55" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="212.16" y1="119.23" x2="218.16" y2="119.23" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="213.19" y1="126.77" x2="217.13" y2="126.77" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="212.16" y1="134.31" x2="218.16" y2="134.31" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="213.19" y1="141.85" x2="217.13" y2="141.85" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="212.16" y1="149.39" x2="218.16" y2="149.39" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="213.19" y1="156.93" x2="217.13" y2="156.93" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="212.16" y1="164.47" x2="218.16" y2="164.47" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="213.19" y1="172.01" x2="217.13" y2="172.01" stroke="#d6d6da" stroke-width="0.35"/>
+<line x1="212.16" y1="179.55" x2="218.16" y2="179.55" stroke="#d6d6da" stroke-width="0.35"/>
+<rect x="10.08" y="197.35" width="229.48" height="12.28" rx="1.42" fill="#252428" stroke="#151417" stroke-width="0.4"/>
+<line x1="34.49" y1="199.45" x2="34.49" y2="207.53" stroke="#151417" stroke-width="0.5"/>
+<line x1="46.3" y1="199.45" x2="46.3" y2="207.53" stroke="#151417" stroke-width="0.5"/>
+<line x1="70.4" y1="199.45" x2="70.4" y2="207.53" stroke="#151417" stroke-width="0.5"/>
+<line x1="94.5" y1="199.45" x2="94.5" y2="207.53" stroke="#151417" stroke-width="0.5"/>
+<line x1="118.6" y1="199.45" x2="118.6" y2="207.53" stroke="#151417" stroke-width="0.5"/>
+<line x1="142.69" y1="199.45" x2="142.69" y2="207.53" stroke="#151417" stroke-width="0.5"/>
+<line x1="166.79" y1="199.45" x2="166.79" y2="207.53" stroke="#151417" stroke-width="0.5"/>
+<line x1="190.89" y1="199.45" x2="190.89" y2="207.53" stroke="#151417" stroke-width="0.5"/>
+<line x1="214.99" y1="199.45" x2="214.99" y2="207.53" stroke="#151417" stroke-width="0.5"/>
+<rect x="10.08" y="216.56" width="229.48" height="11.97" rx="1.42" fill="#252428" stroke="#151417" stroke-width="0.4"/>
+<line x1="34.49" y1="218.66" x2="34.49" y2="226.43" stroke="#151417" stroke-width="0.5"/>
+<line x1="46.3" y1="218.66" x2="46.3" y2="226.43" stroke="#151417" stroke-width="0.5"/>
+<line x1="70.4" y1="218.66" x2="70.4" y2="226.43" stroke="#151417" stroke-width="0.5"/>
+<line x1="94.5" y1="218.66" x2="94.5" y2="226.43" stroke="#151417" stroke-width="0.5"/>
+<line x1="118.6" y1="218.66" x2="118.6" y2="226.43" stroke="#151417" stroke-width="0.5"/>
+<line x1="142.69" y1="218.66" x2="142.69" y2="226.43" stroke="#151417" stroke-width="0.5"/>
+<line x1="166.79" y1="218.66" x2="166.79" y2="226.43" stroke="#151417" stroke-width="0.5"/>
+<line x1="190.89" y1="218.66" x2="190.89" y2="226.43" stroke="#151417" stroke-width="0.5"/>
+<line x1="214.99" y1="218.66" x2="214.99" y2="226.43" stroke="#151417" stroke-width="0.5"/>
+<text x="22.29" y="212.94" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="2.3" font-weight="400" text-anchor="middle" dominant-baseline="central" fill="#c9c9cd" >DAW Control</text>
+<text x="22.29" y="231.84" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="2.3" font-weight="400" text-anchor="middle" dominant-baseline="central" fill="#c9c9cd" >DAW Mixer</text>
+<text x="58.53" y="212.94" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="2.3" font-weight="400" text-anchor="middle" dominant-baseline="central" fill="#c9c9cd" >1</text>
+<text x="58.53" y="231.84" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="2.3" font-weight="400" text-anchor="middle" dominant-baseline="central" fill="#c9c9cd" >9</text>
+<text x="82.62" y="212.94" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="2.3" font-weight="400" text-anchor="middle" dominant-baseline="central" fill="#c9c9cd" >2</text>
+<text x="82.62" y="231.84" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="2.3" font-weight="400" text-anchor="middle" dominant-baseline="central" fill="#c9c9cd" >10</text>
+<text x="106.72" y="212.94" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="2.3" font-weight="400" text-anchor="middle" dominant-baseline="central" fill="#c9c9cd" >3</text>
+<text x="106.72" y="231.84" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="2.3" font-weight="400" text-anchor="middle" dominant-baseline="central" fill="#c9c9cd" >11</text>
+<text x="130.82" y="212.94" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="2.3" font-weight="400" text-anchor="middle" dominant-baseline="central" fill="#c9c9cd" >4</text>
+<text x="130.82" y="231.84" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="2.3" font-weight="400" text-anchor="middle" dominant-baseline="central" fill="#c9c9cd" >12</text>
+<text x="154.92" y="212.94" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="2.3" font-weight="400" text-anchor="middle" dominant-baseline="central" fill="#c9c9cd" >5</text>
+<text x="154.92" y="231.84" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="2.3" font-weight="400" text-anchor="middle" dominant-baseline="central" fill="#c9c9cd" >13</text>
+<text x="179.01" y="212.94" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="2.3" font-weight="400" text-anchor="middle" dominant-baseline="central" fill="#c9c9cd" >6</text>
+<text x="179.01" y="231.84" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="2.3" font-weight="400" text-anchor="middle" dominant-baseline="central" fill="#c9c9cd" >14</text>
+<text x="203.11" y="212.94" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="2.3" font-weight="400" text-anchor="middle" dominant-baseline="central" fill="#c9c9cd" >7</text>
+<text x="203.11" y="231.84" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="2.3" font-weight="400" text-anchor="middle" dominant-baseline="central" fill="#c9c9cd" >15</text>
+<text x="227.21" y="212.94" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="2.3" font-weight="400" text-anchor="middle" dominant-baseline="central" fill="#c9c9cd" >8</text>
+<text x="227.21" y="231.84" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="2.3" font-weight="400" text-anchor="middle" dominant-baseline="central" fill="#c9c9cd" >16</text>
+<g id="ctl-K11" data-control="K11" data-kind="encoder"><circle cx="58.53" cy="27.72" r="5.51" fill="url(#cap)" stroke="#6c6b70" stroke-width="0.3" filter="url(#sh)"/><rect x="56.88" y="38.26" width="3.31" height="1.42" rx="0.2" id="led-K11" class="led" fill="#f4a259"/></g>
+<g id="ctl-K12" data-control="K12" data-kind="encoder"><circle cx="82.62" cy="27.72" r="5.51" fill="url(#cap)" stroke="#6c6b70" stroke-width="0.3" filter="url(#sh)"/><rect x="80.97" y="38.26" width="3.31" height="1.42" rx="0.2" id="led-K12" class="led" fill="#5bba6f"/></g>
+<g id="ctl-K13" data-control="K13" data-kind="encoder"><circle cx="106.72" cy="27.72" r="5.51" fill="url(#cap)" stroke="#6c6b70" stroke-width="0.3" filter="url(#sh)"/><rect x="105.06" y="38.26" width="3.31" height="1.42" rx="0.2" id="led-K13" class="led" fill="#f2d04b"/></g>
+<g id="ctl-K14" data-control="K14" data-kind="encoder"><circle cx="130.82" cy="27.72" r="5.51" fill="url(#cap)" stroke="#6c6b70" stroke-width="0.3" filter="url(#sh)"/><rect x="129.16" y="38.26" width="3.31" height="1.42" rx="0.2" id="led-K14" class="led" fill="#ab82de"/></g>
+<g id="ctl-K15" data-control="K15" data-kind="encoder"><circle cx="154.92" cy="27.72" r="5.51" fill="url(#cap)" stroke="#6c6b70" stroke-width="0.3" filter="url(#sh)"/><rect x="153.26" y="38.26" width="3.31" height="1.42" rx="0.2" id="led-K15" class="led" fill="#e86aa6"/></g>
+<g id="ctl-K16" data-control="K16" data-kind="encoder"><circle cx="179.01" cy="27.72" r="5.51" fill="url(#cap)" stroke="#6c6b70" stroke-width="0.3" filter="url(#sh)"/><rect x="177.35" y="38.26" width="3.31" height="1.42" rx="0.2" id="led-K16" class="led" fill="#5fa5e6"/></g>
+<g id="ctl-K17" data-control="K17" data-kind="encoder"><circle cx="203.11" cy="27.72" r="5.51" fill="url(#cap)" stroke="#6c6b70" stroke-width="0.3" filter="url(#sh)"/><rect x="201.46" y="38.26" width="3.31" height="1.42" rx="0.2" id="led-K17" class="led" fill="#d6ac80"/></g>
+<g id="ctl-K18" data-control="K18" data-kind="encoder"><circle cx="227.21" cy="27.72" r="5.51" fill="url(#cap)" stroke="#6c6b70" stroke-width="0.3" filter="url(#sh)"/><rect x="225.56" y="38.26" width="3.31" height="1.42" rx="0.2" id="led-K18" class="led" fill="#bec6d2"/></g>
+<g id="ctl-K21" data-control="K21" data-kind="encoder"><circle cx="58.53" cy="58.2" r="5.51" fill="url(#cap)" stroke="#6c6b70" stroke-width="0.3" filter="url(#sh)"/><rect x="56.88" y="68.27" width="3.31" height="1.42" rx="0.2" id="led-K21" class="led" fill="#f4a259"/></g>
+<g id="ctl-K22" data-control="K22" data-kind="encoder"><circle cx="82.62" cy="58.2" r="5.51" fill="url(#cap)" stroke="#6c6b70" stroke-width="0.3" filter="url(#sh)"/><rect x="80.97" y="68.27" width="3.31" height="1.42" rx="0.2" id="led-K22" class="led" fill="#5bba6f"/></g>
+<g id="ctl-K23" data-control="K23" data-kind="encoder"><circle cx="106.72" cy="58.2" r="5.51" fill="url(#cap)" stroke="#6c6b70" stroke-width="0.3" filter="url(#sh)"/><rect x="105.06" y="68.27" width="3.31" height="1.42" rx="0.2" id="led-K23" class="led" fill="#f2d04b"/></g>
+<g id="ctl-K24" data-control="K24" data-kind="encoder"><circle cx="130.82" cy="58.2" r="5.51" fill="url(#cap)" stroke="#6c6b70" stroke-width="0.3" filter="url(#sh)"/><rect x="129.16" y="68.27" width="3.31" height="1.42" rx="0.2" id="led-K24" class="led" fill="#ab82de"/></g>
+<g id="ctl-K25" data-control="K25" data-kind="encoder"><circle cx="154.92" cy="58.2" r="5.51" fill="url(#cap)" stroke="#6c6b70" stroke-width="0.3" filter="url(#sh)"/><rect x="153.26" y="68.27" width="3.31" height="1.42" rx="0.2" id="led-K25" class="led" fill="#2a292d"/></g>
+<g id="ctl-K26" data-control="K26" data-kind="encoder"><circle cx="179.01" cy="58.2" r="5.51" fill="url(#cap)" stroke="#6c6b70" stroke-width="0.3" filter="url(#sh)"/><rect x="177.35" y="68.27" width="3.31" height="1.42" rx="0.2" id="led-K26" class="led" fill="#5fa5e6"/></g>
+<g id="ctl-K27" data-control="K27" data-kind="encoder"><circle cx="203.11" cy="58.2" r="5.51" fill="url(#cap)" stroke="#6c6b70" stroke-width="0.3" filter="url(#sh)"/><rect x="201.46" y="68.27" width="3.31" height="1.42" rx="0.2" id="led-K27" class="led" fill="#d6ac80"/></g>
+<g id="ctl-K28" data-control="K28" data-kind="encoder"><circle cx="227.21" cy="58.2" r="5.51" fill="url(#cap)" stroke="#6c6b70" stroke-width="0.3" filter="url(#sh)"/><rect x="225.56" y="68.27" width="3.31" height="1.42" rx="0.2" id="led-K28" class="led" fill="#bec6d2"/></g>
+<g id="ctl-K31" data-control="K31" data-kind="encoder"><circle cx="58.53" cy="88.83" r="5.51" fill="url(#cap)" stroke="#6c6b70" stroke-width="0.3" filter="url(#sh)"/><rect x="56.88" y="98.44" width="3.31" height="1.42" rx="0.2" id="led-K31" class="led" fill="#35c9c2"/></g>
+<g id="ctl-K32" data-control="K32" data-kind="encoder"><circle cx="82.62" cy="88.83" r="5.51" fill="url(#cap)" stroke="#6c6b70" stroke-width="0.3" filter="url(#sh)"/><rect x="80.97" y="98.44" width="3.31" height="1.42" rx="0.2" id="led-K32" class="led" fill="#35c9c2"/></g>
+<g id="ctl-K33" data-control="K33" data-kind="encoder"><circle cx="106.72" cy="88.83" r="5.51" fill="url(#cap)" stroke="#6c6b70" stroke-width="0.3" filter="url(#sh)"/><rect x="105.06" y="98.44" width="3.31" height="1.42" rx="0.2" id="led-K33" class="led" fill="#35c9c2"/></g>
+<g id="ctl-K34" data-control="K34" data-kind="encoder"><circle cx="130.82" cy="88.83" r="5.51" fill="url(#cap)" stroke="#6c6b70" stroke-width="0.3" filter="url(#sh)"/><rect x="129.16" y="98.44" width="3.31" height="1.42" rx="0.2" id="led-K34" class="led" fill="#35c9c2"/></g>
+<g id="ctl-K35" data-control="K35" data-kind="encoder"><circle cx="154.92" cy="88.83" r="5.51" fill="url(#cap)" stroke="#6c6b70" stroke-width="0.3" filter="url(#sh)"/><rect x="153.26" y="98.44" width="3.31" height="1.42" rx="0.2" id="led-K35" class="led" fill="#35c9c2"/></g>
+<g id="ctl-K36" data-control="K36" data-kind="encoder"><circle cx="179.01" cy="88.83" r="5.51" fill="url(#cap)" stroke="#6c6b70" stroke-width="0.3" filter="url(#sh)"/><rect x="177.35" y="98.44" width="3.31" height="1.42" rx="0.2" id="led-K36" class="led" fill="#35c9c2"/></g>
+<g id="ctl-K37" data-control="K37" data-kind="encoder"><circle cx="203.11" cy="88.83" r="5.51" fill="url(#cap)" stroke="#6c6b70" stroke-width="0.3" filter="url(#sh)"/><rect x="201.46" y="98.44" width="3.31" height="1.42" rx="0.2" id="led-K37" class="led" fill="#35c9c2"/></g>
+<g id="ctl-K38" data-control="K38" data-kind="encoder"><circle cx="227.21" cy="88.83" r="5.51" fill="url(#cap)" stroke="#6c6b70" stroke-width="0.3" filter="url(#sh)"/><rect x="225.56" y="98.44" width="3.31" height="1.42" rx="0.2" id="led-K38" class="led" fill="#35c9c2"/></g>
+<g id="ctl-F1" data-control="F1" data-kind="fader"><rect x="57.19" y="115.29" width="2.68" height="68.04" rx="1.34" fill="#0c0b0e"/><g class="fader-cap" data-travel="119.23 179.55" transform="translate(0 179.55)" filter="url(#sh)"><rect x="49.63" y="-4.25" width="17.8" height="8.51" rx="0.8" fill="#48474c" stroke="#5c5b60" stroke-width="0.3"/><rect x="50.23" y="-0.3" width="16.6" height="0.6" rx="0.2" fill="#d8d8dc"/></g></g>
+<g id="ctl-F2" data-control="F2" data-kind="fader"><rect x="81.28" y="115.29" width="2.68" height="68.04" rx="1.34" fill="#0c0b0e"/><g class="fader-cap" data-travel="119.23 179.55" transform="translate(0 179.55)" filter="url(#sh)"><rect x="73.72" y="-4.25" width="17.8" height="8.51" rx="0.8" fill="#48474c" stroke="#5c5b60" stroke-width="0.3"/><rect x="74.32" y="-0.3" width="16.6" height="0.6" rx="0.2" fill="#d8d8dc"/></g></g>
+<g id="ctl-F3" data-control="F3" data-kind="fader"><rect x="105.38" y="115.29" width="2.68" height="68.04" rx="1.34" fill="#0c0b0e"/><g class="fader-cap" data-travel="119.23 179.55" transform="translate(0 179.55)" filter="url(#sh)"><rect x="97.82" y="-4.25" width="17.8" height="8.51" rx="0.8" fill="#48474c" stroke="#5c5b60" stroke-width="0.3"/><rect x="98.42" y="-0.3" width="16.6" height="0.6" rx="0.2" fill="#d8d8dc"/></g></g>
+<g id="ctl-F4" data-control="F4" data-kind="fader"><rect x="129.48" y="115.29" width="2.68" height="68.04" rx="1.34" fill="#0c0b0e"/><g class="fader-cap" data-travel="119.23 179.55" transform="translate(0 179.55)" filter="url(#sh)"><rect x="121.92" y="-4.25" width="17.8" height="8.51" rx="0.8" fill="#48474c" stroke="#5c5b60" stroke-width="0.3"/><rect x="122.52" y="-0.3" width="16.6" height="0.6" rx="0.2" fill="#d8d8dc"/></g></g>
+<g id="ctl-F5" data-control="F5" data-kind="fader"><rect x="153.58" y="115.29" width="2.68" height="68.04" rx="1.34" fill="#0c0b0e"/><g class="fader-cap" data-travel="119.23 179.55" transform="translate(0 179.55)" filter="url(#sh)"><rect x="146.02" y="-4.25" width="17.8" height="8.51" rx="0.8" fill="#48474c" stroke="#5c5b60" stroke-width="0.3"/><rect x="146.62" y="-0.3" width="16.6" height="0.6" rx="0.2" fill="#d8d8dc"/></g></g>
+<g id="ctl-F6" data-control="F6" data-kind="fader"><rect x="177.67" y="115.29" width="2.68" height="68.04" rx="1.34" fill="#0c0b0e"/><g class="fader-cap" data-travel="119.23 179.55" transform="translate(0 179.55)" filter="url(#sh)"><rect x="170.11" y="-4.25" width="17.8" height="8.51" rx="0.8" fill="#48474c" stroke="#5c5b60" stroke-width="0.3"/><rect x="170.71" y="-0.3" width="16.6" height="0.6" rx="0.2" fill="#d8d8dc"/></g></g>
+<g id="ctl-F7" data-control="F7" data-kind="fader"><rect x="201.77" y="115.29" width="2.68" height="68.04" rx="1.34" fill="#0c0b0e"/><g class="fader-cap" data-travel="119.23 179.55" transform="translate(0 179.55)" filter="url(#sh)"><rect x="194.21" y="-4.25" width="17.8" height="8.51" rx="0.8" fill="#48474c" stroke="#5c5b60" stroke-width="0.3"/><rect x="194.81" y="-0.3" width="16.6" height="0.6" rx="0.2" fill="#d8d8dc"/></g></g>
+<g id="ctl-F8" data-control="F8" data-kind="fader"><rect x="225.87" y="115.29" width="2.68" height="68.04" rx="1.34" fill="#0c0b0e"/><g class="fader-cap" data-travel="119.23 179.55" transform="translate(0 179.55)" filter="url(#sh)"><rect x="218.31" y="-4.25" width="17.8" height="8.51" rx="0.8" fill="#48474c" stroke="#5c5b60" stroke-width="0.3"/><rect x="218.91" y="-0.3" width="16.6" height="0.6" rx="0.2" fill="#d8d8dc"/></g></g>
+<g id="ctl-T1" data-control="T1" data-kind="button"><rect x="46.3" y="197.35" width="24.1" height="12.28" rx="0" fill="transparent" class="hit"/><rect x="53.89" y="202.94" width="9.29" height="1.1" rx="0.55" id="led-T1" class="led" fill="#f4a259"/></g>
+<g id="ctl-T2" data-control="T2" data-kind="button"><rect x="70.4" y="197.35" width="24.1" height="12.28" rx="0" fill="transparent" class="hit"/><rect x="77.98" y="202.94" width="9.29" height="1.1" rx="0.55" id="led-T2" class="led" fill="#b4becd"/></g>
+<g id="ctl-T3" data-control="T3" data-kind="button"><rect x="94.5" y="197.35" width="24.1" height="12.28" rx="0" fill="transparent" class="hit"/><rect x="102.08" y="202.94" width="9.29" height="1.1" rx="0.55" id="led-T3" class="led" fill="#b4becd"/></g>
+<g id="ctl-T4" data-control="T4" data-kind="button"><rect x="118.6" y="197.35" width="24.1" height="12.28" rx="0" fill="transparent" class="hit"/><rect x="126.17" y="202.94" width="9.29" height="1.1" rx="0.55" id="led-T4" class="led" fill="#ab82de"/></g>
+<g id="ctl-T5" data-control="T5" data-kind="button"><rect x="142.7" y="197.35" width="24.1" height="12.28" rx="0" fill="transparent" class="hit"/><rect x="150.27" y="202.94" width="9.29" height="1.1" rx="0.55" id="led-T5" class="led" fill="#e86aa6"/></g>
+<g id="ctl-T6" data-control="T6" data-kind="button"><rect x="166.8" y="197.35" width="24.1" height="12.28" rx="0" fill="transparent" class="hit"/><rect x="174.36" y="202.94" width="9.29" height="1.1" rx="0.55" id="led-T6" class="led" fill="#5fa5e6"/></g>
+<g id="ctl-T7" data-control="T7" data-kind="button"><rect x="190.9" y="197.35" width="24.1" height="12.28" rx="0" fill="transparent" class="hit"/><rect x="198.47" y="202.94" width="9.29" height="1.1" rx="0.55" id="led-T7" class="led" fill="#d6ac80"/></g>
+<g id="ctl-T8" data-control="T8" data-kind="button"><rect x="215" y="197.35" width="24.1" height="12.28" rx="0" fill="transparent" class="hit"/><rect x="222.56" y="202.94" width="9.29" height="1.1" rx="0.55" id="led-T8" class="led" fill="#bec6d2"/></g>
+<g id="ctl-B1" data-control="B1" data-kind="button"><rect x="46.3" y="216.56" width="24.1" height="11.97" rx="0" fill="transparent" class="hit"/><rect x="53.89" y="222" width="9.29" height="1.1" rx="0.55" id="led-B1" class="led" fill="#ff785a"/></g>
+<g id="ctl-B2" data-control="B2" data-kind="button"><rect x="70.4" y="216.56" width="24.1" height="11.97" rx="0" fill="transparent" class="hit"/><rect x="77.98" y="222" width="9.29" height="1.1" rx="0.55" id="led-B2" class="led" fill="#ffaa46"/></g>
+<g id="ctl-B3" data-control="B3" data-kind="button"><rect x="94.5" y="216.56" width="24.1" height="11.97" rx="0" fill="transparent" class="hit"/><rect x="102.08" y="222" width="9.29" height="1.1" rx="0.55" id="led-B3" class="led" fill="#f0d750"/></g>
+<g id="ctl-B4" data-control="B4" data-kind="button"><rect x="118.6" y="216.56" width="24.1" height="11.97" rx="0" fill="transparent" class="hit"/><rect x="126.17" y="222" width="9.29" height="1.1" rx="0.55" id="led-B4" class="led" fill="#78d26e"/></g>
+<g id="ctl-B5" data-control="B5" data-kind="button"><rect x="142.7" y="216.56" width="24.1" height="11.97" rx="0" fill="transparent" class="hit"/><rect x="150.27" y="222" width="9.29" height="1.1" rx="0.55" id="led-B5" class="led" fill="#50c8dc"/></g>
+<g id="ctl-B6" data-control="B6" data-kind="button"><rect x="166.8" y="216.56" width="24.1" height="11.97" rx="0" fill="transparent" class="hit"/><rect x="174.36" y="222" width="9.29" height="1.1" rx="0.55" id="led-B6" class="led" fill="#6e96ff"/></g>
+<g id="ctl-B7" data-control="B7" data-kind="button"><rect x="190.9" y="216.56" width="24.1" height="11.97" rx="0" fill="transparent" class="hit"/><rect x="198.47" y="222" width="9.29" height="1.1" rx="0.55" id="led-B7" class="led" fill="#aa78ff"/></g>
+<g id="ctl-B8" data-control="B8" data-kind="button"><rect x="215" y="216.56" width="24.1" height="11.97" rx="0" fill="transparent" class="hit"/><rect x="222.56" y="222" width="9.29" height="1.1" rx="0.55" id="led-B8" class="led" fill="#aa78ff"/></g>
+<g id="ctl-SOLO" data-control="SOLO" data-kind="button"><rect x="10.08" y="197.35" width="24.41" height="12.28" rx="0" fill="transparent" class="hit"/><text x="22.29" y="203.49" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="2.4" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#c9c9cd" id="led-SOLO" class="led">Solo / Arm</text></g>
+<g id="ctl-MUTE" data-control="MUTE" data-kind="button"><rect x="10.08" y="216.56" width="24.41" height="11.97" rx="0" fill="transparent" class="hit"/><text x="22.29" y="222.55" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="2.4" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#c9c9cd" id="led-MUTE" class="led">Mute / Select</text></g>
+<g id="ctl-LOGO" data-control="LOGO" data-kind="button"><rect x="34.49" y="197.35" width="11.81" height="12.28" rx="0" fill="transparent" class="hit"/></g>
+<g id="ctl-PAGE_UP" data-control="PAGE_UP" data-kind="button"><rect x="10.08" y="52.76" width="12.32" height="12.44" rx="0" fill="transparent" class="hit"/><polyline id="led-PAGE_UP" class="led" points="14.09,60.24 16.22,58.04 18.34,60.24" fill="none" stroke="#c9c9cd" stroke-width="0.45" stroke-linecap="round" stroke-linejoin="round"/></g>
+<g id="ctl-PAGE_DOWN" data-control="PAGE_DOWN" data-kind="button"><rect x="22.4" y="52.76" width="12.33" height="12.44" rx="0" fill="transparent" class="hit"/><polyline id="led-PAGE_DOWN" class="led" points="26.54,58.04 28.66,60.24 30.79,58.04" fill="none" stroke="#c9c9cd" stroke-width="0.45" stroke-linecap="round" stroke-linejoin="round"/></g>
+<g id="ctl-TRACK_LEFT" data-control="TRACK_LEFT" data-kind="button"><rect x="10.08" y="82.92" width="12.32" height="12.45" rx="0" fill="transparent" class="hit"/><polyline id="led-TRACK_LEFT" class="led" points="17.18,87.17 14.96,89.3 17.18,91.42" fill="none" stroke="#c9c9cd" stroke-width="0.45" stroke-linecap="round" stroke-linejoin="round"/></g>
+<g id="ctl-TRACK_RIGHT" data-control="TRACK_RIGHT" data-kind="button"><rect x="22.4" y="82.92" width="12.33" height="12.45" rx="0" fill="transparent" class="hit"/><polyline id="led-TRACK_RIGHT" class="led" points="27.55,87.17 29.77,89.3 27.55,91.42" fill="none" stroke="#c9c9cd" stroke-width="0.45" stroke-linecap="round" stroke-linejoin="round"/></g>
+<g id="ctl-REC" data-control="REC" data-kind="button"><rect x="10.08" y="116.39" width="24.65" height="12.21" rx="0" fill="transparent" class="hit"/><circle id="led-REC" class="led" cx="22.29" cy="122.31" r="2.04" fill="#e8264f"/></g>
+<g id="ctl-PLAY" data-control="PLAY" data-kind="button"><rect x="10.08" y="128.6" width="24.65" height="12.21" rx="0" fill="transparent" class="hit"/><polygon id="led-PLAY" class="led" points="20.55,133.09 23.94,134.98 20.55,136.87" fill="#5ef0c8"/></g>
+<g id="ctl-SHIFT" data-control="SHIFT" data-kind="button"><rect x="10.08" y="157.97" width="24.65" height="11.97" rx="0" fill="transparent" class="hit"/><text x="22.52" y="164.43" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="2.4" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#c9c9cd" >Shift</text></g>
+<g id="ctl-MODE" data-control="MODE" data-kind="button"><rect x="10.08" y="169.94" width="24.65" height="12.6" rx="0" fill="transparent" class="hit"/><text x="22.52" y="176.56" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="2.4" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#c9c9cd" >Mode</text></g>
+<text x="58.53" y="41.57" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#f8cba3" class="cell-label">Fine</text>
+<text x="82.62" y="41.57" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#a4d9af" class="cell-label">Attack</text>
+<text x="106.72" y="41.57" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#f7e59c" class="cell-label">Pitch EG de…</text>
+<text x="130.82" y="41.57" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#d0baec" class="cell-label">FM freq</text>
+<text x="154.92" y="41.57" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#f2adce" class="cell-label">Trans freq</text>
+<text x="179.01" y="41.57" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#a7cdf1" class="cell-label">Resonance</text>
+<text x="203.11" y="41.57" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#e8d1b9" class="cell-label">Vel dest</text>
+<text x="227.21" y="41.57" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#dbdfe6" class="cell-label">Pan</text>
+<text x="58.53" y="71.58" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#f8cba3" class="cell-label">Pulse width</text>
+<text x="82.62" y="71.58" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#a4d9af" class="cell-label">Amp slope</text>
+<text x="106.72" y="71.58" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#f7e59c" class="cell-label">Pitch EG sl…</text>
+<text x="130.82" y="71.58" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#d0baec" class="cell-label">FM wave</text>
+<text x="179.01" y="71.58" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#a7cdf1" class="cell-label">Filter drive</text>
+<text x="203.11" y="71.58" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#e8d1b9" class="cell-label">Vel amount</text>
+<text x="227.21" y="71.58" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#dbdfe6" class="cell-label">Overdrive</text>
+<text x="58.53" y="101.75" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#8fe1dd" class="cell-label">LFO Rate</text>
+<text x="82.62" y="101.75" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#8fe1dd" class="cell-label">LFO Amount</text>
+<text x="106.72" y="101.75" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#8fe1dd" class="cell-label">LFO Offset</text>
+<text x="130.82" y="101.75" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#8fe1dd" class="cell-label">LFO Wave</text>
+<text x="154.92" y="101.75" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#8fe1dd" class="cell-label">LFO Sync</text>
+<text x="179.01" y="101.75" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#8fe1dd" class="cell-label">LFO Retrigg…</text>
+<text x="203.11" y="101.75" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#8fe1dd" class="cell-label">LFO Dest vo…</text>
+<text x="227.21" y="101.75" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#8fe1dd" class="cell-label">LFO Dest pa…</text>
+<text x="58.53" y="185.73" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#f8cba3" class="cell-label">Coarse</text>
+<text x="82.62" y="185.73" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#a4d9af" class="cell-label">Decay</text>
+<text x="106.72" y="185.73" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#f7e59c" class="cell-label">Pitch EG amt</text>
+<text x="130.82" y="185.73" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#d0baec" class="cell-label">FM amount</text>
+<text x="154.92" y="185.73" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#f2adce" class="cell-label">Trans volume</text>
+<text x="179.01" y="185.73" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#a7cdf1" class="cell-label">Cutoff</text>
+<text x="203.11" y="185.73" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#dbdfe6" class="cell-label">Sample rate</text>
+<text x="227.21" y="185.73" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#dbdfe6" class="cell-label">Volume</text>
+<text x="58.35" y="208.33" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#f8cba3" class="cell-label">Osc wave</text>
+<text x="82.45" y="208.33" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#d5dbe3" class="cell-label">Copy voice</text>
+<text x="106.55" y="208.33" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#d5dbe3" class="cell-label">Paste voice</text>
+<text x="130.65" y="208.33" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#d0baec" class="cell-label">FM / Mix</text>
+<text x="154.75" y="208.33" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#f2adce" class="cell-label">Trans wave</text>
+<text x="178.85" y="208.33" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#a7cdf1" class="cell-label">Filter type</text>
+<text x="202.95" y="208.33" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#e8d1b9" class="cell-label">Vel &gt; Vol</text>
+<text x="227.05" y="208.33" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#dbdfe6" class="cell-label">Audio out</text>
+<text x="58.35" y="227.23" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#ffb4a4" class="cell-label">D1 pad</text>
+<text x="82.45" y="227.23" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#ffd099" class="cell-label">D2 pad</text>
+<text x="106.55" y="227.23" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#f6e99e" class="cell-label">D3 pad</text>
+<text x="130.65" y="227.23" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#b4e6af" class="cell-label">SD pad</text>
+<text x="154.75" y="227.23" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#9ee0eb" class="cell-label">CY pad</text>
+<text x="178.85" y="227.23" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#afc5ff" class="cell-label">CH pad</text>
+<text x="202.95" y="227.23" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#d0b4ff" class="cell-label">OH pad</text>
+<text x="227.05" y="227.23" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="1.75" font-weight="500" text-anchor="middle" dominant-baseline="central" fill="#d0b4ff" class="cell-label">Accent</text>
+</svg>

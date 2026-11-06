@@ -330,9 +330,9 @@ change is applied at the start of the next tick.
     *Editor view*), styled after the hardware: a dark panel, the screen, knob caps with a value arc
     in their LED colour and a pointer, recessed fader slots with scale marks and ribbed caps, and
     buttons lit in their LED colour (dark when the LED is off). Each encoder and fader has a label
-    chip in its section colour. Proportions follow `docs/lcxl3-daw-mode/source/render.py`. No image
-    files are used: the photo behind the PNGs in `docs/` is not in the repository and its rights
-    are unclear.
+    chip in its section colour. Proportions follow the design's former `render.py` (since removed). No image
+    files are used: the device photo the old design images were drawn on is not in the repository
+    and its rights are unclear.
   * Faders show a marker at the parameter value and the cap at the hardware position; a fader that
     has moved but not picked up the value has a grey cap labelled "pickup".
   * Clicking a mode tab sets the controller's mode. Clicking *Params* leaves it unchanged.
