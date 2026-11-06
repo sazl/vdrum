@@ -1,6 +1,14 @@
 # Brainstorm: declarative LCXL3 modes, surface and state machine
 
-Status: brainstorm, 2026-11-06. No code. Nothing here is decided. Open questions are at the end.
+Status: brainstorm, 2026-11-06. No code. Sections 1 to 5 are the original survey; section 6 is the
+direction after Sami's answers. Remaining open questions are in 6.6.
+
+## Decisions (Sami, 2026-11-06)
+
+1. Iterate both in a simulator and on the hardware; the on-screen simulator is the main tool.
+2. A live state diagram generated from the spec is enough for now (no editing in the diagram).
+3. Authoring language: Python.
+4. Simulator platform: the browser.
 
 Goal (Sami, 2026-11-06): define the modes, the controls and the mode/state machine of the Launch
 Control XL 3 surface declaratively, so that the workflow can be iterated on quickly, with tooling
@@ -284,3 +292,99 @@ between tools regardless of the authoring format.
   `crates/vdrum-surface/tests/surface.rs`, `docs/lcxl3-daw-mode/source/{layout.py,render.py}`.
 - Stately docs, export as code: https://stately.ai/docs/export-as-code
 - `statig` crate docs: https://docs.rs/statig
+
+## 6. Direction after the decisions
+
+### 6.1 Shape
+
+```
+ spec/*.py (Python, authoring)          python -m surface_spec watch
+        │  build + validate  ───────────────────────────────────────┐
+        ▼                                                           │
+ spec.json (IR, JSON Schema)                                        │ file change
+   │             │                    │                             ▼
+   │             │                    │                 local dev server (live reload)
+   ▼             ▼                    ▼                             │
+ plugin        cargo test           browser simulator  ◄────────────┘
+ (embedded     (parity, scenarios)  vdrum-surface as WASM + SVG device
+  default,                          + Mermaid diagram + action log
+  hot reload                        + optional Web MIDI to the real LCXL3
+  of a file)
+```
+
+- **Python is the authoring layer only.** It evolves `layout.py` into a small package (for
+  example `tools/surface_spec/`) with helpers for templates (`voice_common(v)`), "for each track",
+  layers and the statechart. Its output is `spec.json`. Rust never runs Python; the plugin, tests
+  and simulator read only the JSON.
+- **The JSON IR is the contract**, described by a JSON Schema so both sides validate it. The Python
+  build fails on unknown parameter ids (it can read `lxr-params`' generated id list), overlapping
+  bindings at equal priority, unreachable states and overlapping guards.
+- **One interpreter.** `vdrum-surface` loads the IR and runs it. The simulator uses the same crate
+  compiled to WebAssembly, so the simulator cannot drift from the plugin. A JavaScript
+  re-implementation would be quicker to start but would be a third copy of the logic.
+
+### 6.2 Browser simulator
+
+- `vdrum-surface` compiled to `wasm32-unknown-unknown` behind a thin `wasm-bindgen` wrapper crate
+  (for example `crates/vdrum-surface-web`), with a fake `Model` in Rust (the `Fake` in
+  `tests/surface.rs` is a starting point).
+- Page: SVG drawing of the device from the hardware geometry in the spec; click, drag and scroll on
+  encoders, faders and buttons; keyboard shortcuts for Shift and held buttons; LED colours; the
+  screen and popups; active layers; a log of emitted `Action`s and parameter changes.
+- Live diagram: Mermaid `stateDiagram-v2` generated from the statechart, with the active state of
+  each region highlighted as the simulator runs. Clicking a state shows the layout active in it.
+- Live reload: `surface_spec watch` rebuilds `spec.json` on save and the page reloads it, keeping
+  the simulator state where possible. If the build fails, the page keeps the last valid spec and
+  shows the error.
+- Scenario replay: step through a scenario file and watch the device and diagram.
+- Alternative not recommended: running Python in the page with Pyodide. It removes the local
+  watcher but adds a large download and a second Python environment; not checked.
+
+### 6.3 Hardware
+
+Two routes, not exclusive:
+
+- **Plugin hot reload**: the plugin embeds a default `spec.json` (`include_str!`) and can watch a
+  file chosen in settings; on change it swaps the compiled spec between inputs. Gives sound and the
+  real engine.
+- **Simulator drives the device over Web MIDI**: the page opens the LCXL3's DAW port, feeds its
+  input to the WASM surface and sends LED and screen messages back. No plugin and no sound, but the
+  same tight loop as the on-screen simulator. Web MIDI support (MDN compatibility data): Chrome
+  43+, Edge 79+, Opera 30+; Firefox 108+ only with a site permission add-on; not in Safari. Needs a
+  secure context (localhost counts). SysEx needs explicit permission; whether the LCXL3's DAW-mode
+  handshake needs SysEx was not checked here.
+
+### 6.4 Checked in this session
+
+- `cargo build -p vdrum-surface --target wasm32-unknown-unknown --release` succeeds (its
+  dependencies `lcxl3` and `lxr-params` have no external crates; it uses `serde`/`serde_json`).
+- `cargo build -p lxr-core --target wasm32-unknown-unknown --release` also succeeds, so sound in
+  the browser simulator is not ruled out. Compiling is not running: no bindings, timing or audio
+  (AudioWorklet) were tried.
+
+### 6.5 Revised path
+
+1. **IR and parity**: Python package and JSON Schema; reproduce today's 13 modes plus the step-held
+   and sequencer-view overlays; Rust loader; a test that the loaded layouts equal `Layout::of` for
+   every mode; then the Rust builder functions in `layout.rs` are removed.
+2. **Simulator MVP**: WASM wrapper, SVG device, input, LEDs, screen, action log, live reload.
+3. **Statechart**: navigation and layers move into the spec; the interpreter replaces the
+   navigation part of `Surface::button`; the 59 existing tests stay green; live Mermaid diagram with
+   highlighted states.
+4. **Scenarios**: a scenario format run by `cargo test` and replayable in the simulator.
+5. **Hardware loop**: plugin hot reload; Web MIDI in the simulator.
+6. **Docs output**: images and `control-tables.md` generated from the spec; `render.py`'s photo
+   overlay kept or replaced (question 10).
+
+### 6.6 Remaining open questions
+
+From section 5: 5 (scope: LED/screen rules, scripting new behaviour), 7 (sound in the simulator),
+8 (cover 2 to 3 units from the start), 9 (named variants for A/B), 10 (photo PNGs or drawn SVG).
+New:
+
+11. Is a local watcher (`python -m surface_spec watch` plus a localhost page) acceptable, or should
+    the simulator also work as a hosted page without local tools?
+12. Which browser do you use? Web MIDI to the device works in Chrome and Edge, needs an add-on in
+    Firefox, and does not exist in Safari.
+13. Should the existing modes be reproduced exactly first (parity), or may the migration change
+    behaviour where explicit layer priorities expose current quirks?
