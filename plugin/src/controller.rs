@@ -19,6 +19,10 @@
 //!   sends on real hardware.
 //! * The device is looked for every [`SCAN_MS`] while it is not connected, and checked for at the
 //!   same interval while it is.
+//! * `VDRUM_SURFACE_SPEC=<file>` runs the surface spec in `<file>` (a `surface.json` built by
+//!   `tools/surface_spec/run.py build` or `watch`) instead of the built-in one, and reloads it when
+//!   the file changes (checked every [`SPEC_CHECK_MS`]). A file that does not load leaves the
+//!   running spec in place; the popup shows the error.
 
 use crate::engine::track_trigger_note;
 use crate::params::{Command, EditorInput, Shared, N};
@@ -32,6 +36,46 @@ use lxr_params::kit::Kit;
 use std::path::{Path, PathBuf};
 use crate::engine::SeqEv;
 use vdrum_surface::{Action, DeviceState, Model, SeqData, SeqEdit, SeqStatus, Settings, Surface, Switch};
+
+/// Interval between checks of the `VDRUM_SURFACE_SPEC` file, in milliseconds.
+pub const SPEC_CHECK_MS: u64 = 500;
+
+/// Watches a spec file and loads it again when it changes.
+pub struct SpecWatch {
+    path: PathBuf,
+    stamp: Option<(std::time::SystemTime, u64)>,
+    next_check: u64,
+}
+
+impl SpecWatch {
+    /// The watch named by `VDRUM_SURFACE_SPEC`, if set.
+    pub fn from_env() -> Option<SpecWatch> {
+        std::env::var_os("VDRUM_SURFACE_SPEC").filter(|v| !v.is_empty()).map(|p| SpecWatch::new(PathBuf::from(p)))
+    }
+
+    pub fn new(path: PathBuf) -> SpecWatch {
+        SpecWatch { path, stamp: None, next_check: 0 }
+    }
+
+    /// At time `t` (ms): the newly loaded spec, or why it did not load, when the file changed
+    /// since the last call (the first call loads it).
+    pub fn poll(&mut self, t: u64) -> Option<Result<vdrum_surface::Spec, String>> {
+        if t < self.next_check {
+            return None;
+        }
+        self.next_check = t + SPEC_CHECK_MS;
+        let stamp = std::fs::metadata(&self.path).ok().and_then(|m| Some((m.modified().ok()?, m.len())));
+        if stamp == self.stamp {
+            return None;
+        }
+        self.stamp = stamp;
+        let text = match std::fs::read_to_string(&self.path) {
+            Ok(t) => t,
+            Err(e) => return Some(Err(format!("{}: {e}", self.path.display()))),
+        };
+        Some(vdrum_surface::Spec::parse(&text))
+    }
+}
 
 /// Interval between device scans, in milliseconds.
 pub const SCAN_MS: u64 = 2000;
@@ -338,6 +382,8 @@ pub struct Session {
     compare_stash: Option<Kit>,
     /// The view last published for the editor.
     last_view: Option<vdrum_surface::View>,
+    /// The spec file to run instead of the built-in spec (`VDRUM_SURFACE_SPEC`).
+    pub spec_watch: Option<SpecWatch>,
 }
 
 impl Session {
@@ -347,7 +393,16 @@ impl Session {
         if let Ok(s) = shared.surface_state.lock() {
             surface.load_state(&s);
         }
-        Session { surface, device: DeviceState::default(), next_frame: 0, browsed: None, browsed_slot: None, compare_stash: None, last_view: None }
+        Session {
+            surface,
+            device: DeviceState::default(),
+            next_frame: 0,
+            browsed: None,
+            browsed_slot: None,
+            compare_stash: None,
+            last_view: None,
+            spec_watch: SpecWatch::from_env(),
+        }
     }
 
     /// The messages to send when the device was found.
@@ -461,6 +516,19 @@ impl Session {
     pub fn step(&mut self, shared: &Shared, t: u64, received: impl IntoIterator<Item = Vec<u8>>) -> Vec<Vec<u8>> {
         let model = SharedModel(shared);
         let mut out = Vec::new();
+        if let Some(r) = self.spec_watch.as_mut().and_then(|w| w.poll(t)) {
+            match r {
+                Ok(spec) => {
+                    self.surface.set_spec(Arc::new(spec));
+                    self.surface.notify("Surface spec", "reloaded", "");
+                }
+                Err(e) => {
+                    eprintln!("vdrum: surface spec not loaded: {e}");
+                    let short: String = e.chars().take(20).collect();
+                    self.surface.notify("Surface spec", "not loaded", &short);
+                }
+            }
+        }
         for msg in received {
             let input = lcxl3::decode(&msg);
             if let Input::SurfaceMode(lcxl3::SurfaceMode::DawMixer | lcxl3::SurfaceMode::DawControl) = input {
@@ -821,5 +889,36 @@ mod tests {
         s.step(&shared, 100, []);
         assert!(shared.surface_settings.lock().unwrap().contains("pad_velocity=33"));
         assert_eq!(s.disconnect().last(), Some(&vec![0x9F, 0x0C, 0x00]));
+    }
+
+    #[test]
+    fn spec_file_is_loaded_and_reloaded_when_it_changes() {
+        let dir = std::env::temp_dir().join(format!("vdrum-spec-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("surface.json");
+        let moved = vdrum_surface::spec::BUILTIN_JSON.replacen("\"slot\": 10,", "\"slot\": 13,", 1);
+        std::fs::write(&file, &moved).unwrap();
+        let shared = Shared::new();
+        let mut s = Session::new(&shared);
+        s.spec_watch = Some(SpecWatch::new(file.clone()));
+        s.connect();
+        s.step(&shared, 0, []);
+        assert_eq!(s.surface.spec().mode_info(vdrum_surface::Mode::Perform).0, 13, "loaded at the first step");
+        // Shift + bottom 5 = slot 13 = Perform in the file's spec
+        s.step(&shared, 10, [vec![0xB6, 63, 127], vec![0xB0, 49, 127], vec![0xB0, 49, 0], vec![0xB6, 63, 0]]);
+        assert_eq!(s.surface.mode(), vdrum_surface::Mode::Perform);
+        // a broken file: the running spec stays
+        std::fs::write(&file, "{ broken").unwrap();
+        s.step(&shared, 10 + SPEC_CHECK_MS, []);
+        assert_eq!(s.surface.spec().mode_info(vdrum_surface::Mode::Perform).0, 13);
+        // fixed again, back to the built-in slots
+        std::fs::write(&file, vdrum_surface::spec::BUILTIN_JSON).unwrap();
+        s.step(&shared, 10 + 2 * SPEC_CHECK_MS, []);
+        assert_eq!(s.surface.spec().mode_info(vdrum_surface::Mode::Perform).0, 10);
+        // not checked again before the interval
+        std::fs::write(&file, &moved).unwrap();
+        s.step(&shared, 11 + 2 * SPEC_CHECK_MS, []);
+        assert_eq!(s.surface.spec().mode_info(vdrum_surface::Mode::Perform).0, 10);
+        std::fs::remove_dir_all(&dir).ok();
     }
 }
