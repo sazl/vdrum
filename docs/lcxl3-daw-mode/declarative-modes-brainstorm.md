@@ -12,6 +12,16 @@ direction after Sami's answers. Remaining open questions are in 6.6.
 5. Browsers: Chrome and Firefox. Browser support is not a constraint (Firefox needs the Web MIDI
    site permission add-on for the device route).
 6. Migration reproduces today's behaviour exactly (strict parity) before anything changes.
+7. Scope: the spec covers everything (layouts, navigation, LED rules, screen rules). New behaviour
+   is added in Rust for now; the process for adding a behaviour primitive must be documented
+   thoroughly, because new behaviour will be added often while prototyping.
+8. Simulator output: a log of actions and parameter changes (no sound for now). Most important:
+   the simulator must show exactly what the hardware would show (LEDs, screen, controls).
+9. No multi-unit support.
+10. Components (modes, layers, templates) should be swappable modularly for experiments.
+11. Device drawing: a drawn SVG that matches the device's dimensions, controls, labels, screen and
+    LEDs exactly. Sami confirms the SVG before it is used.
+12. Hosting: a hosted simulator page, plus a local watched mode for quick iteration.
 
 Goal (Sami, 2026-11-06): define the modes, the controls and the mode/state machine of the Launch
 Control XL 3 surface declaratively, so that the workflow can be iterated on quickly, with tooling
@@ -388,3 +398,39 @@ New:
 11. Is a local watcher (`python -m surface_spec watch` plus a localhost page) acceptable, or should
     the simulator also work as a hosted page without local tools?
 Answered: browser (Chrome and Firefox) and parity (reproduce exactly); see Decisions.
+All questions of section 5 are answered (Decisions 7 to 12).
+
+## 7. Device drawing (draft for confirmation, 2026-11-06)
+
+- Source: `tools/surface_spec/hardware.py` (every control, LED, label and the screen in mm) and
+  `tools/surface_spec/device_svg.py` (draws it). Output: `images/lcxl3-device.svg` (LEDs off) and
+  `images/lcxl3-device-demo.svg` (LEDs and faders as on Novation's render).
+- Dimensions: panel 250 x 239 mm (user guide v1, "Weight and Dimensions"); fader throw 60 mm (same
+  page). Positions measured from Novation's top-view render, which is to scale within 0.1 %
+  (0.1575 mm/px in x and y). Expected error about 0.5 mm. Column pitch 24.1 mm, encoder row pitch
+  30.4 mm and 30.6 mm, knob cap 11.0 mm, fader cap 17.8 x 8.5 mm.
+- SVG structure: each control is `<g id="ctl-KEY" data-control="KEY" data-kind=...>` (59
+  controls), each LED has `id="led-KEY" class="led"` (49 LEDs: 24 encoders, 16 buttons, Solo/Arm,
+  Mute/Select, Novation button, Page up/down, Track left/right, Record, Play). Shift and Mode have
+  no LED (Shift's light is tied to a feature control per the programmer's reference; the surface
+  code sets no LED for either).
+- Unverified, to check on the device:
+  - The OLED's lit area. The screen is 128 x 64 pixels, monochrome (programmer's reference v1.0,
+    "Bitmap"); the drawing assumes a 25.2 x 12.6 mm area centred in the bezel.
+  - Which part lights on Solo/Arm, Mute/Select, the Novation button and the arrow buttons, and
+    whether they show full RGB. The drawing colours the label, logo or arrow.
+  - Typeface of the printed labels (drawn with Inter, sizes matched to the render).
+
+### Screen fidelity
+
+The device draws text with its own font in fixed arrangements (programmer's reference v1.0,
+"Configure displays": 2 lines, 3 lines, title + 8 names, name + numeric value). The guide does not
+document the font, line positions, field lengths or truncation, so a simulator can only
+approximate text drawn by the device. Two ways to make the simulator exact:
+
+1. Photograph the device's screen in each arrangement used (with long and short texts) and match
+   font metrics and line positions to the photos. Exact only for what was photographed.
+2. Have VDrum draw the screen itself and send it as a 128 x 64 bitmap (SysEx 09h, 1216 bytes, one
+   bitmap held at a time, an acknowledgement before the next). The simulator then shows the same
+   pixels by construction. Costs: VDrum needs a pixel font and a renderer; the device's automatic
+   popups would be replaced by VDrum's; bitmap throughput on the device was not measured.
