@@ -100,7 +100,7 @@ The data moves through `Shared`:
 
 - **Drawing:** each mode tab draws the LCXL3 front panel with the egui painter: three rows of 8 encoders, 8 faders, 16 buttons, the left-hand buttons and the screen.
   - The PNGs in `docs/lcxl3-daw-mode/images/` are not used. They are built from a photo that is not in the repository, they would add about 17 MB to the plugin, and they cannot show live values.
-  - The proportions and label positions follow `source/render.py`: a dark panel, the label above each control, and the section colour.
+  - The proportions and label positions follow the former `source/render.py` (removed 2026-11-06): a dark panel, the label above each control, and the section colour.
 - **Controls:**
   - Encoders show a value arc in their LED colour.
   - Faders show the cap at the hardware position, and a marker at the parameter value while the fader has not picked it up.
