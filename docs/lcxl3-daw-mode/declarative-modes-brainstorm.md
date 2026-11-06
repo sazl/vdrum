@@ -410,8 +410,11 @@ All questions of section 5 are answered (Decisions 7 to 12).
   (0.1575 mm/px in x and y). Expected error about 0.5 mm. Column pitch 24.1 mm, encoder row pitch
   30.5 mm and 30.6 mm, knob cap 11.0 mm, fader cap 17.8 x 8.5 mm.
 - SVG structure: each control is `<g id="ctl-KEY" data-control="KEY" data-kind=...>` (59
-  controls), each LED has `id="led-KEY" class="led"` (49 LEDs: 24 encoders, 16 buttons, Solo/Arm,
-  Mute/Select, Novation button, Page up/down, Track left/right, Record, Play). Shift and Mode have
+  controls), each LED has `id="led-KEY" class="led"` (48 LEDs: 24 encoders, 16 buttons, Solo/Arm,
+  Mute/Select, Page up/down, Track left/right, Record, Play).
+- Left out on Sami's request (2026-11-06): the printed "LAUNCHCONTROL XL" text, the Novation logo
+  plate at the top right, and the logo on the button right of Solo/Arm. That button (CC 104, "Back"
+  in VDrum) stays as a blank control without a drawn LED. Shift and Mode have
   no LED (Shift's light is tied to a feature control per the programmer's reference; the surface
   code sets no LED for either).
 - Unverified, to check on the device:

@@ -57,27 +57,6 @@ def draw(state=None):
                '</filter></defs>')
     out.append(rect(0, 0, W, H, hw.PANEL["corner_r"], fill=PANEL, id="panel"))
 
-    # Printed logo
-    lg = hw.LOGO
-    base = lg["baseline"]
-    cap_h = base - lg["cap_top"]
-    size = cap_h / 0.727  # Inter cap height is about 0.727 em
-    out.append(f'<text x="{f(lg["launch"]["x0"])}" y="{f(base)}" font-family="{FONT}" font-size="{f(size)}" font-weight="800" '
-               f'fill="{PRINT}" textLength="{f(lg["launch"]["x1"] - lg["launch"]["x0"])}" lengthAdjust="spacingAndGlyphs">LAUNCH</text>')
-    out.append(f'<text x="{f(lg["control"]["x0"])}" y="{f(base)}" font-family="{FONT}" font-size="{f(size)}" font-weight="200" '
-               f'fill="{PRINT}" textLength="{f(lg["control"]["x1"] - lg["control"]["x0"])}" lengthAdjust="spacingAndGlyphs">CONTROL</text>')
-    xl = lg["xl"]
-    out.append(f'<text x="{f(xl["x0"])}" y="{f(xl["bottom"])}" font-family="{FONT}" font-size="{f((xl["bottom"] - xl["top"]) / 0.727)}" '
-               f'font-weight="800" fill="{PRINT}" textLength="{f(xl["x1"] - xl["x0"])}" lengthAdjust="spacingAndGlyphs">XL</text>')
-
-    # Novation plate (decorative)
-    p = hw.NOVATION_PLATE
-    out.append('<g id="novation-plate">' + rect(p["x0"], p["y0"], p["x1"], p["y1"], 0.6, fill="none", stroke=HOUSING_EDGE, stroke_width="0.35"))
-    cx, cy, s = (p["x0"] + p["x1"]) / 2, (p["y0"] + p["y1"]) / 2, (p["x1"] - p["x0"]) * 0.27
-    out.append(f'<g transform="translate({f(cx)} {f(cy)}) rotate(45)" fill="none" stroke="#56555a" stroke-width="0.35">'
-               f'<rect x="{f(-s)}" y="{f(-s)}" width="{f(2 * s)}" height="{f(2 * s)}" rx="{f(s * 0.5)}"/>'
-               f'<line x1="0" y1="{f(-s)}" x2="0" y2="{f(s)}"/></g></g>')
-
     # Screen
     sc = hw.SCREEN
     w, a = sc["window"], sc["active"]
@@ -164,11 +143,6 @@ def draw(state=None):
             elif shape == "text":
                 g.append(text((c["x0"] + c["x1"]) / 2, (c["y0"] + c["y1"]) / 2, c["text"], 2.4, 500, fill=col or PRINT,
                               extra=f'id="led-{key}" class="led"'))
-            elif shape == "logo":
-                cx, cy = (c["x0"] + c["x1"]) / 2, (c["y0"] + c["y1"]) / 2
-                s = 2.0
-                g.append(f'<g id="led-{key}" class="led" transform="translate({f(cx)} {f(cy)}) rotate(45)" fill="none" stroke="{col or "#4a494e"}" stroke-width="0.35">'
-                         f'<rect x="{-s}" y="{-s}" width="{2 * s}" height="{2 * s}" rx="{s * 0.5}"/><line x1="0" y1="{-s}" x2="0" y2="{s}"/></g>')
             elif shape and shape.startswith("chevron"):
                 ic = hw.ICONS[shape]
                 (cx, cy), w2, h2 = ic["c"], ic["w"] / 2, ic["h"] / 2

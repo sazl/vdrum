@@ -34,16 +34,8 @@ COLUMN_PITCH = mm_len(153.0)
 
 PANEL = {"w": PANEL_W, "h": PANEL_H, "corner_r": mm_len(12), "colour": "#3c3b3f"}
 
-LOGO = {  # printed "LAUNCHCONTROL XL", baseline and spans measured
-    "launch": {"x0": mm(61, 0)[0], "x1": mm(227.5, 0)[0]},
-    "control": {"x0": mm(231, 0)[0], "x1": mm(411, 0)[0]},
-    "xl": {"x0": mm(419, 0)[0], "x1": mm(445, 0)[0], "top": mm(0, 43)[1], "bottom": mm(0, 54)[1]},
-    "cap_top": mm(0, 42)[1],
-    "baseline": mm(0, 65)[1],
-}
-
-# Recessed Novation logo plate, top-right corner (decorative; not a control).
-NOVATION_PLATE = {"x0": mm(1514, 0)[0], "y0": mm(0, 27)[1], "x1": mm(1587, 0)[0], "y1": mm(0, 102)[1]}
+# The printed "LAUNCHCONTROL XL" text and the Novation logo plate are left out of the drawing
+# (Sami, 2026-11-06).
 
 SCREEN = {
     # Bezel window as seen on the render.
@@ -131,7 +123,7 @@ def controls():
               "text": "Mute / Select", "led": {"shape": "text"}})
     lg = STRIP["logo_seg"]
     c.append({"key": "LOGO", "kind": "button", "x0": lg["x0"], "x1": lg["x1"], "y0": s0["y0"], "y1": s0["y1"],
-              "led": {"shape": "logo"}})
+              "led": None})  # the Novation-logo button, drawn blank (its logo is left out)
     p, t, tr, sm = SIDE["page"], SIDE["track"], SIDE["transport"], SIDE["shiftmode"]
     mid = round((SIDE_X0 + SIDE_X1) / 2, 2)
     c += [
