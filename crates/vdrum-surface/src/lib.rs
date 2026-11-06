@@ -14,10 +14,12 @@ pub mod frame;
 pub mod layout;
 pub mod model;
 pub mod seq;
+pub mod spec;
 pub mod surface;
 
 pub use frame::{DeviceState, Frame, Popup};
 pub use layout::{Binding, Cell, Layout, Mode, Section};
 pub use model::{Action, Model, Switch};
 pub use seq::{SeqData, SeqEdit, SeqStatus, StepData};
+pub use spec::Spec;
 pub use surface::{lfo_brightness, pulse, value_brightness, LFO_STEADY, MODE_ACTIVE, MODE_OTHER, ControlView, EditView, Settings, Surface, View, ENCODER_LED_FLOOR, PULSE_FLOOR, PULSE_MS};

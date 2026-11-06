@@ -1,7 +1,8 @@
 # Brainstorm: declarative LCXL3 modes, surface and state machine
 
-Status: brainstorm, 2026-11-06. No code. Sections 1 to 5 are the original survey; section 6 is the
-direction after Sami's answers. Remaining open questions are in 6.6.
+Status: 2026-11-06. Sections 1 to 5 are the original survey; section 6 is the direction after
+Sami's answers; section 7 the device drawing. Step 1 (layouts as a Python spec, exact parity) is
+implemented; how to use it and how to add a behaviour is in `surface-spec.md`.
 
 ## Decisions (Sami, 2026-11-06)
 
@@ -38,7 +39,7 @@ to map, visualize and test modes and components visually, and to view and edit t
 | Mode and layer state | fields of `Surface` | `mode`, `prev_mode`, `shift`, `view`, `sticky`, `held_steps`, `held` (Mute/Select pattern layer, Record clear layer), `accent`, `browsing`, `comparing`, `learning`, `moments` |
 | Precedence between layers | order of the arms in `Surface::button` | implicit |
 | On-screen view of the surface | `surface/view.rs` (`View`, `layers()`) and the egui editor's mode tabs | the editor draws a `View` and sends mouse input back through `Surface::handle_editor` |
-| Tests | `crates/vdrum-surface/tests/surface.rs` (59 functions) | a `Fake` model, input sequences, assertions on actions and LEDs |
+| Tests | `crates/vdrum-surface/tests/surface.rs` (40 tests, 59 functions including helpers) | a `Fake` model, input sequences, assertions on actions and LEDs |
 
 Observations:
 
@@ -259,7 +260,7 @@ between tools regardless of the authoring format.
 
 ### 3.4 Costs and risks
 
-- The interpreter replaces most of `Surface::button` and the `match` arms; the 59 existing tests are
+- The interpreter replaces most of `Surface::button` and the `match` arms; the 40 existing tests are
   the regression net, plus a parity test (spec-built layouts equal today's `Layout::of` for every
   mode) during migration.
 - Interpretation overhead is irrelevant at controller rates (the surface runs on the controller
@@ -311,7 +312,7 @@ between tools regardless of the authoring format.
 ### 6.1 Shape
 
 ```
- spec/*.py (Python, authoring)          python -m surface_spec watch
+ surface/*.py (Python, authoring)       tools/surface_spec/run.py watch
         │  build + validate  ───────────────────────────────────────┐
         ▼                                                           │
  spec.json (IR, JSON Schema)                                        │ file change
@@ -382,7 +383,7 @@ Two routes, not exclusive:
    every mode; then the Rust builder functions in `layout.rs` are removed.
 2. **Simulator MVP**: WASM wrapper, SVG device, input, LEDs, screen, action log, live reload.
 3. **Statechart**: navigation and layers move into the spec; the interpreter replaces the
-   navigation part of `Surface::button`; the 59 existing tests stay green; live Mermaid diagram with
+   navigation part of `Surface::button`; the 40 existing tests stay green; live Mermaid diagram with
    highlighted states.
 4. **Scenarios**: a scenario format run by `cargo test` and replayable in the simulator.
 5. **Hardware loop**: plugin hot reload; Web MIDI in the simulator.
@@ -402,8 +403,8 @@ All questions of section 5 are answered (Decisions 7 to 12).
 
 ## 7. Device drawing (draft for confirmation, 2026-11-06)
 
-- Source: `tools/surface_spec/hardware.py` (every control, LED, label and the screen in mm) and
-  `tools/surface_spec/device_svg.py` (draws it). Output: `images/lcxl3-device.svg` (LEDs off) and
+- Source: `tools/surface_spec/surface_spec/hardware.py` (every control, LED, label and the screen in mm) and
+  `tools/surface_spec/surface_spec/device_svg.py` (draws it; `run.py svg OUT.svg [--demo]`). Output: `images/lcxl3-device.svg` (LEDs off) and
   `images/lcxl3-device-demo.svg` (LEDs and faders as on Novation's render).
 - Dimensions: panel 250 x 239 mm (user guide v1, "Weight and Dimensions"); fader throw 60 mm (same
   page). Positions measured from Novation's top-view render, which is to scale within 0.1 %

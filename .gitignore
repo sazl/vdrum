@@ -4,3 +4,4 @@
 *.wav
 /out
 .claude/
+__pycache__/

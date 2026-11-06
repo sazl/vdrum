@@ -4,7 +4,7 @@ Every control is a <g id="ctl-KEY" data-control="KEY" data-kind="..."> and every
 with id "led-KEY" and class "led", so a simulator can colour LEDs, move faders and catch input by
 id. The screen is <g id="screen"> with the 128 x 64 active area as <rect id="screen-active">.
 
-    python3 tools/surface_spec/device_svg.py OUT.svg [--demo]
+    python3 tools/surface_spec/run.py svg OUT.svg [--demo]
 
 --demo lights the LEDs and sets fader positions and screen text to show every element.
 """
@@ -12,7 +12,7 @@ id. The screen is <g id="screen"> with the 128 x 64 active area as <rect id="scr
 import sys
 from html import escape
 
-import hardware as hw
+from . import hardware as hw
 
 FONT = "Inter, 'Helvetica Neue', Arial, sans-serif"
 PANEL = "#3c3b3f"
