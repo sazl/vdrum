@@ -110,6 +110,13 @@ jobs:
       - name: Test lxr-core, lxr-params, vdrum
         run: cargo test --locked -p lxr-core -p lxr-params -p vdrum
 
+      - name: Test the surface, the LCXL3 codec and emulator, the simulator
+        run: cargo test --locked -p lcxl3 -p vdrum-surface -p vdrum-sim
+
+      - name: Surface spec is valid and its generated files are up to date
+        if: runner.os == 'Linux'
+        run: python3 tools/surface_spec/run.py check
+
       - name: Bundle CLAP, VST3 and standalone
         run: |
           cargo xtask ${{ matrix.bundle }} vdrum --release --locked
