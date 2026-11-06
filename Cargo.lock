@@ -3693,6 +3693,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "vdrum-sim"
+version = "0.1.0"
+dependencies = [
+ "lcxl3",
+ "lxr-params",
+ "serde_json",
+ "vdrum-surface",
+]
+
+[[package]]
 name = "vdrum-surface"
 version = "0.1.0"
 dependencies = [
