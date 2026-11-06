@@ -8,7 +8,8 @@
     python3 tools/surface_spec/run.py serve [PORT] [--source DIR --out DIR]
                                                     simulator page at http://localhost:PORT (8737), rebuilt and
                                                     reloaded on every save
-    python3 tools/surface_spec/run.py bundle DIR     the simulator page as static files (hosting)
+    python3 tools/surface_spec/run.py bundle DIR [--inline]   the simulator page as static files (hosting);
+                                                    --inline: CSS and script inside the page, no document wrapper
     python3 tools/surface_spec/run.py svg OUT.svg [--demo]   draw the device
 """
 
@@ -197,11 +198,33 @@ def cmd_serve(port=8737):
     srv.serve_forever()
 
 
-def cmd_bundle(out_dir):
+def cmd_bundle(out_dir, inline=False):
+    """Static files of the page. `inline`: one page with the CSS and script inside and no document
+    wrapper (for hosts that add their own, such as a claude.ai Artifact); the wasm, SVG and JSON
+    files stay separate."""
     prepare_page()
     os.makedirs(out_dir, exist_ok=True)
-    for name, src in page_files().items():
+    files = page_files()
+    for name, src in files.items():
+        if inline and name in ("index.html", "sim.js", "sim.css"):
+            continue
         shutil.copyfile(src, os.path.join(out_dir, name))
+    if inline:
+        import re
+        with open(files["index.html"]) as fh:
+            html = fh.read()
+        with open(files["sim.css"]) as fh:
+            css = fh.read()
+        with open(files["sim.js"]) as fh:
+            js = fh.read()
+        head = re.search(r"<head>(.*?)</head>", html, re.S).group(1)
+        body = re.search(r"<body>(.*?)</body>", html, re.S).group(1)
+        head = re.sub(r'<meta (charset|name="viewport")[^>]*>\n?', "", head)
+        head = head.replace('<link rel="stylesheet" href="sim.css">', "<style>\n" + css + "</style>")
+        head = head.replace("<title>", '<meta name="claude:viewport-fit-sides" content="cover">\n<title>', 1)
+        body = body.replace('<script src="sim.js"></script>', "<script>\n" + js + "</script>")
+        with open(os.path.join(out_dir, "index.html"), "w") as fh:
+            fh.write(head.strip() + "\n" + body.strip() + "\n")
     print(f"wrote the simulator page to {out_dir}")
 
 
@@ -232,7 +255,7 @@ def main(argv):
                 port = int(a)
         return cmd_serve(port)
     if c == "bundle" and len(argv) > 2:
-        return cmd_bundle(argv[2])
+        return cmd_bundle(argv[2], inline="--inline" in argv)
     if c == "svg":
         from surface_spec import device_svg
         st = device_svg.demo_state() if "--demo" in argv else {}
