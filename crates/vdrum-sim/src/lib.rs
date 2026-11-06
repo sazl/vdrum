@@ -78,6 +78,44 @@ fn hex(m: &[u8]) -> String {
     m.iter().map(|b| format!("{b:02X}")).collect::<Vec<_>>().join(" ")
 }
 
+/// Check one scenario expectation against a state from [`Sim::state`]. `path` is a dotted path
+/// (`surface.mode`, `screen.lines.0`, `leds.K11`); a path ending in `~` checks that the value's text
+/// (lines joined with ` | `) contains `want`. For an LED, `"lit"` and `"off"` check that it is on
+/// or off at any colour.
+pub fn check(state: &Value, path: &str, want: &Value) -> Result<(), String> {
+    let (p, contains) = match path.strip_suffix('~') {
+        Some(p) => (p, true),
+        None => (path, false),
+    };
+    let mut v = state;
+    for part in p.split('.') {
+        v = match v {
+            Value::Object(m) => m.get(part),
+            Value::Array(a) => part.parse::<usize>().ok().and_then(|i| a.get(i)),
+            _ => None,
+        }
+        .ok_or_else(|| format!("{path}: no such value in the state"))?;
+    }
+    let ok = if contains {
+        let text = match v {
+            Value::Array(a) => a.iter().map(|x| x.as_str().map(String::from).unwrap_or_else(|| x.to_string())).collect::<Vec<_>>().join(" | "),
+            Value::String(s) => s.clone(),
+            x => x.to_string(),
+        };
+        text.contains(want.as_str().unwrap_or_default())
+    } else if want == "lit" || want == "off" {
+        let lit = v.as_array().is_some_and(|a| a.iter().any(|x| x.as_u64().unwrap_or(0) > 0));
+        lit == (want == "lit")
+    } else {
+        v == want
+    };
+    if ok {
+        Ok(())
+    } else {
+        Err(format!("{path} is {v}, expected {}{want}", if contains { "text containing " } else { "" }))
+    }
+}
+
 /// The simulator.
 pub struct Sim {
     pub surface: Surface,
@@ -290,12 +328,11 @@ impl Sim {
         let spec = s.spec();
         let (slot, name) = spec.mode_info(s.mode());
         let view = s.view(self.now, &self.model);
-        let cells: Vec<Value> = view
-            .controls
-            .iter()
-            .map(|c| {
+        let mut cells = serde_json::Map::new();
+        for c in &view.controls {
+            cells.insert(
+                panel_key(c.control),
                 json!({
-                    "control": panel_key(c.control),
                     "label": c.label,
                     "section": c.section,
                     "colour": [c.colour.0, c.colour.1, c.colour.2],
@@ -303,9 +340,9 @@ impl Sim {
                     "frac": c.frac,
                     "param": c.param.map(|p| p.0),
                     "fader": c.fader.map(|(pos, picked)| json!({"pos": pos, "picked": picked})),
-                })
-            })
-            .collect();
+                }),
+            );
+        }
         let st = self.model.seq_status();
         json!({
             "now": self.now,
@@ -388,9 +425,16 @@ impl Sim {
                 return json!(self.take_midi_out());
             }
             "hardware" => {
-                self.hardware = cmd.get("on").and_then(Value::as_bool).unwrap_or(false);
-                self.out.clear();
-                if self.hardware {
+                let on = cmd.get("on").and_then(Value::as_bool).unwrap_or(false);
+                if on && !self.hardware {
+                    self.hardware = true;
+                    self.out.clear();
+                    self.connect();
+                } else if !on && self.hardware {
+                    // Return the real device to standalone mode (the page sends `midi_out`
+                    // before closing the port), then bring the virtual device up to date.
+                    self.out = self.link.disconnect();
+                    self.hardware = false;
                     self.connect();
                 }
             }
@@ -406,6 +450,15 @@ impl Sim {
                 return Value::Array(
                     self.log[from..].iter().map(|e| json!({"t": e.t, "kind": e.kind, "text": e.text})).collect(),
                 );
+            }
+            "expect" => {
+                let state = self.state();
+                let failures: Vec<String> = cmd
+                    .get("checks")
+                    .and_then(Value::as_object)
+                    .map(|m| m.iter().filter_map(|(path, want)| check(&state, path, want).err()).collect())
+                    .unwrap_or_default();
+                return json!({ "failures": failures });
             }
             "state" | "reset" => {}
             other => return json!({"error": format!("unknown command {other}")}),

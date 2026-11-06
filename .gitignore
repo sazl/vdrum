@@ -5,3 +5,4 @@
 /out
 .claude/
 __pycache__/
+tools/surface_sim/build/

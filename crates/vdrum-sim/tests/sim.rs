@@ -169,3 +169,17 @@ fn json_commands_through_the_wasm_entry_point() {
     let log: Value = serde_json::from_str(&vdrum_sim::wasm::run(br#"{"cmd": "log", "from": 0}"#)).unwrap();
     assert!(log.as_array().unwrap().iter().any(|e| e["kind"] == "rule"));
 }
+
+#[test]
+fn detaching_a_real_device_returns_it_to_standalone_mode() {
+    let mut s = sim();
+    s.command(&json!({"cmd": "hardware", "on": true}));
+    s.take_midi_out();
+    s.command(&json!({"cmd": "hardware", "on": false}));
+    let out = s.take_midi_out();
+    assert_eq!(out.last(), Some(&lcxl3::encode::daw_mode(false).to_vec()));
+    // the virtual device stays in DAW mode for the on-screen simulator
+    assert!(s.device.daw_mode);
+    s.turn(0, 0, 1);
+    assert!(s.take_midi_out().is_empty());
+}

@@ -1,0 +1,122 @@
+{
+  "scenarios": [
+    {"name": "An encoder changes its parameter and shows a popup for the popup time", "steps": [
+        {"cmd": "turn", "row": 0, "col": 0, "detents": 2},
+        {"expect": {"screen.source": "overlay", "screen.lines": ["DRUM 1 Oscillator", "Fine", "2"], "cells.K11.value": "2"}},
+        {"cmd": "advance", "ms": 900},
+        {"expect": {"screen.source": "overlay"}},
+        {"cmd": "advance", "ms": 200},
+        {"expect": {"screen.source": "stationary", "screen.lines": ["1 Drum 1", "Init", "Fine 2"]}}
+    ]},
+    {"name": "Faders pick up their value before they move it", "steps": [
+        {"cmd": "button", "key": "SHIFT", "pressed": true},
+        {"cmd": "press", "key": "B1"},
+        {"cmd": "button", "key": "SHIFT", "pressed": false},
+        {"expect": {"surface.mode": "mix_fx"}},
+        {"cmd": "fader", "col": 0, "value": 30},
+        {"expect": {"cells.F1.fader.picked": false}},
+        {"cmd": "fader", "col": 0, "value": 127},
+        {"expect": {"cells.F1.fader.picked": true}}
+    ]},
+    {"name": "Steps: a press sets a step; Record + step clears it", "steps": [
+        {"cmd": "button", "key": "SHIFT", "pressed": true},
+        {"cmd": "press", "key": "T8"},
+        {"cmd": "button", "key": "SHIFT", "pressed": false},
+        {"cmd": "press", "key": "T1"},
+        {"expect": {"leds.T1": [126, 60, 44]}},
+        {"cmd": "button", "key": "REC", "pressed": true},
+        {"expect": {"leds.REC": [254, 0, 0]}},
+        {"cmd": "press", "key": "T1"},
+        {"cmd": "button", "key": "REC", "pressed": false},
+        {"expect": {"leds.T1": [14, 6, 4], "leds.REC": [64, 0, 0]}}
+    ]},
+    {"name": "The sequencer runs on the internal clock", "steps": [
+        {"cmd": "button", "key": "SHIFT", "pressed": true},
+        {"cmd": "press", "key": "B8"},
+        {"cmd": "button", "key": "SHIFT", "pressed": false},
+        {"cmd": "turn", "row": 2, "col": 7, "detents": 1},
+        {"expect": {"screen.lines~": "Internal"}},
+        {"cmd": "button", "key": "SHIFT", "pressed": true},
+        {"cmd": "press", "key": "T8"},
+        {"cmd": "button", "key": "SHIFT", "pressed": false},
+        {"cmd": "press", "key": "T1"},
+        {"cmd": "press", "key": "T5"},
+        {"expect": {"leds.PLAY": [0, 64, 0]}},
+        {"cmd": "press", "key": "PLAY"},
+        {"expect": {"seq.running": true}},
+        {"cmd": "advance", "ms": 10},
+        {"expect": {"leds.T1": [254, 254, 254], "leds.PLAY": [0, 254, 0]}},
+        {"cmd": "advance", "ms": 500},
+        {"expect": {"leds.T5": [254, 254, 254], "seq.step.0": 4}},
+        {"cmd": "press", "key": "PLAY"},
+        {"expect": {"seq.running": false}}
+    ]},
+    {"name": "Shift + button N selects mode N; Back returns", "steps": [
+        {"expect": {"surface.mode": "voice:0", "screen.lines": ["1 Drum 1", "Init", ""]}},
+        {"cmd": "button", "key": "SHIFT", "pressed": true},
+        {"expect": {"leds.T1": "lit", "leds.T2": [40, 40, 40], "leds.B5": [0, 0, 0]}},
+        {"cmd": "press", "key": "T8"},
+        {"cmd": "button", "key": "SHIFT", "pressed": false},
+        {"expect": {"surface.mode": "sequencer", "screen.lines": ["8 Sequencer", "P01 bar 1/4", "Track 1 D1"]}},
+        {"cmd": "button", "key": "SHIFT", "pressed": true},
+        {"cmd": "press", "key": "B8"},
+        {"cmd": "button", "key": "SHIFT", "pressed": false},
+        {"expect": {"surface.mode": "global", "screen.lines.0": "16 Global"}},
+        {"cmd": "press", "key": "LOGO"},
+        {"expect": {"surface.mode": "sequencer"}},
+        {"cmd": "button", "key": "SHIFT", "pressed": true},
+        {"cmd": "press", "key": "B5"},
+        {"cmd": "button", "key": "SHIFT", "pressed": false},
+        {"expect": {"surface.mode": "sequencer", "screen.source": "overlay", "screen.lines": ["Mode", "Slot 13", "empty"]}}
+    ]},
+    {"name": "Solo/Arm toggles the sequencer view; Shift + Solo/Arm makes it sticky", "steps": [
+        {"cmd": "press", "key": "SOLO"},
+        {"expect": {"surface.seq_view": true, "leds.SOLO": [254, 254, 254], "screen.lines": ["Sequencer view", "on", "1 D1"], "cells.T1.label": "Step 1"}},
+        {"cmd": "button", "key": "SHIFT", "pressed": true},
+        {"cmd": "press", "key": "T2"},
+        {"cmd": "button", "key": "SHIFT", "pressed": false},
+        {"expect": {"surface.mode": "voice:1", "surface.seq_view": false, "leds.SOLO": [70, 76, 88]}},
+        {"cmd": "button", "key": "SHIFT", "pressed": true},
+        {"cmd": "press", "key": "SOLO"},
+        {"cmd": "button", "key": "SHIFT", "pressed": false},
+        {"expect": {"surface.sticky": true, "surface.seq_view": true, "leds.SOLO": [254, 80, 0]}},
+        {"cmd": "button", "key": "SHIFT", "pressed": true},
+        {"cmd": "press", "key": "T3"},
+        {"cmd": "button", "key": "SHIFT", "pressed": false},
+        {"expect": {"surface.mode": "voice:2", "surface.seq_view": true}}
+    ]},
+    {"name": "Track left/right select the sequencer track in the sequencer view only", "steps": [
+        {"cmd": "press", "key": "TRACK_RIGHT"},
+        {"expect": {"surface.seq_track": 0, "leds.TRACK_RIGHT": [0, 0, 0]}},
+        {"cmd": "press", "key": "SOLO"},
+        {"expect": {"leds.TRACK_LEFT": [0, 0, 0], "leds.TRACK_RIGHT": [70, 76, 88]}},
+        {"cmd": "press", "key": "TRACK_RIGHT"},
+        {"cmd": "press", "key": "TRACK_RIGHT"},
+        {"expect": {"surface.seq_track": 2, "screen.lines": ["Sequencer", "Track", "3 D3"], "leds.TRACK_LEFT": [70, 76, 88]}},
+        {"cmd": "press", "key": "PAGE_DOWN"},
+        {"expect": {"surface.seq_bar": 1, "screen.lines": ["Sequencer", "Bar", "2 of 4"]}}
+    ]},
+    {"name": "Mute/Select: a short press goes to Perform; held in the sequencer view it is the pattern layer", "steps": [
+        {"cmd": "press", "key": "MUTE"},
+        {"expect": {"surface.mode": "perform", "screen.lines.0": "10 Perform"}},
+        {"cmd": "button", "key": "SHIFT", "pressed": true},
+        {"cmd": "press", "key": "T8"},
+        {"cmd": "button", "key": "SHIFT", "pressed": false},
+        {"cmd": "button", "key": "MUTE", "pressed": true},
+        {"expect": {"screen.lines": ["Sequencer", "Patterns", "patterns 1 to 16"], "leds.T1": [0, 254, 0]}},
+        {"cmd": "press", "key": "T3"},
+        {"cmd": "button", "key": "MUTE", "pressed": false},
+        {"expect": {"surface.mode": "sequencer", "seq.pattern": 2}}
+    ]},
+    {"name": "Shift + Page browses kits; Play loads the kit shown", "steps": [
+        {"cmd": "button", "key": "SHIFT", "pressed": true},
+        {"cmd": "press", "key": "PAGE_DOWN"},
+        {"cmd": "button", "key": "SHIFT", "pressed": false},
+        {"expect": {"surface.browsing": true, "screen.lines": ["Kit", "Kit A", "Play loads"]}},
+        {"cmd": "press", "key": "PLAY"},
+        {"expect": {"kit": "Kit A", "surface.browsing": false, "screen.lines": ["Kit", "Kit A", "loaded"]}},
+        {"cmd": "advance", "ms": 1100},
+        {"expect": {"screen.source": "stationary", "screen.lines.1": "Kit A"}}
+    ]}
+  ]
+}

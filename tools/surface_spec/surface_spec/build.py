@@ -13,6 +13,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")
 SOURCE_DIR = os.path.join(ROOT, "surface")
 OUTPUT = os.path.join(ROOT, "crates", "vdrum-surface", "spec", "surface.json")
 PARAM_IDS = os.path.join(os.path.dirname(__file__), "param_ids.json")
+SCENARIOS_OUTPUT = os.path.join(ROOT, "crates", "vdrum-sim", "scenarios.json")
 
 
 def load(source_dir=SOURCE_DIR):
@@ -24,6 +25,7 @@ def load(source_dir=SOURCE_DIR):
         path = getattr(mod, "__file__", None) or ""
         if path and os.path.abspath(path).startswith(source_dir + os.sep):
             del sys.modules[name]
+    importlib.invalidate_caches()
     return importlib.import_module("surface").surface
 
 
@@ -109,6 +111,33 @@ def dumps(spec):
     return "\n".join(out) + "\n"
 
 
+def load_scenarios(source_dir=SOURCE_DIR):
+    """Every scenario in surface/scenarios/*.py (each module's `scenarios()`), in file order."""
+    load(source_dir)  # puts surface/ on the path and drops stale modules
+    d = os.path.join(source_dir, "scenarios")
+    out = []
+    for f in sorted(os.listdir(d)) if os.path.isdir(d) else []:
+        if f.endswith(".py") and not f.startswith("_"):
+            mod = importlib.import_module("scenarios." + f[:-3])
+            out += [s.to_json() for s in mod.scenarios()]
+    return out
+
+
+def dumps_scenarios(scs):
+    """One step per line."""
+    out = ['{', '  "scenarios": [']
+    items = []
+    for sc in scs:
+        steps = ",\n".join("        " + json.dumps(st, ensure_ascii=False) for st in sc["steps"])
+        items.append('    {"name": ' + json.dumps(sc["name"], ensure_ascii=False) + ', "steps": [\n' + steps + "\n    ]}")
+    out.append(",\n".join(items))
+    out.append("  ]")
+    out.append("}")
+    return "\n".join(out) + "\n"
+
+
 def build(source_dir=SOURCE_DIR):
+    from .scenario import check_scenarios
     spec = load(source_dir).to_json()
-    return spec, check(spec)
+    scs = load_scenarios(source_dir)
+    return spec, scs, check(spec) + check_scenarios(scs)

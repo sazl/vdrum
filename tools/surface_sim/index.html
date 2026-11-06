@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VDrum surface simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="sim.css">
+</head>
+<body>
+<header>
+  <h1>VDrum surface simulator</h1>
+  <span id="spec-status" class="status">loading</span>
+  <span class="spacer"></span>
+  <label class="toggle"><input type="checkbox" id="show-labels" checked> Labels</label>
+  <label class="file">Load spec <input type="file" id="spec-file" accept=".json,application/json"></label>
+  <button id="reset" type="button">Reset</button>
+  <span class="midi">
+    <select id="midi-in" title="Device DAW Out port (input)"><option value="">MIDI in</option></select>
+    <select id="midi-out" title="Device DAW In port (output)"><option value="">MIDI out</option></select>
+    <button id="midi-connect" type="button">Connect LCXL3</button>
+  </span>
+</header>
+<main>
+  <section id="device-col">
+    <div id="device" aria-label="Launch Control XL 3"></div>
+    <p class="hint">Encoders: scroll or drag up/down. Faders: drag or scroll. Buttons: click (held while
+      the mouse is down); right-click latches a button down until the next click. Keyboard: hold
+      <kbd>Space</kbd> for Shift.</p>
+    <div id="state" class="panel"></div>
+    <div class="panel">
+      <h2>Scenarios</h2>
+      <div id="scenarios">
+        <div class="row">
+          <select id="scenario" aria-label="Scenario"></select>
+          <button id="scenario-run" type="button">Run</button>
+          <span id="scenario-result" class="result"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section id="side-col">
+    <div class="panel">
+      <h2>State diagram</h2>
+      <div id="diagram"></div>
+    </div>
+    <div class="panel">
+      <h2>Navigation rules <small>(first match handles the button)</small></h2>
+      <div id="rules"></div>
+    </div>
+    <div class="panel">
+      <h2>Log
+        <span class="filters">
+          <label><input type="checkbox" data-kind="param" checked>param</label>
+          <label><input type="checkbox" data-kind="action" checked>action</label>
+          <label><input type="checkbox" data-kind="rule" checked>rule</label>
+          <label><input type="checkbox" data-kind="input">input</label>
+          <label><input type="checkbox" data-kind="midi_in">MIDI in</label>
+          <label><input type="checkbox" data-kind="midi_out">MIDI out</label>
+          <label><input type="checkbox" data-kind="spec" checked>spec</label>
+          <label><input type="checkbox" data-kind="error" checked>error</label>
+        </span>
+        <button id="log-clear" type="button">Clear</button>
+      </h2>
+      <ol id="log"></ol>
+    </div>
+  </section>
+</main>
+<script src="sim.js"></script>
+</body>
+</html>
