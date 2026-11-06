@@ -16,7 +16,7 @@ steps.
 | `tools/surface_spec/surface_spec/` | The Python library: `dsl.py` (layouts, sections, controls), `behaviours.py` (catalogue), `voice.py` (`vid`), `build.py` (load, check, write), `hardware.py` and `device_svg.py` (device drawing). |
 | `tools/surface_spec/surface_spec/param_ids.json` | Every parameter id, generated from `lxr-params`. |
 | `crates/vdrum-surface/spec/surface.json` | The built spec. Generated; commit it with the sources. |
-| `crates/vdrum-surface/src/spec.rs` | The Rust loader, the behaviour catalogue and the parity tests. |
+| `crates/vdrum-surface/src/spec.rs` | The Rust loader, the behaviour catalogue and its tests. |
 
 ## Workflow
 
@@ -24,7 +24,7 @@ steps.
 python3 tools/surface_spec/run.py watch     # rebuilds surface.json on every save
 python3 tools/surface_spec/run.py build     # once
 python3 tools/surface_spec/run.py check     # spec valid and surface.json up to date (before committing)
-cargo test -p vdrum-surface                 # the Rust loader accepts it; parity and behaviour tests
+cargo test -p vdrum-surface                 # the Rust loader accepts it; behaviour tests
 ```
 
 The plugin embeds `surface.json` at compile time (`include_str!`), so a change reaches the plugin
@@ -173,8 +173,8 @@ the test `param_id_list_is_current` fails until it is regenerated.
 
 ## Parity
 
-`builtin_spec_matches_the_rust_tables` (in `spec.rs`) compares every mode, with and without a held
-step and with and without the sequencer view, against the Rust tables the spec replaced (kept in
-`layout.rs` as `legacy`, test-only), cell by cell and in order. It will be removed once the spec is
-the only source and the old tables are deleted; until then, a deliberate layout change has to be
-made in both places or the test has to be retired with it.
+Step 1 reproduced the former Rust tables exactly: a test compared every mode, with and without a
+held step and with and without the sequencer view, cell by cell and in order, and the plugin's
+tests passed. On Sami's go-ahead (2026-11-06) the Rust tables and that test were removed; the
+spec is now the only source of the layouts. `builtin_spec_has_every_mode` checks that every mode
+has its slot and name and assigns all 48 controls; `tests/surface.rs` checks behaviour.

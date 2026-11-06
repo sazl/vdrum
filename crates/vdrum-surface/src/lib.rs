@@ -8,7 +8,8 @@
 //!   which [`DeviceState`] turns into device messages, sending only what changed.
 //! * The plugin's state is read through the [`Model`] trait.
 //!
-//! The mapping tables follow the design's `lcxl3-daw-mode/source/layout.py` (revision 2).
+//! The mode layouts come from the surface spec (`surface/`, built into `spec/surface.json`; see
+//! `docs/lcxl3-daw-mode/surface-spec.md`).
 
 pub mod frame;
 pub mod layout;

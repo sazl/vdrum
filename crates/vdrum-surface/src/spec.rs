@@ -507,66 +507,19 @@ pub fn cells_to_json(cells: &[(Control, Cell)]) -> serde_json::Value {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::layout::legacy;
 
-    /// The spec as the Rust tables before it would write it (`VDRUM_DUMP_LEGACY_SPEC=path`).
-    fn legacy_json() -> serde_json::Value {
-        let mut layouts = serde_json::Map::new();
-        let mut modes = Vec::new();
-        for m in Mode::ALL {
-            let id = layout_id(m);
-            modes.push(serde_json::json!({ "mode": mode_name(m), "slot": m.number(), "name": m.name(), "layout": id }));
-            layouts.insert(id.to_string(), cells_to_json(&legacy::of(m, false).iter().cloned().collect::<Vec<_>>()));
-        }
-        let steps = legacy::with_steps(Layout::default());
-        let base = legacy::of(Mode::Sequencer, false);
-        let held: Vec<(Control, Cell)> = legacy::of(Mode::Sequencer, true).iter().filter(|(c, cell)| base.get(*c) != Some(cell)).cloned().collect();
-        serde_json::json!({
-            "format": "vdrum-surface-spec", "version": 1, "modes": modes, "layouts": layouts,
-            "overlays": { "steps": cells_to_json(&steps.iter().cloned().collect::<Vec<_>>()), "step-held": cells_to_json(&held) }
-        })
-    }
-
-    fn layout_id(m: Mode) -> &'static str {
-        match m {
-            Mode::Voice(0) => "drum-1",
-            Mode::Voice(1) => "drum-2",
-            Mode::Voice(2) => "drum-3",
-            Mode::Voice(3) => "snare",
-            Mode::Voice(4) => "cymbal",
-            Mode::Voice(5) => "closed-hi-hat",
-            Mode::Voice(_) => "open-hi-hat",
-            Mode::Sequencer => "sequencer",
-            Mode::MixFx => "mix-fx",
-            Mode::Perform => "perform",
-            Mode::LfoMod => "lfo-mod",
-            Mode::MorphMacro => "morph-macro",
-            Mode::Global => "global",
-        }
-    }
-
-    fn cells(l: &Layout) -> Vec<(Control, Cell)> {
-        l.iter().cloned().collect()
-    }
-
-    /// The built spec reproduces the Rust tables exactly: every mode, with and without a held step,
-    /// with and without the sequencer view, cell for cell and in the same order.
+    /// Every mode the plugin knows has one slot, with the number and name the plugin uses
+    /// (`Mode::number`, `Mode::name`), and assigns all 48 controls.
     #[test]
-    fn builtin_spec_matches_the_rust_tables() {
+    fn builtin_spec_has_every_mode() {
         let spec = builtin();
+        assert_eq!(spec.modes.len(), Mode::ALL.len());
         for m in Mode::ALL {
-            for held in [false, true] {
-                assert_eq!(cells(&Layout::of(m, held)), cells(&legacy::of(m, held)), "{m:?} held={held}");
-                assert_eq!(
-                    cells(&Layout::of(m, held).with_steps()),
-                    cells(&legacy::with_steps(legacy::of(m, held))),
-                    "{m:?} held={held} with steps"
-                );
-            }
             let ms = spec.modes.iter().find(|s| s.mode == m).unwrap_or_else(|| panic!("{m:?} missing"));
             assert_eq!((ms.slot, ms.name.as_str()), (m.number(), m.name()), "{m:?}");
+            assert_eq!(ms.layout.iter().count(), 48, "{m:?}");
         }
-        assert_eq!(spec.modes.len(), Mode::ALL.len());
+        assert_eq!(spec.steps.len(), 16);
     }
 
     /// `tools/surface_spec/surface_spec/param_ids.json` (used by the Python checks) is current.
@@ -593,13 +546,6 @@ mod tests {
                 let (name, arg) = binding_to_spec(cell.binding);
                 assert_eq!(binding_from_spec(name, &arg), Ok(cell.binding));
             }
-        }
-    }
-
-    #[test]
-    fn dump_legacy_spec() {
-        if let Ok(path) = std::env::var("VDRUM_DUMP_LEGACY_SPEC") {
-            std::fs::write(path, serde_json::to_string_pretty(&legacy_json()).unwrap()).unwrap();
         }
     }
 }
