@@ -12,10 +12,10 @@ pub const TRACK_TITLES: [&str; 7] = ["DRUM 1", "DRUM 2", "DRUM 3", "SNARE", "CYM
 /// An RGB colour, 8 bits per component.
 pub type Rgb = (u8, u8, u8);
 
-/// Track colours (column-per-track modes, pads).
-pub const TRACK_COLOURS: [Rgb; 7] =
-    [(255, 120, 90), (255, 170, 70), (240, 215, 80), (120, 210, 110), (80, 200, 220), (110, 150, 255), (170, 120, 255)];
-pub const FX_COLOUR: Rgb = (238, 99, 82);
+/// Track `t`'s colour (column-per-track modes, pads) in the built-in spec's palette.
+pub fn track_colour(t: u8) -> Rgb {
+    crate::spec::builtin().rules.palette.tracks[(t as usize).min(6)]
+}
 
 /// What a control belongs to; sets its LED colour and the popup title.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -75,28 +75,7 @@ impl Section {
     }
 
     pub fn colour(self) -> Rgb {
-        match self {
-            Section::Osc => (244, 162, 89),
-            Section::Amp => (91, 186, 111),
-            Section::Mod => (242, 208, 75),
-            Section::Fm => (171, 130, 222),
-            Section::Trans => (232, 106, 166),
-            Section::Filter => (95, 165, 230),
-            Section::Lfo => (53, 201, 194),
-            Section::Velo => (214, 172, 128),
-            Section::Mix => (190, 198, 210),
-            Section::Fx => FX_COLOUR,
-            Section::Moment => (255, 196, 64),
-            Section::Seq => (140, 220, 120),
-            Section::Step => (250, 240, 150),
-            Section::Macro => (200, 150, 255),
-            Section::Global => (150, 160, 185),
-            Section::Device => (120, 130, 150),
-            Section::SeqTrack(t) | Section::Perf(t) | Section::Pad(t) => TRACK_COLOURS[(t as usize).min(6)],
-            Section::Edit => (180, 190, 205),
-            Section::Nav => (70, 76, 88),
-            Section::Spare => (0, 0, 0),
-        }
+        crate::spec::builtin().colour(self)
     }
 }
 
@@ -240,40 +219,19 @@ impl Mode {
         Mode::Global,
     ];
 
-    /// Slot number 1..=16 (Shift + button N).
+    /// Slot number 1..=16 (Shift + button N) in the built-in spec.
     pub fn number(self) -> u8 {
-        match self {
-            Mode::Voice(t) => t + 1,
-            Mode::Sequencer => 8,
-            Mode::MixFx => 9,
-            Mode::Perform => 10,
-            Mode::LfoMod => 11,
-            Mode::MorphMacro => 12,
-            Mode::Global => 16,
-        }
+        crate::spec::builtin().mode_info(self).0
     }
 
-    /// The mode in slot `n`; `None` for an empty slot (13..=15) or a number outside 1..=16.
+    /// The mode in slot `n` of the built-in spec; `None` for an empty slot.
     pub fn from_number(n: u8) -> Option<Mode> {
-        Mode::ALL.into_iter().find(|m| m.number() == n)
+        crate::spec::builtin().mode_at(n)
     }
 
+    /// The mode's name in the built-in spec.
     pub fn name(self) -> &'static str {
-        match self {
-            Mode::Voice(0) => "Drum 1",
-            Mode::Voice(1) => "Drum 2",
-            Mode::Voice(2) => "Drum 3",
-            Mode::Voice(3) => "Snare",
-            Mode::Voice(4) => "Cymbal",
-            Mode::Voice(5) => "Closed hi-hat",
-            Mode::Voice(_) => "Open hi-hat",
-            Mode::Sequencer => "Sequencer",
-            Mode::MixFx => "Mix + FX",
-            Mode::Perform => "Perform",
-            Mode::LfoMod => "LFO + Mod",
-            Mode::MorphMacro => "Morph + Macro",
-            Mode::Global => "Global",
-        }
+        crate::spec::builtin().mode_info(self).1
     }
 
     /// The next (`dir` > 0) or previous existing mode, wrapping.

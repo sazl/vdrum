@@ -16,6 +16,10 @@ from modes.perform import perform
 from modes.sequencer import sequencer, step_held
 from modes.voices import closed_hat, cymbal, drum, open_hat, snare
 from surface_spec import Layout
+from rules.leds import leds
+from rules.navigation import navigation
+from rules.palette import palette
+from rules.screen import screen
 
 surface = Surface()
 #             mode key       slot  name             layout id        layout
@@ -37,3 +41,9 @@ surface.mode("global",       16, "Global",        "global",        global_mode()
 surface.overlay("steps", Layout().use(steps))
 # Laid over the sequencer while a step button is held.
 surface.overlay("step-held", step_held())
+
+# Navigation, side-button LEDs, the stationary screen, the colours.
+navigation(surface.navigation)
+leds(surface.leds)
+screen(surface.screen)
+surface.palette = palette()

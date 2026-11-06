@@ -2,14 +2,21 @@
 //! The surface spec: the mode layouts and overlays as data, built by `tools/surface_spec` from the
 //! Python sources in `surface/` into `crates/vdrum-surface/spec/surface.json`.
 //!
-//! JSON format (version 1):
+//! JSON format (version 2):
 //!
 //! ```json
-//! { "format": "vdrum-surface-spec", "version": 1,
+//! { "format": "vdrum-surface-spec", "version": 2,
 //!   "modes": [ { "mode": "voice:0", "slot": 1, "name": "Drum 1", "layout": "drum-1" }, ... ],
 //!   "layouts": { "drum-1": [ { "control": "T1", "label": "Osc wave", "section": "osc",
 //!                              "do": "param", "arg": "osc_wave_drum1" }, ... ] },
-//!   "overlays": { "steps": [ ... ], "step-held": [ ... ] } }
+//!   "overlays": { "steps": [ ... ], "step-held": [ ... ] },
+//!   "navigation": [ { "button": "solo_arm", "when": ["shift"], "press": [{"do": "toggle_sticky"}],
+//!                     "release": [] }, ... ],
+//!   "leds": [ { "button": "solo_arm", "rules": [ { "when": ["sticky"], "colour": "mode_active" }, ... ] } ],
+//!   "slot_leds": { "when": ["shift"] },
+//!   "screen": [ { "when": ["mode:sequencer"], "lines": ["{mode_slot} {mode_name}", ...] }, ... ],
+//!   "palette": { "sections": [["osc", [244, 162, 89]], ...], "tracks": [[255, 120, 90], ...],
+//!                "named": [["mode_active", [255, 80, 0]], ...] } }
 //! ```
 //!
 //! * `control`: `K<row><col>`, `F<col>`, `T<col>`, `B<col>` (1-based, as on the panel).
@@ -21,12 +28,17 @@
 //! * Cells are applied in order; a cell for a control that is already set replaces it in place.
 //! * `overlays.steps` is laid over any mode while the sequencer view is on; `overlays.step-held` is
 //!   laid over the sequencer's layout while a step is held.
+//! * `navigation`, `leds`, `slot_leds`, `screen`, `palette`: see [`crate::rules`].
 
-use crate::layout::{Binding, Cell, Layout, Mode, Section, Setting, StepField};
+use crate::layout::{Binding, Cell, Layout, Mode, Rgb, Section, Setting, StepField};
+use crate::rules::{RawRules, Rules};
 use lcxl3::{Button, Control};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::OnceLock;
+
+/// The spec format version this loader reads.
+pub const VERSION: u32 = 2;
 
 /// The spec built into the plugin.
 pub const BUILTIN_JSON: &str = include_str!("../spec/surface.json");
@@ -38,6 +50,8 @@ struct RawSpec {
     modes: Vec<RawMode>,
     layouts: HashMap<String, Vec<RawCell>>,
     overlays: HashMap<String, Vec<RawCell>>,
+    #[serde(flatten)]
+    rules: RawRules,
 }
 
 #[derive(Deserialize)]
@@ -76,13 +90,15 @@ pub struct Spec {
     pub steps: Vec<(Control, Cell)>,
     /// The sequencer's held-step cells.
     pub step_held: Vec<(Control, Cell)>,
+    /// Navigation, side-button LEDs, the stationary screen and the palette.
+    pub rules: Rules,
 }
 
 impl Spec {
     /// Parse and check a spec. Every error names the layout and control it was found in.
     pub fn parse(json: &str) -> Result<Spec, String> {
         let raw: RawSpec = serde_json::from_str(json).map_err(|e| format!("spec: {e}"))?;
-        if raw.format != "vdrum-surface-spec" || raw.version != 1 {
+        if raw.format != "vdrum-surface-spec" || raw.version != VERSION {
             return Err(format!("spec: unsupported format {} version {}", raw.format, raw.version));
         }
         let cells = |name: &str, list: &[RawCell]| -> Result<Vec<(Control, Cell)>, String> {
@@ -101,7 +117,31 @@ impl Spec {
             }
             modes.push(ModeSpec { mode, slot: m.slot, name: m.name.clone(), layout });
         }
-        Ok(Spec { modes, steps: overlay("steps")?, step_held: overlay("step-held")? })
+        let rules = raw.rules.parse()?;
+        Ok(Spec { modes, steps: overlay("steps")?, step_held: overlay("step-held")?, rules })
+    }
+
+    /// The mode in slot `slot` (Shift + button N: top row 1..=8, bottom row 9..=16).
+    pub fn mode_at(&self, slot: u8) -> Option<Mode> {
+        self.modes.iter().find(|m| m.slot == slot).map(|m| m.mode)
+    }
+
+    /// The slot and name of a mode; `(0, "")` for a mode the spec does not place.
+    pub fn mode_info(&self, mode: Mode) -> (u8, &str) {
+        self.modes.iter().find(|m| m.mode == mode).map(|m| (m.slot, m.name.as_str())).unwrap_or((0, ""))
+    }
+
+    /// A section's colour.
+    pub fn colour(&self, s: Section) -> Rgb {
+        match s {
+            Section::SeqTrack(t) | Section::Perf(t) | Section::Pad(t) => self.rules.palette.tracks[(t as usize).min(6)],
+            _ => self.rules.palette.section(&section_name(s)).unwrap_or((0, 0, 0)),
+        }
+    }
+
+    /// A named colour of the palette (black if the spec has none of that name).
+    pub fn named(&self, name: &str) -> Rgb {
+        self.rules.palette.named(name).unwrap_or((0, 0, 0))
     }
 
     /// The layout of `mode`; `held` lays the held-step cells over the sequencer's layout.
@@ -126,11 +166,16 @@ impl Spec {
 
 /// The built-in spec. Panics if it does not load (the tests load it).
 pub fn builtin() -> &'static Spec {
-    static SPEC: OnceLock<Spec> = OnceLock::new();
-    SPEC.get_or_init(|| Spec::parse(BUILTIN_JSON).unwrap_or_else(|e| panic!("built-in surface spec: {e}")))
+    builtin_arc()
 }
 
-fn mode_from_str(s: &str) -> Option<Mode> {
+/// The built-in spec, shared.
+pub fn builtin_arc() -> &'static std::sync::Arc<Spec> {
+    static SPEC: OnceLock<std::sync::Arc<Spec>> = OnceLock::new();
+    SPEC.get_or_init(|| std::sync::Arc::new(Spec::parse(BUILTIN_JSON).unwrap_or_else(|e| panic!("built-in surface spec: {e}"))))
+}
+
+pub fn mode_from_str(s: &str) -> Option<Mode> {
     Some(match s {
         "sequencer" => Mode::Sequencer,
         "mix_fx" => Mode::MixFx,
@@ -508,15 +553,16 @@ pub fn cells_to_json(cells: &[(Control, Cell)]) -> serde_json::Value {
 mod tests {
     use super::*;
 
-    /// Every mode the plugin knows has one slot, with the number and name the plugin uses
-    /// (`Mode::number`, `Mode::name`), and assigns all 48 controls.
+    /// Every mode the plugin knows has one slot (1 to 16, no two alike) and a name, and assigns all
+    /// 48 controls.
     #[test]
     fn builtin_spec_has_every_mode() {
         let spec = builtin();
         assert_eq!(spec.modes.len(), Mode::ALL.len());
+        let mut slots = std::collections::BTreeSet::new();
         for m in Mode::ALL {
             let ms = spec.modes.iter().find(|s| s.mode == m).unwrap_or_else(|| panic!("{m:?} missing"));
-            assert_eq!((ms.slot, ms.name.as_str()), (m.number(), m.name()), "{m:?}");
+            assert!((1..=16).contains(&ms.slot) && slots.insert(ms.slot) && !ms.name.is_empty(), "{m:?}");
             assert_eq!(ms.layout.iter().count(), 48, "{m:?}");
         }
         assert_eq!(spec.steps.len(), 16);
@@ -537,6 +583,29 @@ mod tests {
         assert!(e.contains("closed-hi-hat T1") && e.contains("no_such_param"), "{e}");
         let bad = BUILTIN_JSON.replacen("\"do\": \"seq_fills\", \"arg\": 0", "\"do\": \"seq_fills\", \"arg\": 9", 1);
         assert!(Spec::parse(&bad).unwrap_err().contains("sequencer K11"));
+    }
+
+    #[test]
+    fn rule_errors_name_the_rule() {
+        let bad = BUILTIN_JSON.replacen("\"when\": [\"shift\"]", "\"when\": [\"shfit\"]", 1);
+        let e = Spec::parse(&bad).unwrap_err();
+        assert!(e.contains("navigation rule 2 (solo_arm)") && e.contains("shfit"), "{e}");
+        let bad = BUILTIN_JSON.replacen("{mode_slot}", "{mode_slott}", 1);
+        assert!(Spec::parse(&bad).unwrap_err().contains("unknown variable {mode_slott}"));
+        let bad = BUILTIN_JSON.replacen("\"colour\": \"mode_active\"", "\"colour\": \"orange\"", 1);
+        assert!(Spec::parse(&bad).unwrap_err().contains("leds solo_arm: unknown colour orange"));
+        let bad = BUILTIN_JSON.replacen("\"version\": 2", "\"version\": 1", 1);
+        assert!(Spec::parse(&bad).unwrap_err().contains("version 1"));
+    }
+
+    #[test]
+    fn modes_slots_and_colours_come_from_the_spec() {
+        let s = builtin();
+        assert_eq!(s.mode_at(8), Some(Mode::Sequencer));
+        assert_eq!(s.mode_at(13), None);
+        assert_eq!(s.mode_info(Mode::Global), (16, "Global"));
+        assert_eq!(s.colour(Section::Pad(3)), s.rules.palette.tracks[3]);
+        assert_eq!(Section::Osc.colour(), s.colour(Section::Osc));
     }
 
     #[test]

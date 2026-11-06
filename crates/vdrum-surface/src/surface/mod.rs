@@ -3,9 +3,11 @@
 
 use crate::frame::{dim, Frame, Popup};
 use crate::layout::{
-    Binding, Cell, Layout, Mode, Rgb, Section, Setting, StepField, LOCK_KINDS, TRACKS, TRACK_COLOURS,
-    TRACK_TITLES,
+    Binding, Cell, Layout, Mode, Rgb, Section, Setting, StepField, LOCK_KINDS, TRACKS, TRACK_TITLES,
 };
+use crate::rules::{fill, Guard, LedColour, NavStep, Pred};
+use crate::spec::Spec;
+use std::sync::Arc;
 use crate::model::{options, scale, unscale, Action, Model, Switch, FADER_MAX};
 use crate::seq::{SeqEdit, StepData, FLAM_NAMES, MAX_FLAM, NO_LOCK, NO_SHIFT, NUM_PATTERNS, NUM_STEPS};
 use lxr_params::par;
@@ -166,6 +168,10 @@ struct HeldStep {
 
 /// The controller's state.
 pub struct Surface {
+    /// The spec: layouts, navigation, LED and screen rules, palette.
+    spec: Arc<Spec>,
+    /// Index of the navigation rule that handled the last button event.
+    last_rule: Option<usize>,
     mode: Mode,
     prev_mode: Mode,
     layout: Layout,
@@ -243,11 +249,19 @@ impl Default for Surface {
 
 impl Surface {
     pub fn new() -> Surface {
-        let mode = Mode::Voice(0);
+        Surface::with_spec(crate::spec::builtin_arc().clone())
+    }
+
+    /// A surface running `spec`, in the spec's first mode.
+    pub fn with_spec(spec: Arc<Spec>) -> Surface {
+        let mode = spec.modes.first().map(|m| m.mode).unwrap_or(Mode::Voice(0));
+        let layout = spec.layout(mode, false);
         Surface {
+            spec,
+            last_rule: None,
             mode,
             prev_mode: mode,
-            layout: Layout::of(mode, false),
+            layout,
             shift: false,
             accent: false,
             accum: [0; 24],
@@ -306,8 +320,80 @@ impl Surface {
 
     /// Rebuild the layout for the mode, the held steps (mode 8) and the sequencer view.
     fn relayout(&mut self) {
-        let l = Layout::of(self.mode, !self.held_steps.is_empty());
-        self.layout = if self.view && self.mode != Mode::Sequencer { l.with_steps() } else { l };
+        let l = self.spec.layout(self.mode, !self.held_steps.is_empty());
+        self.layout = if self.view && self.mode != Mode::Sequencer { self.spec.with_steps(l) } else { l };
+    }
+
+    /// The spec the surface runs.
+    pub fn spec(&self) -> &Arc<Spec> {
+        &self.spec
+    }
+
+    /// Run another spec (live reload). The state is kept; a mode the new spec does not place falls
+    /// back to the spec's first mode.
+    pub fn set_spec(&mut self, spec: Arc<Spec>) {
+        self.spec = spec;
+        if !self.spec.modes.iter().any(|m| m.mode == self.mode) {
+            self.mode = self.spec.modes.first().map(|m| m.mode).unwrap_or(Mode::Voice(0));
+        }
+        self.relayout();
+    }
+
+    /// Index of the navigation rule that handled the last button event (`None` if none matched).
+    pub fn last_rule(&self) -> Option<usize> {
+        self.last_rule
+    }
+
+    /// Whether Shift is held.
+    pub fn shift(&self) -> bool {
+        self.shift
+    }
+
+    /// The bar shown on the step buttons (0..4).
+    pub fn seq_bar(&self) -> u8 {
+        self.seq_bar
+    }
+
+    /// The step buttons held (sequencer view).
+    pub fn held_steps(&self) -> Vec<u8> {
+        self.held_steps.iter().map(|h| h.step).collect()
+    }
+
+    /// The buttons held.
+    pub fn held_buttons(&self) -> Vec<Button> {
+        self.held.iter().filter_map(|h| if let Control::Button(b) = h.control { Some(b) } else { None }).collect()
+    }
+
+    /// The colour of a section in the spec's palette.
+    fn colour(&self, s: Section) -> Rgb {
+        self.spec.colour(s)
+    }
+
+    /// Whether a guard holds.
+    pub fn guard(&self, g: &Guard, model: &dyn Model) -> bool {
+        let v = match g.pred {
+            Pred::Shift => self.shift,
+            Pred::SeqView => self.seq_view(),
+            Pred::ViewToggle => self.view,
+            Pred::Sticky => self.sticky,
+            Pred::Mode(m) => self.mode == m,
+            Pred::VoiceMode => self.mode.track().is_some(),
+            Pred::Held(b) => self.is_held(Control::Button(b)),
+            Pred::SeqTrackFirst => self.seq_track == 0,
+            Pred::SeqTrackLast => self.seq_track >= 6,
+            Pred::SeqBarFirst => self.seq_bar == 0,
+            Pred::SeqBarLast => self.seq_bar >= 3,
+            Pred::SeqRunning => model.seq_status().running,
+            Pred::SeqSilent => model.seq_status().silent,
+            Pred::HostClock => self.settings.host_clock,
+            Pred::Browsing => self.browsing,
+            Pred::StepHeld => !self.held_steps.is_empty(),
+        };
+        v != g.negate
+    }
+
+    fn guards(&self, gs: &[Guard], model: &dyn Model) -> bool {
+        gs.iter().all(|g| self.guard(g, model))
     }
 
     /// The sequencer's selected track (0..7).
@@ -329,7 +415,7 @@ impl Surface {
                 .collect()
         };
         out.extend(edits.into_iter().map(Action::Seq));
-        self.show_coloured("Clear", "Track", &format!("{} {}", t + 1, TRACKS[t as usize]), TRACK_COLOURS[t as usize]);
+        self.show_coloured("Clear", "Track", &format!("{} {}", t + 1, TRACKS[t as usize]), self.colour(Section::SeqTrack(t)));
     }
 
     /// Select sequencer track `t`.
@@ -339,7 +425,7 @@ impl Surface {
             "Sequencer",
             "Track",
             &format!("{} {}", self.seq_track + 1, TRACKS[self.seq_track as usize]),
-            TRACK_COLOURS[self.seq_track as usize],
+            self.colour(Section::SeqTrack(self.seq_track)),
         );
     }
 
@@ -864,103 +950,77 @@ impl Surface {
             self.release_fired = self.held.iter().any(|h| h.control == c && h.fired);
             self.held.retain(|h| h.control != c);
         }
-        match button {
-            Button::Shift => self.shift = pressed,
-            // Shift + Solo/Arm: the sequencer view stays on across mode changes (sticky), or not
-            Button::SoloArm if self.shift => {
-                if pressed {
-                    self.sticky = !self.sticky;
-                    if self.sticky {
-                        self.view = true;
-                    }
-                    self.relayout();
-                    self.show_text("Sequencer view", "Sticky", if self.sticky { "on" } else { "off" });
+        let spec = self.spec.clone();
+        let rule = spec.rules.navigation.iter().enumerate().find(|(_, r)| {
+            r.button.matches(button)
+                && (if pressed { r.press.is_some() } else { r.release.is_some() })
+                && self.guards(&r.when, model)
+        });
+        self.last_rule = rule.map(|(i, _)| i);
+        let Some((_, rule)) = rule else { return };
+        let steps = if pressed { rule.press.as_ref() } else { rule.release.as_ref() };
+        for step in steps.into_iter().flatten() {
+            self.nav_step(step, button, pressed, model, out);
+        }
+    }
+
+    /// Run one step of a navigation rule.
+    fn nav_step(&mut self, step: &NavStep, button: Button, pressed: bool, model: &dyn Model, out: &mut Vec<Action>) {
+        let col = match button {
+            Button::Top(n) | Button::Bottom(n) => n,
+            _ => 0,
+        };
+        match step {
+            NavStep::Shift => self.shift = pressed,
+            NavStep::ToggleSticky => {
+                self.sticky = !self.sticky;
+                if self.sticky {
+                    self.view = true;
                 }
+                self.relayout();
+                self.show_text("Sequencer view", "Sticky", if self.sticky { "on" } else { "off" });
             }
-            Button::Top(n) | Button::Bottom(n) if self.shift && pressed => {
-                let slot = if matches!(button, Button::Top(_)) { n + 1 } else { n + 9 };
-                match Mode::from_number(slot) {
+            NavStep::ModeSlot(base) => {
+                let slot = base + col;
+                match self.spec.mode_at(slot) {
                     Some(m) => self.set_mode(m),
                     None => self.show_text("Mode", &format!("Slot {slot}"), "empty"),
                 }
             }
-            Button::Top(n) | Button::Bottom(n) if self.seq_view() => {
-                let idx = if matches!(button, Button::Top(_)) { n } else { n + 8 };
-                self.seq_button(idx, pressed, model, out);
+            NavStep::SeqButton(base) => self.seq_button(base + col, pressed, model, out),
+            NavStep::ClearSeqTrack => self.clear_track(self.seq_track, model, out),
+            NavStep::SeqTrackStep(d) => {
+                let t = self.seq_track as i32 + *d as i32;
+                self.select_seq_track(t.clamp(0, 6) as u8);
             }
-            // Track left/right select the sequencer track in the sequencer view and do nothing
-            // elsewhere: modes are selected with Shift + button N.
-            Button::TrackLeft | Button::TrackRight if self.seq_view() => {
-                if pressed && self.is_held(Control::Button(Button::Record)) {
-                    self.clear_track(self.seq_track, model, out);
-                } else if pressed {
-                    let t = self.seq_track as i32 + if button == Button::TrackLeft { -1 } else { 1 };
-                    self.select_seq_track(t.clamp(0, 6) as u8);
+            NavStep::PreviousMode => self.set_mode(self.prev_mode),
+            NavStep::ToggleSeqView => {
+                self.view = !self.view;
+                self.held_steps.clear();
+                self.relayout();
+                let track = format!("{} {}", self.seq_track + 1, TRACKS[self.seq_track as usize]);
+                self.show_text("Sequencer view", if self.view { "on" } else { "off" }, &track);
+            }
+            NavStep::Message([a, b, c]) => self.show_text(a, b, c),
+            NavStep::LayerBegin => self.layer_used = false,
+            NavStep::Mode(m) => self.set_mode(*m),
+            NavStep::ModeUnlessLayerUsed(m) => {
+                if !self.layer_used {
+                    self.set_mode(*m);
                 }
             }
-            Button::TrackLeft | Button::TrackRight => {}
-            Button::Logo => {
-                if pressed {
-                    self.set_mode(self.prev_mode);
-                }
+            NavStep::KitBrowse(d) => {
+                self.browsing = true;
+                out.push(Action::KitBrowse(*d));
             }
-            // Solo/Arm toggles the sequencer view (always on in mode 8).
-            Button::SoloArm => {
-                if pressed {
-                    if self.mode == Mode::Sequencer {
-                        self.show_text("Sequencer view", "always on", "in mode 8");
-                    } else {
-                        self.view = !self.view;
-                        self.held_steps.clear();
-                        self.relayout();
-                        let track = format!("{} {}", self.seq_track + 1, TRACKS[self.seq_track as usize]);
-                        self.show_text("Sequencer view", if self.view { "on" } else { "off" }, &track);
-                    }
-                }
+            NavStep::SeqBarStep(d) => {
+                let bar = self.seq_bar as i32 + *d as i32;
+                self.seq_bar = bar.clamp(0, 3) as u8;
+                self.show_text("Sequencer", "Bar", &format!("{} of 4", self.seq_bar + 1));
             }
-            // In the sequencer view Mute/Select is the pattern layer while held; a short press that
-            // did not use the layer still goes to Perform.
-            Button::MuteSelect if self.seq_view() => {
-                if pressed {
-                    self.layer_used = false;
-                    self.show_text("Sequencer", "Patterns", "patterns 1 to 16");
-                } else if !self.layer_used {
-                    self.set_mode(Mode::Perform);
-                }
-            }
-            Button::MuteSelect => {
-                if pressed {
-                    self.set_mode(Mode::Perform);
-                }
-            }
-            // Shift + Page up/down: browse the kits; Play loads the kit shown.
-            Button::PageUp | Button::PageDown if self.shift => {
-                if pressed {
-                    self.browsing = true;
-                    out.push(Action::KitBrowse(if button == Button::PageUp { -1 } else { 1 }));
-                }
-            }
-            Button::PageUp | Button::PageDown if self.seq_view() => {
-                if pressed {
-                    let bar = self.seq_bar as i32 + if button == Button::PageUp { -1 } else { 1 };
-                    self.seq_bar = bar.clamp(0, 3) as u8;
-                    self.show_text("Sequencer", "Bar", &format!("{} of 4", self.seq_bar + 1));
-                }
-            }
-            Button::PageUp | Button::PageDown => {}
-            // Record = Clear (2026-11-05): hold it and press a step (sequencer view) to clear that
-            // step, or Track left/right to clear the selected track's pattern.
-            Button::Record => {
-                if pressed {
-                    self.show_text("Clear", "hold +", "step / Track < >");
-                }
-            }
-            Button::Play => {
-                if pressed {
-                    self.play(model, out);
-                }
-            }
-            Button::Top(_) | Button::Bottom(_) => {
+            NavStep::Play => self.play(model, out),
+            NavStep::Cell => {
+                let c = Control::Button(button);
                 if let Some(cell) = self.layout.get(c).cloned() {
                     if pressed {
                         self.press(&cell, model, out);
@@ -1280,11 +1340,11 @@ impl Surface {
     fn show(&mut self, cell: &Cell, value: String) {
         let title = self.title(cell);
         self.last_touched = format!("{} {}", cell.label, value);
-        self.show_coloured(&title, &cell.label.clone(), &value, cell.section.colour());
+        self.show_coloured(&title, &cell.label.clone(), &value, self.colour(cell.section));
     }
 
     fn show_text(&mut self, title: &str, name: &str, value: &str) {
-        self.show_coloured(title, name, value, Section::Edit.colour());
+        self.show_coloured(title, name, value, self.colour(Section::Edit));
     }
 
     fn show_coloured(&mut self, title: &str, name: &str, value: &str, colour: Rgb) {
@@ -1305,80 +1365,55 @@ impl Surface {
     /// The LEDs and screen contents for the current state at time `now`.
     pub fn frame(&self, now: u64, model: &dyn Model) -> Frame {
         let mut leds = Vec::new();
+        let slots = self.guards(&self.spec.rules.slot_leds, model);
         for (c, cell) in self.layout.iter() {
             if matches!(c, Control::Fader(_)) {
                 continue;
             }
             let led = match c {
-                Control::Button(b @ (Button::Top(_) | Button::Bottom(_))) if self.shift => self.mode_led(*b, now),
+                Control::Button(b @ (Button::Top(_) | Button::Bottom(_))) if slots => self.mode_led(*b, now),
                 _ => self.led(*c, cell, now, model),
             };
             leds.push((*c, led));
         }
-        // Navigation buttons: lit where they do something.
-        let nav: Rgb = Section::Nav.colour();
-        for b in [Button::Logo, Button::MuteSelect] {
-            leds.push((Control::Button(b), nav));
+        // Side buttons: the spec's LED rules, first match wins (no match: off).
+        for (b, rules) in &self.spec.rules.leds {
+            let colour = rules.iter().find(|r| self.guards(&r.when, model)).map(|r| match r.colour {
+                LedColour::Rgb(c) => c,
+                LedColour::ModePad => self.mode.track().map(|t| self.colour(Section::Pad(t))).unwrap_or((0, 0, 0)),
+            });
+            leds.push((Control::Button(*b), colour.unwrap_or((0, 0, 0))));
         }
-        let view = self.seq_view();
-        // Solo/Arm: sequencer view off (nav), on (white), sticky (orange)
-        let solo = match (self.sticky, view) {
-            (true, _) => MODE_ACTIVE,
-            (false, true) => (255, 255, 255),
-            (false, false) => nav,
-        };
-        leds.push((Control::Button(Button::SoloArm), solo));
-        // Track left/right only act in the sequencer view (sequencer track); lit where they can move.
-        leds.push((Control::Button(Button::TrackLeft), if view && self.seq_track > 0 { nav } else { (0, 0, 0) }));
-        leds.push((Control::Button(Button::TrackRight), if view && self.seq_track < 6 { nav } else { (0, 0, 0) }));
-        // Record = Clear: lit in the sequencer view, bright while held
-        let rec = match (view, self.is_held(Control::Button(Button::Record))) {
-            (false, _) => (0, 0, 0),
-            (true, false) => (64, 0, 0),
-            (true, true) => (255, 0, 0),
-        };
-        leds.push((Control::Button(Button::Record), rec));
-        // Page up/down: kits with Shift, bars in the sequencer view
-        let (up, down) = if self.shift {
-            (nav, nav)
-        } else if view {
-            (if self.seq_bar > 0 { nav } else { (0, 0, 0) }, if self.seq_bar < 3 { nav } else { (0, 0, 0) })
-        } else {
-            ((0, 0, 0), (0, 0, 0))
-        };
-        leds.push((Control::Button(Button::PageUp), up));
-        leds.push((Control::Button(Button::PageDown), down));
-        // Play: red while silenced (host clock), green while running; otherwise start (mode 8,
-        // internal clock) or the voice of a voice mode
-        let st = model.seq_status();
-        let play = if st.silent {
-            (255, 0, 0)
-        } else if st.running {
-            (0, 255, 0)
-        } else if self.mode == Mode::Sequencer {
-            if self.settings.host_clock {
-                (0, 0, 0)
-            } else {
-                (0, 64, 0)
+        let rule = self.spec.rules.screen.iter().find(|r| self.guards(&r.when, model));
+        let stationary = match rule {
+            Some(r) => {
+                let st = model.seq_status();
+                let (slot, name) = self.spec.mode_info(self.mode);
+                let var = |v: &str| -> String {
+                    match v {
+                        "mode_slot" => slot.to_string(),
+                        "mode_name" => name.to_string(),
+                        "kit" => model.kit_name(),
+                        "last_touched" => self.last_touched.clone(),
+                        "pattern" => format!("{:02}", st.pattern + 1),
+                        "bar" => (self.seq_bar + 1).to_string(),
+                        "next_pattern" => {
+                            if st.pending != st.pattern {
+                                format!(" > P{:02}", st.pending + 1)
+                            } else {
+                                String::new()
+                            }
+                        }
+                        "silent" => if st.silent { " silent".into() } else { String::new() },
+                        "seq_track_number" => (self.seq_track + 1).to_string(),
+                        "seq_track_name" => TRACKS[self.seq_track as usize].to_string(),
+                        _ => String::new(),
+                    }
+                };
+                [fill(&r.lines[0], var), fill(&r.lines[1], var), fill(&r.lines[2], var)]
             }
-        } else if let Some(t) = self.mode.track() {
-            Section::Pad(t).colour()
-        } else {
-            (0, 0, 0)
+            None => Default::default(),
         };
-        leds.push((Control::Button(Button::Play), play));
-        if self.mode == Mode::Sequencer {
-            let next = if st.pending != st.pattern { format!(" > P{:02}", st.pending + 1) } else { String::new() };
-            let silent = if st.silent { " silent" } else { "" };
-            let stationary = [
-                format!("{} {}", self.mode.number(), self.mode.name()),
-                format!("P{:02} bar {}/4{next}{silent}", st.pattern + 1, self.seq_bar + 1),
-                format!("Track {} {}", self.seq_track + 1, TRACKS[self.seq_track as usize]),
-            ];
-            return Frame { leds, stationary, popup: self.popup.clone() };
-        }
-        let stationary =
-            [format!("{} {}", self.mode.number(), self.mode.name()), model.kit_name(), self.last_touched.clone()];
         Frame { leds, stationary, popup: self.popup.clone() }
     }
 
@@ -1404,11 +1439,11 @@ impl Surface {
         }
         let d = model.seq();
         if d.step(st.pattern, first, step).on {
-            let c = TRACK_COLOURS[first as usize];
+            let c = self.colour(Section::SeqTrack(first));
             return if self.held_steps.iter().any(|h| h.step == step) { c } else { (c.0 / 2, c.1 / 2, c.2 / 2) };
         }
         if step < d.track(st.pattern, first).length {
-            dim(dim(TRACK_COLOURS[first as usize]))
+            dim(dim(self.colour(Section::SeqTrack(first))))
         } else {
             (0, 0, 0)
         }
@@ -1422,15 +1457,15 @@ impl Surface {
             Button::Bottom(n) => n + 9,
             _ => return (0, 0, 0),
         };
-        match Mode::from_number(slot) {
-            Some(m) if m == self.mode => scale_rgb(MODE_ACTIVE, pulse(now)),
-            Some(_) => MODE_OTHER,
+        match self.spec.mode_at(slot) {
+            Some(m) if m == self.mode => scale_rgb(self.spec.named("mode_active"), pulse(now)),
+            Some(_) => self.spec.named("mode_other"),
             None => (0, 0, 0),
         }
     }
 
     fn led(&self, c: Control, cell: &Cell, now: u64, model: &dyn Model) -> Rgb {
-        let col = cell.section.colour();
+        let col = self.colour(cell.section);
         // LFO mode: top-row buttons 1 to 7 follow their track's LFO output, scaled by its amount
         if self.mode == Mode::LfoMod && !matches!(cell.binding, Binding::SeqStep(_)) {
             if let Control::Button(Button::Top(t)) = c {
@@ -1555,10 +1590,6 @@ pub const PULSE_MS: u64 = 1200;
 pub const PULSE_FLOOR: f32 = 0.08;
 
 /// Pulse level at time `now`: a raised cosine from [`PULSE_FLOOR`] to 1 and back over [`PULSE_MS`].
-/// Shift held: colour of the active mode's button (pulsing) and of the other modes' buttons.
-pub const MODE_ACTIVE: Rgb = (255, 80, 0);
-pub const MODE_OTHER: Rgb = (40, 40, 40);
-
 pub fn pulse(now: u64) -> f32 {
     let phase = (now % PULSE_MS) as f32 / PULSE_MS as f32;
     let up = 0.5 - 0.5 * (phase * std::f32::consts::TAU).cos();

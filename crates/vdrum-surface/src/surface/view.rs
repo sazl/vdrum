@@ -197,7 +197,7 @@ impl Surface {
                 control: *c,
                 label: self.label(*c, model).unwrap_or_default(),
                 section: cell.section.label(),
-                colour: cell.section.colour(),
+                colour: self.colour(cell.section),
                 led,
                 value,
                 frac,

@@ -7,6 +7,7 @@ import sys
 
 from .behaviours import BEHAVIOURS, SETTINGS, STEP_FIELDS
 from .dsl import CONTROLS, MODE_KEYS, PLAIN_SECTIONS
+from .rules import check_rules
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 SOURCE_DIR = os.path.join(ROOT, "surface")
@@ -76,6 +77,7 @@ def check(spec):
         check_cells(f"layout {lid}", cells)
     for oid, cells in spec["overlays"].items():
         check_cells(f"overlay {oid}", cells)
+    errors += check_rules(spec)
     return errors
 
 
@@ -84,7 +86,7 @@ def dumps(spec):
     def cells(lst, ind):
         return "[\n" + ",\n".join(ind + "  " + json.dumps(c, ensure_ascii=False) for c in lst) + "\n" + ind + "]"
 
-    out = ['{', '  "format": "vdrum-surface-spec",', '  "version": 1,', '  "modes": [']
+    out = ['{', '  "format": "vdrum-surface-spec",', f'  "version": {spec["version"]},', '  "modes": [']
     out.append(",\n".join("    " + json.dumps(m, ensure_ascii=False) for m in spec["modes"]))
     out.append("  ],")
     out.append('  "layouts": {')
@@ -92,6 +94,16 @@ def dumps(spec):
     out.append("  },")
     out.append('  "overlays": {')
     out.append(",\n".join(f"    {json.dumps(k)}: {cells(v, '    ')}" for k, v in spec["overlays"].items()))
+    out.append("  },")
+    out.append('  "navigation": ' + cells(spec["navigation"], "  ") + ",")
+    out.append('  "leds": ' + cells(spec["leds"], "  ") + ",")
+    out.append('  "slot_leds": ' + json.dumps(spec["slot_leds"]) + ",")
+    out.append('  "screen": ' + cells(spec["screen"], "  ") + ",")
+    pal = spec["palette"]
+    out.append('  "palette": {')
+    out.append('    "sections": ' + cells(pal["sections"], "    ") + ",")
+    out.append('    "tracks": ' + cells(pal["tracks"], "    ") + ",")
+    out.append('    "named": ' + cells(pal["named"], "    "))
     out.append("  }")
     out.append("}")
     return "\n".join(out) + "\n"

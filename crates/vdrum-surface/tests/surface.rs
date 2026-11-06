@@ -4,7 +4,7 @@ use lcxl3::{Button, Control, Input};
 use lxr_params::{par, ParamKind, Voice};
 use std::cell::RefCell;
 use std::collections::{BTreeSet, HashMap};
-use vdrum_surface::layout::{b, f, k, t, voice_param, TRACK_COLOURS};
+use vdrum_surface::layout::{b, f, k, t, track_colour, voice_param};
 use vdrum_surface::*;
 use vdrum_surface::layout;
 
@@ -584,16 +584,16 @@ fn track_buttons_select_the_sequencer_track() {
     m.apply(&[Action::Seq(SeqEdit::Step { pat: 0, track: 1, step: 1, data: on })]);
     let led = |s: &Surface, b: Button| s.frame(0, &m).leds.iter().find(|(c, _)| *c == Control::Button(b)).unwrap().1;
     let half = |c: (u8, u8, u8)| (c.0 / 2, c.1 / 2, c.2 / 2);
-    assert_eq!(led(&s, Button::Top(0)), half(TRACK_COLOURS[0]));
-    assert_ne!(led(&s, Button::Top(1)), half(TRACK_COLOURS[1]));
+    assert_eq!(led(&s, Button::Top(0)), half(track_colour(0)));
+    assert_ne!(led(&s, Button::Top(1)), half(track_colour(1)));
     assert_eq!(led(&s, Button::TrackLeft), (0, 0, 0), "nothing left of track 1");
     // Track right: track 2 is selected and is the edit group; the step buttons show its steps
     press(&mut s, &m, Button::TrackRight, 0);
     release(&mut s, &m, Button::TrackRight, 0);
     assert_eq!(s.mode(), Mode::Sequencer);
     assert_eq!(s.seq_track(), 1);
-    assert_eq!(led(&s, Button::Top(1)), half(TRACK_COLOURS[1]));
-    assert_ne!(led(&s, Button::Top(0)), half(TRACK_COLOURS[0]));
+    assert_eq!(led(&s, Button::Top(1)), half(track_colour(1)));
+    assert_ne!(led(&s, Button::Top(0)), half(track_colour(0)));
     let fr = s.frame(0, &m);
     assert_eq!(fr.stationary[2], "Track 2 D2", "{:?}", fr.stationary);
     assert!(fr.popup.is_some_and(|p| p.fields[2] == "2 D2"));
@@ -1023,10 +1023,10 @@ fn shift_shows_the_modes_and_the_active_mode_pulses_orange() {
     // the active mode pulses orange (dim at the start of the cycle, full at half)
     let lo = led(&s, Button::Bottom(0), 0);
     let hi = led(&s, Button::Bottom(0), PULSE_MS / 2);
-    assert_eq!(hi, MODE_ACTIVE);
+    assert_eq!(hi, vdrum_surface::spec::builtin().named("mode_active"));
     assert!(lo.0 < hi.0, "{lo:?} {hi:?}");
     // the other modes are dim white, the empty slots off
-    assert_eq!(led(&s, Button::Top(0), 0), MODE_OTHER);
+    assert_eq!(led(&s, Button::Top(0), 0), vdrum_surface::spec::builtin().named("mode_other"));
     assert_eq!(led(&s, Button::Bottom(4), 0), (0, 0, 0), "slot 13 is empty");
     release(&mut s, &m, Button::Shift, 0);
     assert_eq!(led(&s, Button::Bottom(0), 0), before, "without Shift the mode's own LEDs");

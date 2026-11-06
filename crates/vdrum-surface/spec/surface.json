@@ -1,6 +1,6 @@
 {
   "format": "vdrum-surface-spec",
-  "version": 1,
+  "version": 2,
   "modes": [
     {"mode": "voice:0", "slot": 1, "name": "Drum 1", "layout": "drum-1"},
     {"mode": "voice:1", "slot": 2, "name": "Drum 2", "layout": "drum-2"},
@@ -704,6 +704,94 @@
       {"control": "K26", "label": "Lock Pan", "section": "step", "do": "lock_target", "arg": 5},
       {"control": "K27", "label": "Lock S.rate", "section": "step", "do": "lock_target", "arg": 6},
       {"control": "K28", "label": "Lock FX send", "section": "step", "do": "lock_target", "arg": 7}
+    ]
+  },
+  "navigation": [
+    {"button": "shift", "when": [], "press": [{"do": "shift"}], "release": [{"do": "shift"}], "note": "Shift follows the button"},
+    {"button": "solo_arm", "when": ["shift"], "press": [{"do": "toggle_sticky"}], "release": [], "note": "Shift + Solo/Arm: the sequencer view stays on across mode changes"},
+    {"button": "top", "when": ["shift"], "press": [{"do": "mode_slot", "arg": 1}], "note": "Shift + top N: mode slot N"},
+    {"button": "bottom", "when": ["shift"], "press": [{"do": "mode_slot", "arg": 9}], "note": "Shift + bottom N: mode slot 8 + N"},
+    {"button": "top", "when": ["seq_view"], "press": [{"do": "seq_button", "arg": 0}], "release": [{"do": "seq_button", "arg": 0}], "note": "Sequencer view: steps 1 to 8"},
+    {"button": "bottom", "when": ["seq_view"], "press": [{"do": "seq_button", "arg": 8}], "release": [{"do": "seq_button", "arg": 8}], "note": "Sequencer view: steps 9 to 16"},
+    {"button": "track_left", "when": ["seq_view", "held:record"], "press": [{"do": "clear_seq_track"}], "release": [], "note": "Record + Track: clear the selected track"},
+    {"button": "track_left", "when": ["seq_view"], "press": [{"do": "seq_track_step", "arg": -1}], "release": [], "note": "Sequencer view: select the track"},
+    {"button": "track_left", "when": [], "press": [], "release": []},
+    {"button": "track_right", "when": ["seq_view", "held:record"], "press": [{"do": "clear_seq_track"}], "release": [], "note": "Record + Track: clear the selected track"},
+    {"button": "track_right", "when": ["seq_view"], "press": [{"do": "seq_track_step", "arg": 1}], "release": [], "note": "Sequencer view: select the track"},
+    {"button": "track_right", "when": [], "press": [], "release": []},
+    {"button": "logo", "when": [], "press": [{"do": "previous_mode"}], "release": [], "note": "Back to the previous mode"},
+    {"button": "solo_arm", "when": ["mode:sequencer"], "press": [{"do": "message", "arg": ["Sequencer view", "always on", "in mode 8"]}], "release": []},
+    {"button": "solo_arm", "when": [], "press": [{"do": "toggle_seq_view"}], "release": [], "note": "Solo/Arm: sequencer view on/off"},
+    {"button": "mute_select", "when": ["seq_view"], "press": [{"do": "layer_begin"}, {"do": "message", "arg": ["Sequencer", "Patterns", "patterns 1 to 16"]}], "release": [{"do": "mode_unless_layer_used", "arg": "perform"}], "note": "Pattern layer while held"},
+    {"button": "mute_select", "when": [], "press": [{"do": "mode", "arg": "perform"}], "release": [], "note": "Perform"},
+    {"button": "page_up", "when": ["shift"], "press": [{"do": "kit_browse", "arg": -1}], "release": [], "note": "Shift + Page: browse kits, Play loads"},
+    {"button": "page_up", "when": ["seq_view"], "press": [{"do": "seq_bar_step", "arg": -1}], "release": [], "note": "Sequencer view: bar"},
+    {"button": "page_up", "when": [], "press": [], "release": []},
+    {"button": "page_down", "when": ["shift"], "press": [{"do": "kit_browse", "arg": 1}], "release": [], "note": "Shift + Page: browse kits, Play loads"},
+    {"button": "page_down", "when": ["seq_view"], "press": [{"do": "seq_bar_step", "arg": 1}], "release": [], "note": "Sequencer view: bar"},
+    {"button": "page_down", "when": [], "press": [], "release": []},
+    {"button": "record", "when": [], "press": [{"do": "message", "arg": ["Clear", "hold +", "step / Track < >"]}], "release": []},
+    {"button": "play", "when": [], "press": [{"do": "play"}], "release": []},
+    {"button": "top", "when": [], "press": [{"do": "cell"}], "release": [{"do": "cell"}], "note": "The mode's cell"},
+    {"button": "bottom", "when": [], "press": [{"do": "cell"}], "release": [{"do": "cell"}], "note": "The mode's cell"}
+  ],
+  "leds": [
+    {"button": "logo", "rules": [{"when": [], "colour": "nav"}]},
+    {"button": "mute_select", "rules": [{"when": [], "colour": "nav"}]},
+    {"button": "solo_arm", "rules": [{"when": ["sticky"], "colour": "mode_active"}, {"when": ["seq_view"], "colour": "white"}, {"when": [], "colour": "nav"}]},
+    {"button": "track_left", "rules": [{"when": ["seq_view", "!seq_track_first"], "colour": "nav"}]},
+    {"button": "track_right", "rules": [{"when": ["seq_view", "!seq_track_last"], "colour": "nav"}]},
+    {"button": "record", "rules": [{"when": ["seq_view", "held:record"], "colour": "record_held"}, {"when": ["seq_view"], "colour": "record_ready"}]},
+    {"button": "page_up", "rules": [{"when": ["shift"], "colour": "nav"}, {"when": ["seq_view", "!seq_bar_first"], "colour": "nav"}]},
+    {"button": "page_down", "rules": [{"when": ["shift"], "colour": "nav"}, {"when": ["seq_view", "!seq_bar_last"], "colour": "nav"}]},
+    {"button": "play", "rules": [{"when": ["seq_silent"], "colour": "play_silent"}, {"when": ["seq_running"], "colour": "play_running"}, {"when": ["mode:sequencer", "host_clock"], "colour": "off"}, {"when": ["mode:sequencer"], "colour": "play_ready"}, {"when": [], "colour": "mode_pad"}]}
+  ],
+  "slot_leds": {"when": ["shift"]},
+  "screen": [
+    {"when": ["mode:sequencer"], "lines": ["{mode_slot} {mode_name}", "P{pattern} bar {bar}/4{next_pattern}{silent}", "Track {seq_track_number} {seq_track_name}"]},
+    {"when": [], "lines": ["{mode_slot} {mode_name}", "{kit}", "{last_touched}"]}
+  ],
+  "palette": {
+    "sections": [
+      ["osc", [244, 162, 89]],
+      ["amp", [91, 186, 111]],
+      ["mod", [242, 208, 75]],
+      ["fm", [171, 130, 222]],
+      ["trans", [232, 106, 166]],
+      ["filter", [95, 165, 230]],
+      ["lfo", [53, 201, 194]],
+      ["velo", [214, 172, 128]],
+      ["mix", [190, 198, 210]],
+      ["fx", [238, 99, 82]],
+      ["moment", [255, 196, 64]],
+      ["seq", [140, 220, 120]],
+      ["step", [250, 240, 150]],
+      ["macro", [200, 150, 255]],
+      ["global", [150, 160, 185]],
+      ["device", [120, 130, 150]],
+      ["edit", [180, 190, 205]],
+      ["nav", [70, 76, 88]],
+      ["spare", [0, 0, 0]]
+    ],
+    "tracks": [
+      [255, 120, 90],
+      [255, 170, 70],
+      [240, 215, 80],
+      [120, 210, 110],
+      [80, 200, 220],
+      [110, 150, 255],
+      [170, 120, 255]
+    ],
+    "named": [
+      ["off", [0, 0, 0]],
+      ["white", [255, 255, 255]],
+      ["mode_active", [255, 80, 0]],
+      ["mode_other", [40, 40, 40]],
+      ["record_ready", [64, 0, 0]],
+      ["record_held", [255, 0, 0]],
+      ["play_silent", [255, 0, 0]],
+      ["play_running", [0, 255, 0]],
+      ["play_ready", [0, 64, 0]]
     ]
   }
 }

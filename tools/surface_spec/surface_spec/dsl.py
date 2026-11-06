@@ -103,9 +103,14 @@ class Surface:
     """The whole spec: modes in slots, their layouts, and the overlays."""
 
     def __init__(self):
+        from .rules import Leds, Navigation, Screen
         self.modes = []
         self.layouts = {}
         self.overlays = {}
+        self.navigation = Navigation()
+        self.leds = Leds()
+        self.screen = Screen()
+        self.palette = None
 
     def mode(self, key, slot, name, layout_id, lay):
         if key not in MODE_KEYS:
@@ -123,8 +128,13 @@ class Surface:
     def to_json(self):
         return {
             "format": "vdrum-surface-spec",
-            "version": 1,
+            "version": 2,
             "modes": self.modes,
             "layouts": {k_: v.to_json() for k_, v in self.layouts.items()},
             "overlays": {k_: v.to_json() for k_, v in self.overlays.items()},
+            "navigation": self.navigation.rules,
+            "leds": self.leds.buttons,
+            "slot_leds": {"when": self.leds.slot_leds},
+            "screen": self.screen.rules,
+            "palette": self.palette.to_json() if self.palette else {"sections": [], "tracks": [], "named": []},
         }
