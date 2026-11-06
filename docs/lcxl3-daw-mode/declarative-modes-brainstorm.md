@@ -9,6 +9,9 @@ direction after Sami's answers. Remaining open questions are in 6.6.
 2. A live state diagram generated from the spec is enough for now (no editing in the diagram).
 3. Authoring language: Python.
 4. Simulator platform: the browser.
+5. Browsers: Chrome and Firefox. Browser support is not a constraint (Firefox needs the Web MIDI
+   site permission add-on for the device route).
+6. Migration reproduces today's behaviour exactly (strict parity) before anything changes.
 
 Goal (Sami, 2026-11-06): define the modes, the controls and the mode/state machine of the Launch
 Control XL 3 surface declaratively, so that the workflow can be iterated on quickly, with tooling
@@ -384,7 +387,4 @@ New:
 
 11. Is a local watcher (`python -m surface_spec watch` plus a localhost page) acceptable, or should
     the simulator also work as a hosted page without local tools?
-12. Which browser do you use? Web MIDI to the device works in Chrome and Edge, needs an add-on in
-    Firefox, and does not exist in Safari.
-13. Should the existing modes be reproduced exactly first (parity), or may the migration change
-    behaviour where explicit layer priorities expose current quirks?
+Answered: browser (Chrome and Firefox) and parity (reproduce exactly); see Decisions.
