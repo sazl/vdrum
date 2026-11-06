@@ -408,7 +408,7 @@ All questions of section 5 are answered (Decisions 7 to 12).
 - Dimensions: panel 250 x 239 mm (user guide v1, "Weight and Dimensions"); fader throw 60 mm (same
   page). Positions measured from Novation's top-view render, which is to scale within 0.1 %
   (0.1575 mm/px in x and y). Expected error about 0.5 mm. Column pitch 24.1 mm, encoder row pitch
-  30.4 mm and 30.6 mm, knob cap 11.0 mm, fader cap 17.8 x 8.5 mm.
+  30.5 mm and 30.6 mm, knob cap 11.0 mm, fader cap 17.8 x 8.5 mm.
 - SVG structure: each control is `<g id="ctl-KEY" data-control="KEY" data-kind=...>` (59
   controls), each LED has `id="led-KEY" class="led"` (49 LEDs: 24 encoders, 16 buttons, Solo/Arm,
   Mute/Select, Novation button, Page up/down, Track left/right, Record, Play). Shift and Mode have
