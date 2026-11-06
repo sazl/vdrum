@@ -573,7 +573,7 @@ mod tests {
     fn param_id_list_is_current() {
         let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../tools/surface_spec/surface_spec/param_ids.json");
         let file = std::fs::read_to_string(path).expect("param_ids.json");
-        assert_eq!(file.trim_end(), param_ids_json(), "run: cargo run -q -p vdrum-surface --example param_ids > tools/surface_spec/surface_spec/param_ids.json");
+        assert_eq!(file.replace("\r\n", "\n").trim_end(), param_ids_json(), "run: cargo run -q -p vdrum-surface --example param_ids > tools/surface_spec/surface_spec/param_ids.json");
     }
 
     #[test]

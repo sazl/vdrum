@@ -1,0 +1,5 @@
+# Generated surface files are compared byte for byte by `run.py check` and the Rust tests.
+crates/vdrum-surface/spec/surface.json text eol=lf
+crates/vdrum-sim/scenarios.json text eol=lf
+tools/surface_spec/surface_spec/param_ids.json text eol=lf
+docs/lcxl3-daw-mode/generated/** text eol=lf
