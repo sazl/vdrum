@@ -85,6 +85,10 @@ Columns follow the LXR-02's menu pages (Oscillator, Amp EG, Pitch mod EG or meta
 
 Every parameter of the voice is on its page. Checked with a script against `lxr-params` plus the proposed open hi-hat IDs: 37 of 37 for drums 1 to 3 and cymbal, 36 of 36 for the snare and for each hi-hat, no duplicates.
 
+> The layouts below are the design as written; the layouts the plugin runs are generated from the
+> surface spec into [generated/control-tables.md](generated/control-tables.md) (with an image per mode)
+> and [generated/navigation.md](generated/navigation.md).
+
 ### Mode 1: Drum 1
 
 ![Mode 1: Drum 1](images/mode-01-drum-1.png)

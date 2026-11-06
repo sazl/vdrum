@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 """Surface spec tool.
 
-    python3 tools/surface_spec/run.py build          build surface/ into crates/vdrum-surface/spec/surface.json
-                                                    and crates/vdrum-sim/scenarios.json
+    python3 tools/surface_spec/run.py build          build surface/ into crates/vdrum-surface/spec/surface.json,
+                                                    crates/vdrum-sim/scenarios.json and docs/lcxl3-daw-mode/generated/
     python3 tools/surface_spec/run.py check          fail if a built file is missing changes or the spec has errors
     python3 tools/surface_spec/run.py watch          rebuild whenever a file in surface/ changes
     python3 tools/surface_spec/run.py serve [PORT] [--source DIR --out DIR]
                                                     simulator page at http://localhost:PORT (8737), rebuilt and
                                                     reloaded on every save
     python3 tools/surface_spec/run.py bundle DIR     the simulator page as static files (hosting)
-    python3 tools/surface_spec/run.py docs           write the generated docs (mode images, control tables,
-                                                    navigation diagram) into docs/lcxl3-daw-mode/generated/
     python3 tools/surface_spec/run.py svg OUT.svg [--demo]   draw the device
 """
 
@@ -43,6 +41,9 @@ def outputs():
     if not errors:
         files[PATHS["spec"]] = b.dumps(spec)
         files[PATHS["scenarios"]] = b.dumps_scenarios(scs)
+        if PATHS["source"] == b.SOURCE_DIR:
+            from surface_spec import docs
+            files.update(docs.outputs(spec))
     return spec, scs, errors, files
 
 
@@ -64,6 +65,7 @@ def cmd_build(write=True, quiet=False):
                         continue
             except FileNotFoundError:
                 pass
+            os.makedirs(os.path.dirname(path), exist_ok=True)
             with open(path, "w") as fh:
                 fh.write(text)
         if not quiet:
@@ -231,9 +233,6 @@ def main(argv):
         return cmd_serve(port)
     if c == "bundle" and len(argv) > 2:
         return cmd_bundle(argv[2])
-    if c == "docs":
-        from surface_spec import docs
-        return docs.write_all()
     if c == "svg":
         from surface_spec import device_svg
         st = device_svg.demo_state() if "--demo" in argv else {}

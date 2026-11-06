@@ -233,17 +233,18 @@ def mermaid(spec):
     out.append("  }")
     out += ["  state SeqView {", "    sv_off: off", "    sv_on: on", "    sv_sticky: sticky", "  }"]
     out += ["  state ShiftKey {", "    sh_up: up", "    sh_down: held", "  }"]
-    edges = []
+    edges, notes = [], []
     for r in spec.get("navigation", []):
         for ev in ("press", "release"):
             for st in r.get(ev) or []:
                 d, arg = st["do"], st.get("arg")
                 if d == "mode_slot":
-                    edges.append(f"  Mode --> Mode: {label(r, ev)} (slot {arg} + column)")
+                    notes.append(f"{label(r, ev)}: the mode in slot {arg} + column")
                 elif d in ("mode", "mode_unless_layer_used"):
-                    edges.append(f"  Mode --> {sid(arg)}: {label(r, ev)}")
+                    extra = " unless the layer was used" if d == "mode_unless_layer_used" else ""
+                    notes.append(f"{label(r, ev)}: {names[arg][1]}{extra}")
                 elif d == "previous_mode":
-                    edges.append(f"  Mode --> Mode: {label(r, ev)} (previous)")
+                    notes.append(f"{label(r, ev)}: the previous mode")
                 elif d == "toggle_seq_view":
                     edges.append(f"  sv_off --> sv_on: {label(r, ev)}")
                     edges.append(f"  sv_on --> sv_off: {label(r, ev)}")
@@ -258,4 +259,9 @@ def mermaid(spec):
         if e not in seen:
             seen.add(e)
             out.append(e)
+    if notes:
+        out.append("  note right of Mode")
+        for n in dict.fromkeys(notes):
+            out.append("    " + n)
+        out.append("  end note")
     return "\n".join(out) + "\n"

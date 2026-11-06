@@ -162,6 +162,20 @@ def draw(state=None):
                 g.append(text(tx, ty, c["text"], 2.4, 500))
         g.append("</g>")
         out.append("".join(g))
+    # Labels (generated mode images): text under each control, in its section colour.
+    for c in hw.controls():
+        lab = state.get("labels", {}).get(c["key"])
+        if not lab:
+            continue
+        s_, rgb = lab
+        col = "#%02x%02x%02x" % tuple(int(v * 0.55 + 255 * 0.45) for v in rgb)
+        if c["kind"] == "encoder":
+            x, y = c["x"], c["led"]["y"] + 2.6
+        elif c["kind"] == "fader":
+            x, y = c["x"], hw.FADER["slot_y1"] + 2.4
+        else:
+            x, y = (c["x0"] + c["x1"]) / 2, c["y1"] - 1.3
+        out.append(text(x, y, s_ if len(s_) <= 12 else s_[:11] + "…", 1.75, 500, fill=col, extra='class="cell-label"'))
     out.append("</svg>")
     return "\n".join(out)
 

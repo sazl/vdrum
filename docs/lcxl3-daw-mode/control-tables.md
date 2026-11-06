@@ -1,5 +1,9 @@
 # Control tables
 
+> Superseded (2026-11-06): the current tables, generated from the surface spec, are in
+> [generated/control-tables.md](generated/control-tables.md), with one image per mode. This file was
+> generated from the former source/layout.py and is kept for its notes.
+
 The same mappings as the images, as text. \[cycle\] steps through a list, \[on/off\] latches, \[hold\] acts while held, \[press\] acts once. Identifiers are lxr-params IDs (host parameter IDs) or plugin IDs; (new) marks an ID that was new in the design (open hi-hat voice 7, voice fader 7; added in phase 1). DAW-mode CCs: knob rows 13-20, 21-28, 29-36; faders 5-12; top buttons 37-44; bottom buttons 45-52. Left-hand buttons: [design.md](design.md), "Controls that are the same in every mode" (mode 8 differs, see below). Generated from source/layout.py.
 
 ## Mode 1: Drum 1

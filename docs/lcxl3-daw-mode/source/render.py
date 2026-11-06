@@ -1,3 +1,7 @@
+"""Superseded (2026-11-06): the layouts now come from the surface spec in surface/ (built by
+tools/surface_spec/run.py, which also writes docs/lcxl3-daw-mode/generated/). Kept for the history
+of the design; it is not kept in step with the plugin."""
+
 import sys
 from PIL import Image, ImageDraw, ImageFont, ImageEnhance
 

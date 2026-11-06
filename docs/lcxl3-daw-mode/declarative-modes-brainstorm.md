@@ -1,8 +1,8 @@
 # Brainstorm: declarative LCXL3 modes, surface and state machine
 
 Status: 2026-11-06. Sections 1 to 5 are the original survey; section 6 is the direction after
-Sami's answers; section 7 the device drawing. Step 1 (layouts as a Python spec, exact parity) is
-implemented; how to use it and how to add a behaviour is in `surface-spec.md`.
+Sami's answers; section 7 the device drawing; section 8 what was built. All six steps of 6.5 are
+implemented; how to use them and how to add behaviour is in `surface-spec.md`.
 
 ## Decisions (Sami, 2026-11-06)
 
@@ -390,6 +390,12 @@ Two routes, not exclusive:
 6. **Docs output**: images and `control-tables.md` generated from the spec; `render.py`'s photo
    overlay kept or replaced (question 10).
 
+Built (2026-11-06), with these differences from the plan: no JSON Schema file (the Python
+checks and the Rust loader validate the spec, with errors that name the place); no wasm-bindgen
+(a small C ABI exchanging JSON, so no extra tool is needed); the live diagram in the simulator is
+drawn by the page, and the Mermaid version is in `generated/navigation.md`; step 6 generates SVG
+images from the drawing, and `render.py`'s photo overlay is marked superseded.
+
 ### 6.6 Remaining open questions
 
 From section 5: 5 (scope: LED/screen rules, scripting new behaviour), 7 (sound in the simulator),
@@ -438,3 +444,19 @@ approximate text drawn by the device. Two ways to make the simulator exact:
    bitmap held at a time, an acknowledgement before the next). The simulator then shows the same
    pixels by construction. Costs: VDrum needs a pixel font and a renderer; the device's automatic
    popups would be replaced by VDrum's; bitmap throughput on the device was not measured.
+
+## 8. What was built (2026-11-06)
+
+| Step | Where | Tests |
+|---|---|---|
+| 1. Layouts as a Python spec | `surface/`, `tools/surface_spec/`, `crates/vdrum-surface/src/spec.rs` | loader and catalogue tests; parity with the former tables (removed after the check) |
+| 2. Simulator | `crates/lcxl3/src/emulator.rs` (virtual device), `crates/vdrum-sim` (WebAssembly), `tools/surface_sim/` (page), `run.py serve` | emulator protocol tests; `vdrum-sim` end-to-end tests (MIDI both ways, popups and their timeout, live spec reload, bitmap acknowledgement); browser tests |
+| 3. Statechart | `surface/rules/` (navigation, LEDs, screen, palette), `crates/vdrum-surface/src/rules.rs` | the 40 surface tests unchanged; a differential test against the previous code on 360,000 random inputs (identical) |
+| 4. Scenarios | `surface/scenarios/`, `crates/vdrum-sim/scenarios.json`, `tests/scenarios.rs`, replay in the page | 9 scenarios |
+| 5. Hardware loop | `VDRUM_SURFACE_SPEC` in the plugin; Web MIDI in the page | plugin test of load, reload, broken file; browser test with a mocked MIDI port |
+| 6. Docs output | `docs/lcxl3-daw-mode/generated/` (`control-tables.md` with an image per mode, `navigation.md` with the Mermaid diagram) | `run.py check` fails when they are out of date |
+
+Not verified on hardware: the Web MIDI route and the plugin hot reload with a real LCXL3 (both use
+the same messages as the plugin's controller, which is in use); the items listed in section 7 and
+in `surface-spec.md`, "The simulator". Browser tests ran on Chromium only (Firefox is not
+installed in the build environment).
