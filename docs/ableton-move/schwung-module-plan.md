@@ -1,35 +1,42 @@
 # VDrum as a Schwung module on Ableton Move: implementation plan
 
-Status: brainstorm, revision 1 (2026-11-09). Nothing here is implemented except the feasibility
-check in section 4. This plan is route M3 ("VDrum running on the Move") of
+Status: plan, revision 2 (2026-11-09). Nothing is implemented except the feasibility check in
+section 4. This is route M3 ("VDrum running on the Move") of
 [mapping-brainstorm.md](mapping-brainstorm.md) (in PR #27). The control mapping itself is in that
 document and is not repeated here.
+
+## 0. Decisions (Sami, 2026-11-09)
+
+| # | Question | Decision |
+|---|---|---|
+| 1 | Device | Sami has a Move with Schwung **1.9.2**. The Schwung source read for this plan is commit `673e67a`, which is the `v1.9.2` tag. |
+| 2 | Module form | VDrum runs next to stock Move as a Schwung **takeover (overtake) module**: it owns the whole surface while on screen, and Move keeps running underneath. The chain sound generator form of revision 1 is dropped. |
+| 3 | MIDI notes | Left to this plan. Decision: keep the desktop plugin's defaults, General MIDI drum notes on channel 1: 36, 45, 50, 38, 49, 42, 46 for tracks 1 to 7 (`DEFAULT_TRACK_NOTES` in `plugin/src/params.rs`). In takeover mode the pads arrive as pad ids, not notes, so this map applies only to external MIDI on USB-A. |
+| 4 | Sequencer | VDrum owns the sequencer (its own clock, tempo, patterns), as on the LCXL3. |
+| 5 | Aux output (DAC2) | Ignored for now: summed into the stereo output. |
+| 6 | Code location | A separate crate, `crates/vdrum-move`, independent of `vdrum-surface` and of the surface library of PR #27. |
+| 7 | Distribution | Sami's own use only. No catalog entry. |
 
 ## 1. Summary
 
 - VDrum's engine fits Schwung's audio contract without resampling: both run at 44100 Hz with int16
-  stereo output. One Move block (128 frames) is exactly two engine ticks (64 frames each).
-- `lxr-core` builds for `aarch64-unknown-linux-gnu` unchanged. Under qemu it reproduces all 299
-  kit-free reference scenarios of firmware v1.71 bit for bit (section 4). Speed on the Move's CPU
-  is not measured yet.
-- Schwung offers two places for a module with native DSP. Both are useful for VDrum:
-  - **Chain sound generator** (`component_type: "sound_generator"`): VDrum is an instrument in one
-    of Schwung's shadow slots, next to stock Move. Move's own drum track and sequencer play it;
-    parameters appear in the Shadow UI.
-  - **Overtake tool with DSP** (`component_type: "tool"`, `tool_config.overtake: true`, `dsp.so`):
-    VDrum takes the whole surface (pads, steps, encoders, LEDs, display) and runs its own
-    sequencer and modes, as with the LCXL3.
-- Recommendation: one Rust `cdylib` that implements the Schwung C ABI, shipped first as a chain
-  sound generator (smaller, tests the engine on the device), then as an overtake tool with the
-  full VDrum surface. Phases and exit criteria are in section 8.
+  stereo output, and one Move block (128 frames) is exactly two engine ticks (64 frames each).
+- `lxr-core` builds for `aarch64-unknown-linux-gnu` unchanged and, under qemu, reproduces all 299
+  kit-free reference scenarios of firmware v1.71 bit for bit (section 4). Render time on the
+  Move's CPU is not measured yet.
+- Form: a Schwung module with `component_type: "overtake"`, a Rust `dsp.so` (engine, sequencer,
+  Move surface logic) and a thin `ui.js` (forwards controls the DSP cannot see, draws LEDs and the
+  display). `suspend_keeps_js` keeps VDrum playing while the user is back in Move.
+- Order: device measurements and a minimal Rust module first (phase 0), then engine and sequencer
+  on the device with a minimal surface, then the full mapping (section 8).
 
 ## 2. Sources
 
 | Source | What was read |
 |---|---|
-| Schwung repository, commit `673e67a` (2026-11-05), release 1.9.2 in `module-catalog.json` | `README.md`, `docs/ARCHITECTURE.md` (first 200 lines), `docs/API.md` (display, host functions, overtake, audio), `docs/MODULES.md` (module structure, `module.json`, capabilities, tool config, Remote UI for overtake tools, threading, `split_voices`, building, parameter hierarchy, voices, overtake modules), `src/host/plugin_api_v1.h` (whole file), `src/schwung_shim.c` (overtake DSP render and MIDI delivery), `Dockerfile`, `BUILDING.md` (grep only), `src/modules/tools/seq-test/module.json`, `src/modules/overtake/rnbo-runner/module.json`. |
-| Ableton Move manual | Not re-read for this plan; hardware facts come from mapping-brainstorm.md section 1. |
-| VDrum `main` @ `b170272` | `docs/ARCHITECTURE.md`, `plugin/src/engine.rs`, `plugin/src/pipeline.rs`, `plugin/src/fp.rs`, `plugin/src/real_engine_tests.rs`, `crates/lxr-core` tests. |
+| Schwung `v1.9.2` (commit `673e67a`, 2026-11-05) | `README.md`, `docs/ARCHITECTURE.md` (first 200 lines), `docs/API.md` (display, host functions, overtake, audio), `docs/MODULES.md` (module structure, `module.json`, capabilities, tool config, Remote UI for overtake tools, threading, `split_voices`, building, voices, overtake modules), `src/host/plugin_api_v1.h` (whole file), `src/schwung_shim.c` (overtake DSP load, render, MIDI delivery, `overtake_midi_send_internal`), `src/shadow/shadow_ui.js` (`loadOvertakeModule` and the `host_module_*` shims), `Dockerfile`, `src/modules/tools/seq-test/module.json`, `src/modules/overtake/rnbo-runner/module.json`. |
+| Ableton Move manual | Not re-read; hardware facts come from mapping-brainstorm.md section 1. |
+| VDrum `main` @ `b170272` | `docs/ARCHITECTURE.md`, `plugin/src/{engine,pipeline,fp,params,real_engine_tests}.rs`, `crates/lxr-core` tests, `crates/vdrum-surface/src/seq.rs`. |
 
 Claims marked "unverified" were not checked against source or hardware.
 
@@ -37,20 +44,21 @@ Claims marked "unverified" were not checked against source or hardware.
 
 ### 3.1 Process and thread model
 
-- Schwung is an `LD_PRELOAD` shim (`schwung-shim.so`) inside Ableton's `MoveOriginal` process. It
-  runs slot DSP and overtake DSP **in that process**, on the SPI audio callback.
-- UI code (`ui.js`) runs in a separate QuickJS process (`shadow_ui`). It talks to the DSP through
-  `host_module_set_param` / `host_module_get_param` (string key, string value).
-- `plugin_api_v1.h`: "THERE IS NO CONTROL THREAD." `create_instance`, `destroy_instance`,
-  `set_param`, `get_param`, `on_midi` and `render_block` all run on the SPI callback (SCHED_FIFO 70,
-  core 3, about 2370 µs of slack per 128-frame block, shared with Move and all other modules).
-  Exception: when a module is loaded into a chain slot, `dlopen`, `create_instance` and the
-  state-restoring `set_param` run on a SCHED_OTHER loader thread; the header still asks that
-  create time stay free of the forbidden operations.
+- Schwung is an `LD_PRELOAD` shim (`schwung-shim.so`) inside Ableton's `MoveOriginal` process. An
+  overtake module's `dsp.so` is loaded **into that process** and rendered on the SPI audio
+  callback.
+- `ui.js` runs in a separate QuickJS process (`shadow_ui`) at about 60 ticks per second. It talks to
+  the DSP through `host_module_set_param` / `host_module_get_param` (string key, string value),
+  which the host routes to the DSP with the prefix `overtake_dsp:`.
+- `plugin_api_v1.h`: "THERE IS NO CONTROL THREAD." `set_param`, `get_param`, `on_midi` and
+  `render_block` run on the SPI callback (SCHED_FIFO 70, core 3, about 2370 µs of slack per
+  128-frame block, shared with Move and all other modules).
+- For an overtake DSP, `dlopen` and `create_instance` run on the shim's worker thread
+  (`overtake_dsp_load_body` in `schwung_shim.c`), not on the callback. Allocating the engine in
+  `create_instance` is therefore possible; the header still asks that create time be short.
 - Forbidden on the callback: file I/O, allocation and free, locks shared with non-RT threads,
   logging (including `fprintf(stderr)`), unbounded work. A violation causes a device-wide dropout.
-- Worker threads inherit SCHED_FIFO 70 and must demote themselves to SCHED_OTHER and pin to cores
-  0 to 2 as their first action.
+- Threads created by the module must demote themselves to SCHED_OTHER and pin to cores 0 to 2.
 
 ### 3.2 The C ABI (`plugin_api_v2_t`)
 
@@ -66,34 +74,28 @@ struct plugin_api_v2 {
     int   (*get_error)(void *inst, char *buf, int buf_len);
     void  (*render_block)(void *inst, int16_t *out_lr, int frames);  /* overwrites, 128 frames */
 };
-/* Optional, dlsym'd: per-voice output for chain buses. Accumulates, buffers alias. */
-void move_plugin_render_split(void *inst, int16_t *const *voice_out, int n_voices,
-                              int16_t *main_out, int frames);
 ```
 
-`host_api_v1_t` gives, among others: `sample_rate`, `frames_per_block`, `midi_send_internal`,
-`midi_send_external`, `get_clock_status`, `get_bpm`, `get_beat_position` (may be NULL on older
-hosts). The header warns that modules must not extend either struct; new capabilities are
-`dlsym`'d exports.
+The overtake host fills `host_api_v1_t` with `sample_rate`, `frames_per_block`, `log`,
+`midi_send_internal`, `midi_send_external`, `get_bpm`, `get_beat_position` and
+`midi_inject_to_move` (`overtake_dsp_load_body`). Modules must not extend either struct; the
+8-pointer reserved tail must start at offset 120.
 
-### 3.3 The two module kinds that can carry VDrum
+### 3.3 What an overtake module with DSP can and cannot do
 
-| | Chain sound generator | Overtake tool with DSP |
+| Topic | Fact | Source |
 |---|---|---|
-| `module.json` | `component_type: "sound_generator"`, `api_version: 2` | `component_type: "tool"`, `tool_config: {interactive, skip_file_browser, overtake: true}`, `dsp: "dsp.so"` (pattern of `seq-test`) |
-| Install path | `modules/sound_generators/<id>/dsp.so` (the chain host ignores `module.json`'s `dsp`) | `modules/<tool path>/<id>/` (exact path for tools unverified) |
-| MIDI input | The Move **track's** output: notes as the track plays them (a drum track starts at note 36), on the slot's channel. Not pad ids. | Cable-0 note on/off with note ≥ 10 (pads 68 to 99, steps 16 to 31) reach `on_midi` on the audio thread (`schwung_shim.c`). CCs (encoders, buttons, wheel) go to `ui.js` only. |
-| Surface | Shadow UI draws pages from `get_param("ui_hierarchy")`; knobs 1 to 8 map to parameters. | The module owns display and all LEDs. Shift + Volume touch + wheel click always exits. |
-| Audio | Through the slot's chain (MIDI FX, audio FX, buses, Master FX). | Mixed into Schwung's output after the slots (`shadow_deferred_dsp_buffer`), saturating int16 add. |
-| Keeps running in background | Yes (it is a slot). | Only with `capabilities.suspend_keeps_js` (Back suspends, Shift + Back exits). |
-| Coexists with Move | Fully. | Move keeps running underneath; `button_passthrough` can hand buttons such as Play back to Move. |
-
-### 3.4 Surface limits in overtake mode
-
-- The MIDI output buffer holds about 64 USB-MIDI packets per frame, shared with Move. The docs
-  recommend queueing LED changes and sending about 8 per `tick()` (about 60 ticks per second).
-- The display is 128 × 64, 1 bit. `ui.js` draws with `print`, `fill_rect`, `draw_line`,
-  `draw_arc`, `draw_image` and so on; each JS→C binding call costs about 490 ns (API.md).
+| Declaring it | `component_type: "overtake"`, `ui: "ui.js"`, `dsp: "dsp.so"`, `api_version: 2`. `loadOvertakeModule` loads `basePath + "/" + dsp` before the JS. | `shadow_ui.js` |
+| Pads and steps | Cable-0 note on/off with note ≥ 10 (pads 68 to 99, steps 16 to 31) reach the DSP's `on_midi` on the audio thread. | `schwung_shim.c` |
+| Encoders, buttons, wheel, pad pressure | Not delivered to the DSP. They reach `ui.js` (`onMidiMessageInternal`). Polyphonic aftertouch is not in the DSP's note filter, so it reaches only `ui.js` (unverified on hardware). | `schwung_shim.c`, `API.md` |
+| LEDs | Must be sent from `ui.js` (`setLED`, `setButtonLED`). The DSP's `midi_send_internal` goes to Schwung's chain slots (`shadow_chain_dispatch_midi_to_slots`), **not** to the hardware. The output buffer holds about 64 packets per frame, shared with Move; the docs recommend about 8 LED sends per tick. | `schwung_shim.c`, `API.md` |
+| Display | Drawn by `ui.js`: `clear_screen`, `print`, `fill_rect`, `draw_line`, `draw_arc`, `draw_image`, `set_font`, … About 490 ns per JS→C call. | `API.md` |
+| JS→DSP transport | `host_module_set_param` is fire-and-forget through one shared-memory slot; the host's own comment says it "can lose params when multiple rapid writes hit the single shared-memory slot". Alternatives: `host_module_set_param_blocking` (waits, 500 ms default timeout) and the bulk `host_module_set_params(blob)` / `host_module_get_params(blob)` (one round trip for many keys). | `shadow_ui.js` |
+| Files | `ui.js` has `host_read_file`, `host_write_file`, `host_ensure_dir`, `host_file_exists`. | `API.md`, `shadow_ui.js` |
+| Audio | The DSP's output is added (saturating int16) to Schwung's output after the slots. | `schwung_shim.c` |
+| Background | `capabilities.suspend_keeps_js`: Back suspends the UI and the DSP keeps rendering; Shift + Back exits. `onResume()` is called on return; LEDs must then be repainted. | `MODULES.md` |
+| Escape | Shift + Volume touch + wheel click always exits; the module must not use that combination. | `API.md` |
+| Move's Play | Overtake modules receive all buttons. `button_passthrough: [85]` would hand Play back to Move; VDrum does not use it (it owns the sequencer). | `MODULES.md` |
 
 ## 4. Feasibility check done for this plan
 
@@ -109,14 +111,13 @@ A scratch program (not committed) ran the scenario corpus `tests/scenarios/` thr
 `cargo test -p lxr-core --release --target aarch64-unknown-linux-gnu` under qemu: all tests pass
 (12 unit, 9 `hat_split`, 3 `vdrum_seq`).
 
-What this shows: the engine is portable to aarch64 and stays bit-exact there, because it uses
-`crate::fpu` for fused operations and its own libm. What it does not show: the render time on the
-Move's Cortex-A72, the worst case (the corpus mean includes quiet passages), and the Move process's
-floating-point control state.
+This shows that the engine is portable to aarch64 and stays bit-exact there (it uses `crate::fpu`
+for fused operations and its own libm). It does not show the render time on the Move's
+Cortex-A72, the worst case (the corpus mean includes quiet passages), or the floating-point
+control state of Move's audio thread.
 
-At the measured x86 mean, one Move block costs about 56 µs. The A72 figure has to be measured on
-the device (phase 0). If it were 10 times slower, it would be about 560 µs of the 2370 µs that
-everything on the callback shares.
+At the measured x86 mean, one Move block costs about 56 µs. If the A72 were 10 times slower, that
+would be about 560 µs of the 2370 µs that everything on the callback shares. Phase 0 measures it.
 
 The binary built here needs `GLIBC_2.34` (linked against Ubuntu's glibc 2.39). The Move's glibc
 version is unknown (section 7.2).
@@ -125,196 +126,188 @@ version is unknown (section 7.2).
 
 | Topic | VDrum today | On Schwung | Action |
 |---|---|---|---|
-| Sample rate | Engine runs at 44100 Hz (`ENGINE_RATE`); optional 44140.625 Hz with resampling | 44100 Hz fixed | Run at 44100 Hz, no resampler, no `Pipeline` FIFO latency. Drop the "real clock" option on the Move. |
-| Block size | 64-frame ticks | 128-frame blocks | Two `tick()` calls per `render_block`. Events that arrive before a block are applied before its first tick, so event timing has a resolution of one block (128 frames, 2.9 ms), coarser than the hardware's 64-frame ticks. |
-| Format | `i16`, L/R interleaved, DAC1 and DAC2 | `i16` stereo interleaved | Copy DAC1 directly. DAC2 (aux): sum into the stereo output (saturating) or publish it as a second `split_voices` entry (section 6.3). |
-| Flush-to-zero | Must be off (`docs/ARCHITECTURE.md` porting rule 3); `plugin/src/fp.rs` already clears FPCR.FZ on aarch64 | Unknown state on MoveOriginal's audio thread | Wrap every engine call in `IeeeGuard` (move `fp.rs` to a shared crate). |
-| Allocation | `Lxr::new()` allocates (`FX_BUFFER`, pattern set, song data, kit memory); `tick()` does not | Allocation only at create time (on the loader thread for chain slots) | Allocate once in `create_instance`. Measure `Lxr::new()` time and memory on the device. |
-| File I/O | Kit library, pattern and kit files read in the plugin's controller thread | Forbidden on the callback | A demoted worker thread (SCHED_OTHER, cores 0 to 2) loads files and hands the result over through a lock-free single-producer queue; the audio side swaps a pointer. |
-| Threads | nih-plug audio thread plus controller thread | No control thread | The surface state machine (`vdrum-surface`) must run either on the callback (if it is allocation-free) or on the worker. Today it uses `Vec` and `serde_json`, so it runs on the worker in phase 2 unless made allocation-free. |
-| Panics | nih-plug process; a panic is contained by the host only partly | A panic inside MoveOriginal crashes Move, and a crash at slot restore can boot-loop the device (`plugin_api_v1.h`) | Build with `panic = "abort"` is not enough: wrap every `extern "C"` entry in `catch_unwind`, then put the instance into a silent error state reported by `get_error`. Add a test that no entry point can panic on any input. |
-| Transport | Host transport via `SeqEv::HostStart/HostAlign/HostPulse/HostStop` | `get_clock_status`, `get_beat_position`, `get_bpm` | Derive 16th-note pulses from `get_beat_position()` per block, feed the existing `SeqEv::Host*` path. Fallback when `get_beat_position` is NULL: internal clock at `get_bpm()`. |
-| Licence | GPL-3.0-only | Schwung source MIT; the module is a separate `.so` loaded into Ableton's proprietary process | Ship the module's source with each release, as for the plugin builds. Not legal advice. |
+| Sample rate | Engine at 44100 Hz (`ENGINE_RATE`); optional 44140.625 Hz with resampling | 44100 Hz fixed | 44100 Hz, no resampler, no `Pipeline` FIFO. |
+| Block size | 64-frame ticks | 128-frame blocks | Two `tick()` calls per `render_block`. Events are applied before the first tick, so event timing has a resolution of one block (2.9 ms). |
+| Format | `i16` L/R, DAC1 and DAC2 | `i16` stereo | DAC1 + DAC2, saturating sum (decision 5). |
+| Flush-to-zero | Must be off; `plugin/src/fp.rs` clears FPCR.FZ on aarch64 | Unknown on Move's audio thread | Wrap every engine call in the same guard (copied into `vdrum-move`, see 6.1). |
+| Allocation | `Lxr::new()` allocates; `tick()` does not | Allowed in `create_instance` (worker thread), forbidden afterwards | Allocate everything in `create_instance`: engine, sequencer data, event queue, LED and display buffers. |
+| File I/O | Plugin controller thread reads kits and patterns | Forbidden in the DSP's callbacks | File I/O in `ui.js` (`host_read_file`, `host_write_file`) or a demoted Rust worker thread (section 6.5). |
+| Sequencer | Firmware sequencer in `lxr-core`, plus `SeqAux` (step probabilities, densities) in `plugin/src/engine.rs`, plus `vdrum-surface::seq` data | VDrum owns it (decision 4) | Internal clock and tempo. Move's transport is not followed. |
+| Panics | Plugin marks the engine faulted | A panic inside MoveOriginal crashes Move | `catch_unwind` around every `extern "C"` entry, `panic = "abort"` only as the last resort; after a caught panic the instance renders silence and reports it through `get_error`. A fuzz test drives all entry points. |
+| Licence | GPL-3.0-only | Schwung source MIT; the module is a separate `.so` | Own use only (decision 7), so no distribution question for now. |
 
 ## 6. Architecture
 
-### 6.1 Crates and files
+### 6.1 Crate and files
 
 ```
-crates/
-  vdrum-engine/        NEW: Engine trait, LxrEngine, SeqEv, SeqAux, kit/pattern I/O, IeeeGuard
-                       (moved out of plugin/src/{engine,fp,library,lxr_files}.rs; no nih-plug).
-  vdrum-surface/       existing; gains a Move layout (or uses the surface library, if PR #27's plan
-                       is built first).
-  vdrum-schwung/       NEW: cdylib "dsp.so". The Schwung C ABI, the worker thread, the bridge
-                       protocol to ui.js. Depends on vdrum-engine (+ vdrum-surface in phase 2).
-schwung/
-  vdrum/               module folder as installed on the Move
-    module.json        (sound generator) — or a second folder for the overtake tool (6.4)
-    ui.js              thin bridge (overtake tool only)
-    ui_chain.js        optional
-    help.json          optional
-    dsp.so             built artefact, not committed
-scripts/ or xtask      `cargo xtask schwung` → dist/vdrum-module.tar.gz
+crates/vdrum-move/              NEW, independent of vdrum-surface and plugin/
+  Cargo.toml                    crate-type = ["cdylib", "rlib"]; deps: lxr-core, lxr-params
+  src/lib.rs                    exports move_plugin_init_v2
+  src/abi.rs                    #[repr(C)] host_api_v1_t, plugin_api_v2_t; offset assert (120)
+  src/instance.rs               create/destroy, catch_unwind wrappers, fault state
+  src/engine.rs                 Lxr + IEEE guard + two ticks per block + DAC sum
+  src/seq.rs                    sequencer edits and step data the surface needs (see 6.6)
+  src/input.rs                  event queue: pads/steps from on_midi, controls from ui.js
+  src/surface/                  Move modes and mapping (mapping-brainstorm.md section 3)
+    mod.rs  modes.rs  leds.rs  display.rs
+  src/bridge.rs                 set_param/get_param keys, encoding of LED and display frames
+  tests/                        host harness (6.7)
+schwung/vdrum/                  module folder as installed on the Move
+  module.json
+  ui.js                         thin bridge, no mapping logic
+  help.json                     optional
+xtask: `cargo xtask move`       builds dsp.so for aarch64, writes dist/vdrum-module.tar.gz
 ```
 
-`plugin/` keeps using `vdrum-engine`, so the desktop plugin and the Move module share one engine
-wrapper. The move of `engine.rs` out of `plugin/` is a refactor with no behaviour change; the
-existing `real_engine_tests.rs` must still pass.
+`module.json`:
+
+```json
+{
+  "id": "vdrum",
+  "name": "VDrum",
+  "abbrev": "VDRUM",
+  "version": "0.1.0",
+  "component_type": "overtake",
+  "ui": "ui.js",
+  "dsp": "dsp.so",
+  "api_version": 2,
+  "capabilities": { "audio_out": true, "midi_in": true, "aftertouch": true, "suspend_keeps_js": true }
+}
+```
 
 ### 6.2 Data flow
 
 ```
-             MoveOriginal process (shim, SPI callback, core 3)          shadow_ui process (QuickJS)
- pads/steps ─────────────► on_midi ─┐                                   ┌─ onMidiMessageInternal ◄─ encoders,
- (overtake: cable-0 notes ≥ 10;     │                                   │                           buttons, wheel
-  chain: the track's notes)         ▼                                   │
-                            ┌──────────────────┐   set_param("in",…)    │
-                            │ vdrum-schwung    │ ◄──────────────────────┘
-                            │  event ring      │
-                            │  Lxr ×1          │   get_param("leds"/"disp") ──► ui.js: setLED queue,
-                            │  render_block:   │ ─────────────────────────────►        display drawing
-                            │   2 × tick()     │
-                            └───────┬──────────┘
-                                    │ SPSC queues (lock-free, preallocated)
-                            ┌───────▼──────────┐
-                            │ worker thread    │  file I/O (kits, patterns, state), surface model
-                            │ SCHED_OTHER, 0-2 │  in phase 2 if it allocates
-                            └──────────────────┘
+             MoveOriginal process (shim, SPI callback, core 3)        shadow_ui process (QuickJS, ~60 Hz)
+ pads, steps ───────────► on_midi ─┐                               ┌─ onMidiMessageInternal ◄─ encoders, buttons,
+ (cable-0 notes ≥ 10)              │                               │                           wheel, pressure
+                                   ▼                               │
+                       ┌───────────────────────┐  set_params("in") │  one batch per tick
+                       │ vdrum-move dsp.so     │ ◄─────────────────┘
+                       │  input queue          │
+                       │  surface state        │  get_params("leds","disp")
+                       │  sequencer + Lxr      │ ─────────────────────────► ui.js: LED queue (≈8/tick),
+                       │  render_block:        │                            display drawing
+                       │   2 × tick(), sum     │
+                       └───────────────────────┘
 ```
 
-### 6.3 Mode A: chain sound generator (phase 1)
+### 6.3 Input
 
-- **Notes.** The Move drum track sends notes from 36 upwards on the slot's channel. VDrum's
-  per-track MIDI note and channel settings (`tracks_for_note`) already map notes to voices; the
-  module's defaults set voices 1 to 7 to notes 36 to 42 (open question 2) and the channel to the
-  slot's receive channel.
-- **Voices for the Shadow UI.** `get_param("ui_hierarchy")` publishes one level per voice with
-  `note` and `role` (`kick`, `snare`, `hat`, …), so that the Shadow UI follows the pad that is
-  played. Knobs 1 to 8 per page follow bank 1 to 4 of each voice in mapping-brainstorm.md section
-  3.3 (one page per bank). Labels are about 5 characters (MODULES.md "the knob grid has ~5
-  characters"); `lxr_params` names need short forms.
-- **Parameter keys.** One key per LXR parameter, for example `p_<index>`, values as integers in the
-  firmware range. `set_param` pushes the change into the event ring; `get_param` reads a cached
-  `[u8; N]` copy (no formatting work on the callback beyond `itoa`).
-- **State.** `get_param("state")` returns the kit (297-byte VDrum kit file, `lxr_params::kit`) and
-  the pattern set, base64-encoded, under 64 KB. Whether the chain saves it with the Move set, and
-  which key it uses, is to be checked in `docs/CHAIN.md` (not read).
-- **Split outputs.** `split_voices` with two entries, `main` (DAC1) and `aux` (DAC2), lets the
-  user put VDrum's aux output on its own chain bus. True per-voice outputs (7 entries) would need
-  the engine's mixer to render each voice into its own buffer. That is a change to the firmware
-  port's mixer path and is out of scope until asked for.
-- **Internal sequencer.** In this mode Move's sequencer plays VDrum. VDrum's own sequencer stays
-  off by default; it can be enabled and follow Move's transport (section 5, Transport).
+- **Pads and steps** go straight into the DSP's input queue in `on_midi`, on the audio thread, so a
+  pad hit sounds in the next block at the latest.
+- **Everything else** is collected by `ui.js` during a tick and sent once per tick as one batch
+  (`host_module_set_params`, or `host_module_set_param("in", "<hex bytes>")` if the bulk call is not
+  available). Encoder deltas of the same encoder are summed in JS before sending. This avoids the
+  lossy single-slot behaviour of repeated `host_module_set_param` calls (section 3.3).
+- Shift + Volume touch + wheel click is reserved by Schwung and is not mapped.
 
-### 6.4 Mode B: overtake tool (phase 2)
+### 6.4 Output: LEDs and display
 
-- **Input.** Pads and step buttons arrive in the DSP's `on_midi` on the audio thread, so pad-to-
-  sound latency is one block at most. Encoders, buttons and the wheel arrive only in `ui.js`;
-  `ui.js` forwards each raw message unchanged with `host_module_set_param("in", "<b0> <b1> <b2>")`.
-  Pad pressure (polyphonic aftertouch, 0xA0) is not in the shim's note-only filter, so it also
-  arrives through `ui.js` (to be verified on hardware).
-- **Surface logic in Rust.** The Move mapping (mapping-brainstorm.md section 3) is implemented in
-  Rust, either as a Move layout in `vdrum-surface` or, if the generic library from PR #27 is built
-  first, as `devices/ableton-move` plus the VDrum profile. `ui.js` contains no mapping logic.
-- **LEDs.** The surface produces an LED frame (32 pads, 16 steps, 4 track buttons, function
-  buttons, 8 encoder LEDs). The DSP keeps the last sent frame and serves the difference through
-  `get_param("leds")` as a compact string; `ui.js` queues it and sends at most about 8 per tick.
-  Hit flashes therefore reach the pads with up to a few frames of delay; acceptable, but to be
-  checked.
-- **Display.** The surface produces a display list (text lines and value bars), not a bitmap,
-  served by `get_param("disp")` only when it changed. `ui.js` draws it with `print`/`fill_rect`.
-  A 1024-byte bitmap through `draw_image` is the alternative if the display list is too limiting.
-- **Background.** `suspend_keeps_js: true` so that VDrum keeps playing when the user goes back to
-  Move. `button_passthrough` is empty by default (VDrum owns Play).
-- **Two modules or one.** Schwung's `component_type` is one value per `module.json`. Two module
-  folders (`vdrum` as sound generator, `vdrum-perform` as overtake tool) can share one `dsp.so`
-  source. Whether both can run at once with shared state (a tool controlling the instance in a
-  slot) is unverified; the simplest first version is two independent instances.
+- The surface computes a full LED frame each block it changes (32 pads, 16 steps, 4 track
+  buttons, function buttons, encoder LEDs). The DSP keeps the frame `ui.js` last confirmed and
+  serves only the differences from `get_param("leds")`, in priority order (playhead and hit flashes
+  first). `ui.js` sends at most about 8 per tick. On `onResume()` the DSP resets the confirmed frame
+  so that everything is repainted.
+- The display is served as a display list (text lines, value bars, a small inverted header) from
+  `get_param("disp")`, with a revision number so that `ui.js` redraws only on change. A 1-bit
+  bitmap through `draw_image` is the fallback if the list proves too limiting.
+- Both `get_param` answers are formatted into the host's buffer without allocation.
 
-### 6.5 Remote UI (optional, later)
+### 6.5 Files: kits and patterns
 
-Overtake tools can ship `web_ui.html`, served by Schwung Manager on port 7700, reading
-`get_param("state")` and writing `set_param`. VDrum's editor tabs could be reproduced there.
-Not planned in the phases below.
+Two options; to be decided in phase 2:
 
-## 7. Build, packaging and test
+- **In `ui.js`**: JS reads a kit file with `host_read_file` and passes it to the DSP with a
+  blocking `set_param("kit", <hex or base64>)`; saving goes the other way. Simple, but kit parsing
+  (`lxr_params::kit`) then happens on the audio thread inside `set_param` (bounded: 297 bytes).
+- **In a Rust worker thread** (SCHED_OTHER, cores 0 to 2) inside `dsp.so`, with lock-free queues.
+  Needed if loading becomes heavier (folder scans, LXR `.snd`/`.all` imports).
+
+Storage folder on the Move: open (for example `/data/UserData/UserLibrary/VDrum/`; not checked).
+
+### 6.6 What "independent" means for the sequencer and engine wrapper
+
+The sequencer logic VDrum needs beyond the firmware's (`SeqAux`: per-step probability, densities;
+`SeqEv` application) lives in `plugin/src/engine.rs`, and the step and pattern types live in
+`vdrum-surface::seq`. To keep `vdrum-move` independent (decision 6), it gets its own copy of the
+parts it needs, written against `lxr-core` directly. The cost is duplicated code (roughly the
+300 lines of `LxrEngine`/`SeqAux` plus the data types) that can drift from the plugin. The
+alternative is to extract a shared `vdrum-engine` crate from `plugin/`, which touches the plugin.
+Open question 1.
+
+### 6.7 Tests off the device
+
+- A host-side harness (`crates/vdrum-move/tests/`) calls the ABI functions of the x86 build
+  directly (or via `dlopen` of the cdylib) with a fake `host_api_v1_t`, and checks:
+  - output equals `Lxr` direct output for the scenario corpus at 128-frame blocks, summed DACs;
+  - no allocation inside entry points after `create_instance` (counting global allocator that
+    aborts when armed);
+  - no panic and no fault for random input on every entry point (fuzz);
+  - surface behaviour: input sequences produce the expected LED frames and display lists.
+- The same harness for aarch64 runs under qemu in CI.
+- A desktop simulator of `ui.js` is not planned; `ui.js` is kept small enough to test on the device.
+
+## 7. Build, packaging and install
 
 ### 7.1 Build
 
-- Target `aarch64-unknown-linux-gnu`, crate type `cdylib`, output renamed to `dsp.so`.
-- Exported symbols: `move_plugin_init_v2` and, for split outputs, `move_plugin_render_split`.
-  No `move_plugin_init_v1`.
-- C header bindings: hand-written `#[repr(C)]` structs for `host_api_v1_t` (including the 8-pointer
-  reserved tail, `offset_of!(reserved) == 120` asserted at compile time) and `plugin_api_v2_t`.
-- Linker: `aarch64-linux-gnu-gcc` (Debian/Ubuntu package `gcc-aarch64-linux-gnu`), or the Schwung
-  `Dockerfile` (Debian bookworm, glibc 2.36), or `cargo-zigbuild` with an explicit glibc baseline
-  such as `aarch64-unknown-linux-gnu.2.17`.
-- Release profile: `lto`, `codegen-units = 1`, `-C target-cpu=cortex-a72` once the CPU is
-  confirmed (it does not change results: `crate::fpu` controls fused operations).
+- Target `aarch64-unknown-linux-gnu`, `cdylib`, output renamed to `dsp.so`. Only
+  `move_plugin_init_v2` is exported.
+- Linker: `aarch64-linux-gnu-gcc`, the Schwung `Dockerfile` (Debian bookworm, glibc 2.36), or
+  `cargo-zigbuild` with an explicit glibc baseline such as `aarch64-unknown-linux-gnu.2.17`.
+- Release profile: `lto`, `codegen-units = 1`.
 
-### 7.2 Things to check on the device before relying on them
+### 7.2 Checks on the device (phase 0)
 
-1. glibc version: `ldd --version` or `/lib/libc.so.6` over SSH. The build baseline must not exceed it.
-2. CPU: `/proc/cpuinfo` (the manual says quad-core Cortex-A72; clock not stated).
-3. Render time: a debug key `get_param("perf")` returning the mean and max µs per block, measured
-   with `CLOCK_MONOTONIC` in `render_block` (Schwung's shim also measures overtake generator time,
-   `spi_overtake_gen_max`).
+1. glibc version (`ldd --version` over SSH). The build baseline must not exceed it.
+2. CPU and clock (`/proc/cpuinfo`).
+3. Render time: `get_param("perf")` returns mean and max µs per `render_block`
+   (`CLOCK_MONOTONIC`); shown on the display.
 4. FPCR on the audio thread before and after the guard.
-5. Free memory for `Lxr` (size to be measured on x86 first with `size_of` plus heap totals).
+5. Which controls reach `ui.js` and the DSP (encoders, pad pressure, wheel, Loop's CC).
+6. LED behaviour: encoder LEDs, track-button colours, how many LED sends per tick survive.
 
-### 7.3 Packaging and CI
+### 7.3 Install
 
-- `cargo xtask schwung` builds `dsp.so` and writes `dist/vdrum-module.tar.gz`, which extracts to a
-  folder named after the module id (MODULES.md "Publishing to the Module Catalog").
-- GitHub Actions: an aarch64 cross-build job, and a job that runs the scenario corpus check of
-  section 4 under qemu, so that aarch64 bit-exactness is tested on every change. The release
-  workflow attaches the tarball to the GitHub release.
-- Installing: copy the folder to `/data/UserData/schwung/modules/...` over SSH/SFTP and rescan, or
-  install through Schwung Manager from a release URL. Catalog listing is a separate, later decision.
-
-### 7.4 Tests off the device
-
-- A host-side harness that loads `dsp.so` (x86 build) with `dlopen`, fakes `host_api_v1_t`, and
-  drives `on_midi`/`set_param`/`render_block`. It checks: output equals `Lxr` direct output for the
-  scenario corpus at 128-frame blocks; no allocation inside entry points (a counting global
-  allocator that aborts when armed); no panic for random input (fuzz).
-- The same harness built for aarch64 runs under qemu in CI.
+Own use (decision 7): `cargo xtask move` produces `dist/vdrum-module.tar.gz`; it is copied over
+SSH/SFTP to the Move's modules folder (`/data/UserData/schwung/modules/`; exact subfolder for
+overtake modules unverified) and found with a module rescan or a Schwung restart. A GitHub Actions
+job cross-builds `dsp.so` and runs the aarch64 harness under qemu; no release workflow for now.
 
 ## 8. Phases
 
 | Phase | Work | Exit criterion |
 |---|---|---|
-| 0. Device facts | SSH to a Move with Schwung: glibc, CPU, memory. Minimal Rust `dsp.so` that renders a sine and reports `perf`. Then the same with `Lxr` rendering a busy pattern (all 7 voices, FX on). | Rust `cdylib` loads in a slot; max render time per block known. |
-| 1. Engine extraction | Move `engine.rs`, `fp.rs`, kit/pattern file code out of `plugin/` into `crates/vdrum-engine`. | `plugin` tests unchanged and green. |
-| 2. Chain sound generator | `crates/vdrum-schwung` with the v2 ABI, event ring, worker thread, `ui_hierarchy`, `state`, `split_voices` main/aux, transport following. Host harness and qemu CI job. | Move drum track plays VDrum; parameters editable in the Shadow UI; state survives reload; no dropouts at the measured load. |
-| 3. Kit library on the device | Kit folder under `/data/UserData/...` (path open), browse and load through the worker; import of LXR `.kit`/`.lxr` files as the plugin does. | Kits load without audio dropouts. |
-| 4. Overtake tool | Move surface layout in Rust (mapping-brainstorm.md section 3), `ui.js` bridge for CCs, LEDs and display; `suspend_keeps_js`. | All modes of mapping-brainstorm.md usable on the Move; LED and display update rates acceptable on hardware. |
-| 5. Release | Release workflow, README section, optional catalog entry. | Tarball installs on a clean Schwung 1.9.x. |
+| 0. Probe | `vdrum-move` skeleton: ABI, `catch_unwind`, `perf` key; `ui.js` that shows `perf` and logs which controls arrive. First a sine, then `Lxr` playing a busy pattern (all 7 voices, FX on). Sami installs and reports. | Module loads as an overtake module on Schwung 1.9.2; max render time known; control delivery known. |
+| 1. Engine and sequencer | Engine wrapper, sequencer with internal clock, pads play voices, steps edit the selected track, Play starts and stops. Minimal display (mode, tempo, pattern). Host harness and qemu CI job. | VDrum plays patterns on the Move without dropouts; harness green. |
+| 2. Kits and patterns | Load and save kits and patterns (section 6.5), kit browsing on the wheel. Init kit and the plugin's default track notes. | Kits and patterns survive a module exit and reload. |
+| 3. Full surface | All modes of mapping-brainstorm.md section 3: encoder banks on the track buttons, Shift + step modes, held-step locks, Mute, Copy, Delete, Undo, LED and display rules (its section 3.5). Background play with `suspend_keeps_js`. | Every mode usable on the Move; LED update rate acceptable. |
+| 4. Polish | Pad pressure destinations, momentary effects, external MIDI in and out on USB-A, help.json. | As agreed after phase 3. |
 
-Phases 0 and 1 are independent and can run in parallel. Phase 4 depends on the decisions in
-mapping-brainstorm.md section 5 and on whether the surface library (PR #27) is built first.
+Phase 3 depends on the open questions in mapping-brainstorm.md section 5 (Record, Capture, Sample
+buttons; merging Mix + FX with Perform; pad row 4 and pressure).
 
 ## 9. Risks
 
 | Risk | Effect | Mitigation |
 |---|---|---|
-| A72 too slow for the engine plus everything else on the callback | Device-wide dropouts | Phase 0 measures before anything else; the FX bus is the likely heaviest part and can be made optional. |
-| Panic or fault in the module | Crashes Move; possible boot loop if restored into a slot | `catch_unwind` on every entry, fuzzing in CI, fault state that renders silence. |
-| Hidden allocation or blocking (Rust `Vec` growth, `String` formatting, `std::sync::Mutex`) on the callback | Dropouts | Counting allocator test; preallocated buffers; `get_param` formats into the caller's buffer. |
-| Schwung API changes (it is unofficial and says it is "not stable") | Module breaks after a Schwung update | Pin the tested Schwung version in docs; keep the ABI layer in one file. |
-| Ableton firmware updates | Schwung may stop working until updated | Out of VDrum's control; documented as a limitation. |
-| LED bandwidth (about 8 per tick) | Sluggish pad flashes in overtake mode | Diff-based frames, priority to playhead and hit flashes. |
+| A72 too slow for the engine plus everything else on the callback | Device-wide dropouts | Phase 0 measures first; the FX bus is the likely heaviest part. |
+| Panic or fault in the module | Crashes Move | `catch_unwind` on every entry, fuzzing, silent fault state. |
+| Hidden allocation or blocking on the callback (`Vec` growth, `String` formatting, `Mutex`) | Dropouts | Counting allocator test; preallocated buffers; formatting into the host's buffer. |
+| Lost or late control input through the JS bridge | Missed button presses, jumpy encoders | One batch per tick; encoder deltas summed; measure in phase 0. |
+| LED bandwidth (about 8 per tick) | Sluggish pad flashes | Diff-based frames with priorities. |
+| Schwung changes (unofficial, "not stable") or Ableton firmware updates | Module or Schwung stops working | Pin Schwung 1.9.2 in the docs; keep the ABI layer in one file. |
+| Duplicated engine wrapper drifts from the plugin (6.6) | Different sequencer behaviour on desktop and Move | Port the plugin's sequencer tests into `vdrum-move`, or extract a shared crate (open question 1). |
 
 ## 10. Open questions
 
-1. **Do you have a Move with Schwung installed, and which Schwung version?** Phase 0 needs SSH
-   access to one, which I do not have from here.
-2. **Which mode first:** chain sound generator (recommended) or straight to the overtake tool?
-3. **Note mapping in chain mode:** voices 1 to 7 on notes 36 to 42 (contiguous, first two pad
-   rows of a Move drum track), or GM-like notes (36 kick, 38 snare, 42 closed hat, 46 open hat …)?
-4. **VDrum's own sequencer in chain mode:** off (Move sequences) or available and synced?
-5. **Aux output (DAC2):** summed into the stereo output, or offered as a separate bus?
-6. **Surface library order:** build the Move layout inside `vdrum-surface` now, or wait for the
-   generic library of PR #27?
-7. **Distribution:** private install only, or a later entry in Schwung's module catalog?
+1. **Engine wrapper:** copy the needed parts of the plugin's engine wrapper and sequencer types
+   into `vdrum-move` (fully independent, some duplication), or extract a shared `vdrum-engine`
+   crate from `plugin/` (no duplication, touches the plugin)? I recommend the copy for now,
+   matching decision 6, and extracting later if the two drift.
+2. **Kit and pattern storage:** a folder on the Move (which path), and should it share the
+   desktop plugin's kit file formats so that kits can be copied between the two?
+3. **Phase 0:** can you install a test module over SSH and report the numbers it shows? I cannot
+   reach the Move from here.
