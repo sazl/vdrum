@@ -151,6 +151,11 @@ impl SeqAux {
         })
     }
 
+    /// The on/off state of all steps of a track (bit `n` = step `n`), as the engine plays them.
+    pub fn bits(&self, pat: usize, track: usize) -> u64 {
+        self.bits.get(pat).and_then(|p| p.get(track)).copied().unwrap_or(0)
+    }
+
     fn effective(&self, track: usize, prob: u8) -> u8 {
         let d = self.density[track] as u32 * self.density_all as u32;
         ((prob.min(100) as u32 * d + 5000) / 10000) as u8

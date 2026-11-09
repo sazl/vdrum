@@ -1,7 +1,8 @@
 # VDrum as a Schwung module on Ableton Move: implementation plan
 
-Status: plan, revision 2 (2026-11-09). Nothing is implemented except the feasibility check in
-section 4. This is route M3 ("VDrum running on the Move") of
+Status: revision 3 (2026-11-09). Phases 1 to 3 are implemented in `crates/vdrum-move` and tested
+off the device (x86_64, and aarch64 under qemu); nothing has run on a Move yet (phase 0 was
+skipped by decision 10). Usage and install: [vdrum-move.md](vdrum-move.md). This is route M3 ("VDrum running on the Move") of
 [mapping-brainstorm.md](mapping-brainstorm.md) (in PR #27). The control mapping itself is in that
 document and is not repeated here.
 
@@ -14,8 +15,11 @@ document and is not repeated here.
 | 3 | MIDI notes | Left to this plan. Decision: keep the desktop plugin's defaults, General MIDI drum notes on channel 1: 36, 45, 50, 38, 49, 42, 46 for tracks 1 to 7 (`DEFAULT_TRACK_NOTES` in `plugin/src/params.rs`). In takeover mode the pads arrive as pad ids, not notes, so this map applies only to external MIDI on USB-A. |
 | 4 | Sequencer | VDrum owns the sequencer (its own clock, tempo, patterns), as on the LCXL3. |
 | 5 | Aux output (DAC2) | Ignored for now: summed into the stereo output. |
-| 6 | Code location | A separate crate, `crates/vdrum-move`, independent of `vdrum-surface` and of the surface library of PR #27. |
+| 6 | Code location | A separate crate, `crates/vdrum-move`. Revised by decision 8. |
 | 7 | Distribution | Sami's own use only. No catalog entry. |
+| 8 | Sharing (revision 3) | "As modular as possible while reusing as much shared code as possible": a shared crate. `crates/vdrum-engine` (extracted from `plugin/`) holds the engine wrapper, sequencer data, kit library, LXR file formats and defaults; the plugin, `vdrum-surface` and `vdrum-move` all use it. `vdrum-move` reuses VDrum's surface (`vdrum-surface`, all modes and features) through an adapter instead of a separate Move mapping. |
+| 9 | Storage (revision 3) | Folders `kits/` and `patterns/` inside the module's folder on Schwung, in the desktop plugin's formats (VDrum `.snd`, LXR-02 `PatV03` `.PAT`). |
+| 10 | Phase 0 (revision 3) | Skipped: implement the module directly. |
 
 ## 1. Summary
 
@@ -136,158 +140,113 @@ version is unknown (section 7.2).
 | Panics | Plugin marks the engine faulted | A panic inside MoveOriginal crashes Move | `catch_unwind` around every `extern "C"` entry, `panic = "abort"` only as the last resort; after a caught panic the instance renders silence and reports it through `get_error`. A fuzz test drives all entry points. |
 | Licence | GPL-3.0-only | Schwung source MIT; the module is a separate `.so` | Own use only (decision 7), so no distribution question for now. |
 
-## 6. Architecture
+## 6. Architecture (as implemented)
 
-### 6.1 Crate and files
-
-```
-crates/vdrum-move/              NEW, independent of vdrum-surface and plugin/
-  Cargo.toml                    crate-type = ["cdylib", "rlib"]; deps: lxr-core, lxr-params
-  src/lib.rs                    exports move_plugin_init_v2
-  src/abi.rs                    #[repr(C)] host_api_v1_t, plugin_api_v2_t; offset assert (120)
-  src/instance.rs               create/destroy, catch_unwind wrappers, fault state
-  src/engine.rs                 Lxr + IEEE guard + two ticks per block + DAC sum
-  src/seq.rs                    sequencer edits and step data the surface needs (see 6.6)
-  src/input.rs                  event queue: pads/steps from on_midi, controls from ui.js
-  src/surface/                  Move modes and mapping (mapping-brainstorm.md section 3)
-    mod.rs  modes.rs  leds.rs  display.rs
-  src/bridge.rs                 set_param/get_param keys, encoding of LED and display frames
-  tests/                        host harness (6.7)
-schwung/vdrum/                  module folder as installed on the Move
-  module.json
-  ui.js                         thin bridge, no mapping logic
-  help.json                     optional
-xtask: `cargo xtask move`       builds dsp.so for aarch64, writes dist/vdrum-module.tar.gz
-```
-
-`module.json`:
-
-```json
-{
-  "id": "vdrum",
-  "name": "VDrum",
-  "abbrev": "VDRUM",
-  "version": "0.1.0",
-  "component_type": "overtake",
-  "ui": "ui.js",
-  "dsp": "dsp.so",
-  "api_version": 2,
-  "capabilities": { "audio_out": true, "midi_in": true, "aftertouch": true, "suspend_keeps_js": true }
-}
-```
-
-### 6.2 Data flow
+### 6.1 Crates and files
 
 ```
-             MoveOriginal process (shim, SPI callback, core 3)        shadow_ui process (QuickJS, ~60 Hz)
- pads, steps ───────────► on_midi ─┐                               ┌─ onMidiMessageInternal ◄─ encoders, buttons,
- (cable-0 notes ≥ 10)              │                               │                           wheel, pressure
-                                   ▼                               │
-                       ┌───────────────────────┐  set_params("in") │  one batch per tick
-                       │ vdrum-move dsp.so     │ ◄─────────────────┘
-                       │  input queue          │
-                       │  surface state        │  get_params("leds","disp")
-                       │  sequencer + Lxr      │ ─────────────────────────► ui.js: LED queue (≈8/tick),
-                       │  render_block:        │                            display drawing
-                       │   2 × tick(), sum     │
-                       └───────────────────────┘
+crates/vdrum-engine/        shared by plugin/, vdrum-surface and vdrum-move
+  engine.rs                 Engine trait, LxrEngine (lxr-core + SeqAux), SeqEv, trigger notes
+  seq.rs                    pattern data and edits (SeqData, SeqEdit, StepData)
+  library.rs, lxr_files.rs  kit library, .SND/.PAT/project files
+  defaults.rs, fp.rs        VDrum's defaults, IEEE guard
+crates/vdrum-move/          cdylib (dsp.so) + rlib (tests)
+  src/abi.rs                host_api_v1_t, plugin_api_v2_t (offset of reserved checked: 120)
+  src/lib.rs                Instance and the C entry points (catch_unwind on each)
+  src/audio.rs              audio thread: commands, voice pads, 2 ticks per block, DAC sum
+  src/shared.rs             queues and atomics between the audio thread and the worker
+  src/worker.rs             worker thread: surface, files, frame for ui.js, autosave
+  src/adapter.rs            Move's controls on vdrum_surface::Surface; LED frame, display lines
+  src/model.rs              vdrum_surface::Model over the shared state; actions
+  src/files.rs              kits/, patterns/, state/
+  src/hw.rs                 Move's notes, CCs, LED addresses, palette
+  module/                   module.json, ui.js, help.json
+  tests/harness.rs          C entry points, output vs engine, allocation, random input
+tools/package-move.sh       aarch64 build, dist/vdrum-module.tar.gz
 ```
 
-### 6.3 Input
+### 6.2 Threads and data flow
 
-- **Pads and steps** go straight into the DSP's input queue in `on_midi`, on the audio thread, so a
-  pad hit sounds in the next block at the latest.
-- **Everything else** is collected by `ui.js` during a tick and sent once per tick as one batch
-  (`host_module_set_params`, or `host_module_set_param("in", "<hex bytes>")` if the bulk call is not
-  available). Encoder deltas of the same encoder are summed in JS before sending. This avoids the
-  lossy single-slot behaviour of repeated `host_module_set_param` calls (section 3.3).
-- Shift + Volume touch + wheel click is reserved by Schwung and is not mapped.
+```
+ Move SPI callback (core 3, SCHED_FIFO)          worker thread (cores 0-2, SCHED_OTHER)        ui.js (shadow UI)
+ on_midi: pads/steps ──► voice row plays at once   Adapter → Surface → actions                  CCs (+ notes) ──► set_param("in")
+          └─────────────► input queue ───────────► (params, seq edits, kits, files)            get_param("ui") ◄── frame
+ set_param("in") ───────► input queue              ui frame (rev, 68 LEDs, 5 lines) ──────────► LED diff, ≤ 8 per tick; display
+ render_block: commands ◄── command queue ◄────────
+              2 × tick, DAC1 + DAC2
+```
 
-### 6.4 Output: LEDs and display
+- The audio thread never allocates, locks (only `try_lock`) or does file I/O; the harness checks
+  allocation with a counting allocator.
+- `create_instance` (on the shim's loader thread) allocates the engine and starts the worker. The
+  worker sets itself to `SCHED_OTHER` on cores 0 to 2.
+- Pads reach the DSP's `on_midi` directly (cable-0 notes ≥ 10). `ui.js` forwards notes too; the
+  DSP ignores them once a direct note has arrived, so the worker plays the voice row from them only
+  if the direct path does not work.
 
-- The surface computes a full LED frame each block it changes (32 pads, 16 steps, 4 track
-  buttons, function buttons, encoder LEDs). The DSP keeps the frame `ui.js` last confirmed and
-  serves only the differences from `get_param("leds")`, in priority order (playhead and hit flashes
-  first). `ui.js` sends at most about 8 per tick. On `onResume()` the DSP resets the confirmed frame
-  so that everything is repainted.
-- The display is served as a display list (text lines, value bars, a small inverted header) from
-  `get_param("disp")`, with a revision number so that `ui.js` redraws only on change. A 1-bit
-  bitmap through `draw_image` is the fallback if the list proves too limiting.
-- Both `get_param` answers are formatted into the host's buffer without allocation.
+### 6.3 Mapping: the surface on Move
 
-### 6.5 Files: kits and patterns
+The adapter turns Move's controls into the Launch Control XL 3 surface's inputs, so every mode
+(voices, sequencer, Mix/FX, Perform, LFO/Mod, Morph/Macro, Global) and feature (held-step locks,
+pattern layer, momentary effects, macros, snapshots, undo, copy/paste, kit browse) is the same
+code as on the desktop. The table is in [vdrum-move.md](vdrum-move.md) and in
+`crates/vdrum-move/src/adapter.rs`. Choices made there:
 
-Two options; to be decided in phase 2:
+- Track buttons select which knob row (or the faders) the 8 knobs drive. Faders are set from the
+  knobs relative to their current value; fader pickup is off on Move.
+- The sequencer runs on its own clock (host clock off); Move's transport is not followed.
+- Back is Schwung's (background / quit); the surface's Logo (previous mode) is Menu pressed again.
+- The pattern layer reaches patterns 1 to 16 (as on the LCXL3).
 
-- **In `ui.js`**: JS reads a kit file with `host_read_file` and passes it to the DSP with a
-  blocking `set_param("kit", <hex or base64>)`; saving goes the other way. Simple, but kit parsing
-  (`lxr_params::kit`) then happens on the audio thread inside `set_param` (bounded: 297 bytes).
-- **In a Rust worker thread** (SCHED_OTHER, cores 0 to 2) inside `dsp.so`, with lock-free queues.
-  Needed if loading becomes heavier (folder scans, LXR `.snd`/`.all` imports).
+### 6.4 Output
 
-Storage folder on the Move: open (for example `/data/UserData/UserLibrary/VDrum/`; not checked).
+- The worker publishes `rev\n<136 hex digits>\n<5 lines>` every 20 ms when it changed.
+  `get_param("ui")` copies it with `try_lock` (answers nothing that block if the worker is
+  writing).
+- `ui.js` reads the frame every 6 ticks, sends at most 8 changed LEDs per tick through
+  `setLED`/`setButtonLED`, re-checks every LED about once a second (a send dropped by a full MIDI
+  buffer is retried), and repaints everything on `onResume`.
 
-### 6.6 What "independent" means for the sequencer and engine wrapper
+### 6.5 Files
 
-The sequencer logic VDrum needs beyond the firmware's (`SeqAux`: per-step probability, densities;
-`SeqEv` application) lives in `plugin/src/engine.rs`, and the step and pattern types live in
-`vdrum-surface::seq`. To keep `vdrum-move` independent (decision 6), it gets its own copy of the
-parts it needs, written against `lxr-core` directly. The cost is duplicated code (roughly the
-300 lines of `LxrEngine`/`SeqAux` plus the data types) that can drift from the plugin. The
-alternative is to extract a shared `vdrum-engine` crate from `plugin/`, which touches the plugin.
-Open question 1.
+In the module folder (`/data/UserData/schwung/modules/overtake/vdrum/`): `kits/` (VDrum `.snd`,
+browsed with the wheel; Capture saves to the kit's file, or a new `NN-NAME.SND`), `patterns/`
+(`NN-NAME.PAT`, written for every non-empty pattern on save) and `state/` (edited kit, lossless
+sequencer data `seq.txt`, settings, snapshots/macros, faders, mutes). A `.PAT` newer than
+`state/seq.txt` replaces its pattern on start. The session is saved 10 s after the last change, on
+unload and on Capture.
 
-### 6.7 Tests off the device
+### 6.6 Tests off the device
 
-- A host-side harness (`crates/vdrum-move/tests/`) calls the ABI functions of the x86 build
-  directly (or via `dlopen` of the cdylib) with a fake `host_api_v1_t`, and checks:
-  - output equals `Lxr` direct output for the scenario corpus at 128-frame blocks, summed DACs;
-  - no allocation inside entry points after `create_instance` (counting global allocator that
-    aborts when armed);
-  - no panic and no fault for random input on every entry point (fuzz);
-  - surface behaviour: input sequences produce the expected LED frames and display lists.
-- The same harness for aarch64 runs under qemu in CI.
-- A desktop simulator of `ui.js` is not planned; `ui.js` is kept small enough to test on the device.
+- `cargo test -p vdrum-move`: adapter (banks, faders in every mode, modes and steps, patterns,
+  mute/solo, accent, wheel, frame), files (round trip, `.PAT` import, new kit names), worker
+  (browse/load/save, frame, thread start and stop), C entry points (hex input, `perf`).
+- `tests/harness.rs`: output equals `LxrEngine` run directly (400 blocks with pads and a parameter
+  change); no allocation in `on_midi`, `set_param("in")`, `get_param`, `render_block` and the
+  commands the worker sends; random input on every entry point.
+- The same tests pass on aarch64 under qemu (CI job `move`). The release `dsp.so` was also loaded
+  with `dlopen` from a C program compiled against Schwung's `plugin_api_v1.h` under qemu: create,
+  pad, render, `get_param("ui")`, destroy (session saved).
 
 ## 7. Build, packaging and install
 
-### 7.1 Build
-
-- Target `aarch64-unknown-linux-gnu`, `cdylib`, output renamed to `dsp.so`. Only
-  `move_plugin_init_v2` is exported.
-- Linker: `aarch64-linux-gnu-gcc`, the Schwung `Dockerfile` (Debian bookworm, glibc 2.36), or
-  `cargo-zigbuild` with an explicit glibc baseline such as `aarch64-unknown-linux-gnu.2.17`.
-- Release profile: `lto`, `codegen-units = 1`.
-
-### 7.2 Checks on the device (phase 0)
-
-1. glibc version (`ldd --version` over SSH). The build baseline must not exceed it.
-2. CPU and clock (`/proc/cpuinfo`).
-3. Render time: `get_param("perf")` returns mean and max µs per `render_block`
-   (`CLOCK_MONOTONIC`); shown on the display.
-4. FPCR on the audio thread before and after the guard.
-5. Which controls reach `ui.js` and the DSP (encoders, pad pressure, wheel, Loop's CC).
-6. LED behaviour: encoder LEDs, track-button colours, how many LED sends per tick survive.
-
-### 7.3 Install
-
-Own use (decision 7): `cargo xtask move` produces `dist/vdrum-module.tar.gz`; it is copied over
-SSH/SFTP to the Move's modules folder (`/data/UserData/schwung/modules/`; exact subfolder for
-overtake modules unverified) and found with a module rescan or a Schwung restart. A GitHub Actions
-job cross-builds `dsp.so` and runs the aarch64 harness under qemu; no release workflow for now.
+- `tools/package-move.sh` builds `aarch64-unknown-linux-gnu` with `aarch64-linux-gnu-gcc` and writes
+  `dist/vdrum-module.tar.gz` (`vdrum/`: `module.json`, `ui.js`, `help.json`, `dsp.so`, empty `kits/`
+  and `patterns/`). CI uploads it as the artifact `vdrum-move-module`.
+- The library needs `GLIBC_2.34` at most, plus `libgcc_s`, `libm`, `libc`. Schwung's own build
+  image is Debian bookworm (glibc 2.36) and its shim uses `pthread_*`, which links against
+  `GLIBC_2.34` there, so Move very likely provides 2.34; not checked on a device.
+- Install steps are in [vdrum-move.md](vdrum-move.md).
 
 ## 8. Phases
 
-| Phase | Work | Exit criterion |
-|---|---|---|
-| 0. Probe | `vdrum-move` skeleton: ABI, `catch_unwind`, `perf` key; `ui.js` that shows `perf` and logs which controls arrive. First a sine, then `Lxr` playing a busy pattern (all 7 voices, FX on). Sami installs and reports. | Module loads as an overtake module on Schwung 1.9.2; max render time known; control delivery known. |
-| 1. Engine and sequencer | Engine wrapper, sequencer with internal clock, pads play voices, steps edit the selected track, Play starts and stops. Minimal display (mode, tempo, pattern). Host harness and qemu CI job. | VDrum plays patterns on the Move without dropouts; harness green. |
-| 2. Kits and patterns | Load and save kits and patterns (section 6.5), kit browsing on the wheel. Init kit and the plugin's default track notes. | Kits and patterns survive a module exit and reload. |
-| 3. Full surface | All modes of mapping-brainstorm.md section 3: encoder banks on the track buttons, Shift + step modes, held-step locks, Mute, Copy, Delete, Undo, LED and display rules (its section 3.5). Background play with `suspend_keeps_js`. | Every mode usable on the Move; LED update rate acceptable. |
-| 4. Polish | Pad pressure destinations, momentary effects, external MIDI in and out on USB-A, help.json. | As agreed after phase 3. |
-
-Phase 3 depends on the open questions in mapping-brainstorm.md section 5 (Record, Capture, Sample
-buttons; merging Mix + FX with Perform; pad row 4 and pressure).
+| Phase | State |
+|---|---|
+| 0. Probe | Skipped (decision 10). The `perf` key reports render time on the device. |
+| 1. Engine and sequencer | Done, tested off the device. |
+| 2. Kits and patterns | Done (decision 9), tested off the device. |
+| 3. Full surface | Done through the shared surface, tested off the device. |
+| 4. Polish | Open: pad pressure, external MIDI out, a Move-specific display, patterns 17 to 64 on the pads. |
 
 ## 9. Risks
 
@@ -299,15 +258,14 @@ buttons; merging Mix + FX with Perform; pad row 4 and pressure).
 | Lost or late control input through the JS bridge | Missed button presses, jumpy encoders | One batch per tick; encoder deltas summed; measure in phase 0. |
 | LED bandwidth (about 8 per tick) | Sluggish pad flashes | Diff-based frames with priorities. |
 | Schwung changes (unofficial, "not stable") or Ableton firmware updates | Module or Schwung stops working | Pin Schwung 1.9.2 in the docs; keep the ABI layer in one file. |
-| Duplicated engine wrapper drifts from the plugin (6.6) | Different sequencer behaviour on desktop and Move | Port the plugin's sequencer tests into `vdrum-move`, or extract a shared crate (open question 1). |
+| Untested on hardware | Unknown render time, control delivery and LED rate on Move | `perf` key; first device run reports them. |
+| Reinstalling the module replaces its folder | Kits and patterns in `kits/` and `patterns/` lost | Copy them off the Move before reinstalling (vdrum-move.md). |
 
 ## 10. Open questions
 
-1. **Engine wrapper:** copy the needed parts of the plugin's engine wrapper and sequencer types
-   into `vdrum-move` (fully independent, some duplication), or extract a shared `vdrum-engine`
-   crate from `plugin/` (no duplication, touches the plugin)? I recommend the copy for now,
-   matching decision 6, and extracting later if the two drift.
-2. **Kit and pattern storage:** a folder on the Move (which path), and should it share the
-   desktop plugin's kit file formats so that kits can be copied between the two?
-3. **Phase 0:** can you install a test module over SSH and report the numbers it shows? I cannot
-   reach the Move from here.
+1. Render time, glibc version and control delivery on the device: to be read from the first run
+   (`get_param("perf")`, Schwung's debug log).
+2. Whether `suspend_keeps_js` is honoured for `component_type: "overtake"` (it is read in
+   `loadOvertakeModule`; the modules that use it in 1.9.2 are tools).
+3. Whether Schwung Manager replaces the module folder on reinstall (would delete `kits/` and
+   `patterns/`); if so, the folders could move next to the module.

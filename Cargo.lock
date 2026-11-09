@@ -3704,6 +3704,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "vdrum-move"
+version = "0.1.0"
+dependencies = [
+ "crossbeam-queue",
+ "lcxl3",
+ "libc",
+ "lxr-core",
+ "lxr-params",
+ "vdrum-engine",
+ "vdrum-surface",
+]
+
+[[package]]
 name = "vdrum-surface"
 version = "0.1.0"
 dependencies = [

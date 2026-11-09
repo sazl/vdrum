@@ -1,0 +1,21 @@
+[package]
+name = "vdrum-move"
+description = "VDrum on Ableton Move: a Schwung takeover module (dsp.so) running the VDrum engine, sequencer and surface on the device"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+# cdylib: the dsp.so Schwung loads; rlib: the tests and the host harness.
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+lxr-core = { path = "../lxr-core" }
+lxr-params = { path = "../lxr-params" }
+lcxl3 = { path = "../lcxl3" }
+vdrum-engine = { path = "../vdrum-engine" }
+vdrum-surface = { path = "../vdrum-surface" }
+crossbeam-queue = "0.3"
+libc = "0.2"
+
