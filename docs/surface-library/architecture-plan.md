@@ -15,6 +15,7 @@ Decisions so far (Sami, 2026-11-09):
 | 1 | Only plugins that embed the library, or any plugin? | Ideally any VST/plugin. |
 | 2 | Layouts and modes as compiled Rust or as data files? | Rust code for now. |
 | 3 | PR #26 (Python spec, simulator)? | Closed without merging. |
+| 4 | Second device? | Ableton Move (2026-11-09), possibly through the Schwung framework. Mapping brainstorm: [../ableton-move/mapping-brainstorm.md](../ableton-move/mapping-brainstorm.md). This replaces the synthetic `generic-cc` device below. |
 
 ## 1. Starting point
 
