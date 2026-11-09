@@ -3689,7 +3689,18 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "vdrum-engine",
  "vdrum-surface",
+]
+
+[[package]]
+name = "vdrum-engine"
+version = "0.1.0"
+dependencies = [
+ "lxr-core",
+ "lxr-params",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -3700,6 +3711,7 @@ dependencies = [
  "lxr-params",
  "serde",
  "serde_json",
+ "vdrum-engine",
 ]
 
 [[package]]

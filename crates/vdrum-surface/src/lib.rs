@@ -13,7 +13,7 @@
 pub mod frame;
 pub mod layout;
 pub mod model;
-pub mod seq;
+pub use vdrum_engine::seq;
 pub mod surface;
 
 pub use frame::{DeviceState, Frame, Popup};

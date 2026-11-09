@@ -8,7 +8,7 @@
 use lxr_params::kit::{Kit, KIT_FW_FILE_LEN, KIT_PARAMS};
 use lxr_params::open_hat::{oh_index, oh_k};
 use lxr_params::{par, GLOBAL_PARAMS, NUM_ALL_PARAMS, NUM_PARAMS, OH_NUM_PARAMS};
-use vdrum_surface::seq::{SeqData, SeqStatus, StepData, NUM_PATTERNS, NUM_STEPS, NUM_TRACKS};
+use crate::seq::{SeqData, SeqStatus, StepData, NUM_PATTERNS, NUM_STEPS, NUM_TRACKS};
 
 /// Frames per engine tick.
 pub const TICK_FRAMES: usize = 64;
@@ -130,7 +130,7 @@ pub trait Engine: Send {
 /// marked faulted, renders silence and ignores all input from then on; `VDrum::initialize()`
 /// replaces a faulted engine (outside the audio thread). Unwinding allocates, so this is not
 /// real-time safe; it only runs on that bug path.
-pub struct LxrEngine(pub lxr_core::Lxr, pub(crate) bool, pub(crate) Box<SeqAux>);
+pub struct LxrEngine(pub lxr_core::Lxr, pub bool, pub Box<SeqAux>);
 
 /// What the plugin needs besides the engine's pattern data to apply densities: every step's own
 /// probability, the on/off states and the densities.
