@@ -52,7 +52,7 @@ mod imp {
         get() & FTZ != 0
     }
 
-    #[cfg(test)]
+    #[allow(dead_code)]
     pub fn force(on: bool) {
         let v = get();
         set(if on { v | FTZ | DAZ } else { v & !(FTZ | DAZ) });
@@ -97,7 +97,7 @@ mod imp {
         get() & FZ != 0
     }
 
-    #[cfg(test)]
+    #[allow(dead_code)]
     pub fn force(on: bool) {
         let v = get();
         set(if on { v | FZ } else { v & !FZ });
@@ -113,15 +113,15 @@ mod imp {
     pub fn flush_to_zero_enabled() -> bool {
         false
     }
-    #[cfg(test)]
+    #[allow(dead_code)]
     pub fn force(_: bool) {}
 }
 
 pub use imp::flush_to_zero_enabled;
 
 /// Turn FTZ/DAZ on or off for the current thread (tests: simulate a host that enables them).
-#[cfg(test)]
-pub(crate) fn force_flush_to_zero(on: bool) {
+#[doc(hidden)]
+pub fn force_flush_to_zero(on: bool) {
     imp::force(on)
 }
 

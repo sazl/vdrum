@@ -1,0 +1,69 @@
+{
+  "title": "VDrum",
+  "children": [
+    {
+      "title": "Overview",
+      "lines": [
+        "VDrum: the LXR-02",
+        "drum engine, its",
+        "sequencer and all",
+        "surface modes.",
+        "",
+        "Back: background",
+        "(keeps playing).",
+        "Shift+Back: quit."
+      ]
+    },
+    {
+      "title": "Pads",
+      "lines": [
+        "Row 1: voices 1-7,",
+        " pad 8 accent.",
+        "Mute+pad: mute.",
+        "Shift+Mute+pad:",
+        " solo.",
+        "Rows 2-3: mode",
+        " buttons; in the",
+        " sequencer: patterns",
+        "Row 4: select track"
+      ]
+    },
+    {
+      "title": "Knobs and steps",
+      "lines": [
+        "Track 1-3: knob row",
+        "Track 4: faders",
+        "Steps: modes 1-16,",
+        " or steps in the",
+        " sequencer view.",
+        "Shift+step: mode."
+      ]
+    },
+    {
+      "title": "Buttons",
+      "lines": [
+        "Menu: Global mode",
+        "Loop: seq view",
+        "Delete: clear",
+        "Left/Right: bars",
+        "Up/Down: track",
+        "Undo, Shift: redo",
+        "Copy, Shift: paste",
+        "Capture: save all",
+        "Wheel: kits,",
+        " click loads",
+        "Shift+wheel: tempo"
+      ]
+    },
+    {
+      "title": "Files",
+      "lines": [
+        "In the module",
+        "folder:",
+        "kits/ NN-NAME.SND",
+        "patterns/ NN-*.PAT",
+        "state/ session"
+      ]
+    }
+  ]
+}

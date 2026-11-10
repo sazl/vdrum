@@ -31,7 +31,7 @@ use std::time::{Duration, Instant};
 use lxr_params::kit::Kit;
 use std::path::{Path, PathBuf};
 use crate::engine::SeqEv;
-use vdrum_surface::{Action, DeviceState, Model, SeqData, SeqEdit, SeqStatus, Settings, Surface, Switch};
+use vdrum_surface::{Action, DeviceState, Model, SeqData, SeqStatus, Settings, Surface, Switch};
 
 /// Interval between device scans, in milliseconds.
 pub const SCAN_MS: u64 = 2000;
@@ -125,33 +125,7 @@ impl Model for SharedModel<'_> {
     }
 }
 
-/// The engine operations that bring the engine's copy of the sequencer data up to date after
-/// `edit` was applied to `d`.
-pub fn seq_events(d: &SeqData, edit: &SeqEdit) -> Vec<SeqEv> {
-    match *edit {
-        SeqEdit::Step { pat, track, step, .. } => vec![SeqEv::Step { pat, track, step, data: d.step(pat, track, step) }],
-        SeqEdit::Euclid { pat, track, .. } => vec![SeqEv::Bits { pat, track, bits: d.track(pat, track).bits() }],
-        SeqEdit::Length { pat, track, .. } => {
-            let t = d.track(pat, track);
-            let mut v = vec![SeqEv::Length { pat, track, length: t.length }];
-            if t.fills > 0 {
-                v.push(SeqEv::Bits { pat, track, bits: t.bits() });
-            }
-            v
-        }
-        SeqEdit::Shuffle { pat, .. } => {
-            let value = d.patterns.get(pat as usize).map_or(0, |p| p.shuffle);
-            vec![SeqEv::Shuffle { pat, value }]
-        }
-        SeqEdit::Density { track, .. } => {
-            let value = d.density.get(track as usize).copied().unwrap_or(d.density_all);
-            vec![SeqEv::Density { track, value }]
-        }
-        SeqEdit::NextPattern(p) => vec![SeqEv::NextPattern(p.min(63))],
-        SeqEdit::Run(on) => vec![SeqEv::Run(on)],
-        SeqEdit::Silence(on) => vec![SeqEv::Silence(on)],
-    }
-}
+pub use vdrum_engine::seq_events;
 
 /// Carries out a surface action. Device messages are returned for the caller to send.
 pub fn apply(shared: &Shared, action: Action) -> Option<Vec<u8>> {
@@ -601,6 +575,7 @@ fn run(shared: &Shared, stop: &AtomicBool) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use vdrum_surface::SeqEdit;
     use lxr_params::par;
 
     fn names(v: &[&str]) -> Vec<String> {

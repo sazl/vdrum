@@ -5,10 +5,7 @@
 
 pub mod controller;
 pub mod editor;
-pub mod engine;
-pub mod fp;
-pub mod library;
-pub mod lxr_files;
+pub use vdrum_engine::{engine, fp, library, lxr_files};
 pub mod params;
 pub mod pipeline;
 #[cfg(test)]
@@ -28,26 +25,7 @@ use std::sync::Arc;
 /// The engine the plugin runs: the `lxr-core` port of the LXR-02 sound engine.
 pub type ActiveEngine = engine::LxrEngine;
 
-/// A new engine in its power-on state, with the plugin's MIDI defaults
-/// ([`params::DEFAULT_TRACK_NOTES`]) applied through the firmware's parameter path. Allocates; not
-/// for the audio thread.
-pub fn new_engine() -> Box<ActiveEngine> {
-    let _ieee = fp::IeeeGuard::new();
-    let mut e = ActiveEngine::new();
-    apply_plugin_defaults(&mut *e);
-    e
-}
-
-/// Set the parameters whose plugin default differs from the firmware's power-on value.
-pub fn apply_plugin_defaults<E: Engine>(e: &mut E) {
-    let _ieee = fp::IeeeGuard::new();
-    for p in GLOBAL_PARAMS.iter() {
-        let d = params::plugin_default(p);
-        if e.get_parameter(p.index) != d {
-            e.set_parameter(p.index, d);
-        }
-    }
-}
+pub use vdrum_engine::defaults::{apply_plugin_defaults, new_engine};
 
 pub struct VDrum {
     params: Arc<VDrumParams>,

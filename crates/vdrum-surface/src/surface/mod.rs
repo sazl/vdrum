@@ -343,6 +343,38 @@ impl Surface {
         );
     }
 
+    /// Select sequencer track `t` (0..7), as Track left/right do one step at a time. For surfaces
+    /// with one button per track (Ableton Move pads).
+    pub fn select_track(&mut self, t: u8) {
+        self.select_seq_track(t);
+    }
+
+    /// Clear track `t`'s pattern in the playing pattern (as Record + Track left/right).
+    pub fn clear_track_pattern(&mut self, t: u8, now: u64, model: &dyn Model) -> Vec<Action> {
+        self.now = now;
+        let mut out = Vec::new();
+        self.clear_track(t.min(6), model, &mut out);
+        out
+    }
+
+    /// Undo (`redo` false) or redo the last parameter change (as the Global mode's buttons).
+    pub fn undo_redo(&mut self, redo: bool, now: u64) -> Vec<Action> {
+        self.now = now;
+        let mut out = Vec::new();
+        self.undo(redo, &mut out);
+        out
+    }
+
+    /// Whether Shift is held.
+    pub fn shift(&self) -> bool {
+        self.shift
+    }
+
+    /// The bar (0..4) the step buttons show in the sequencer view.
+    pub fn seq_bar(&self) -> u8 {
+        self.seq_bar
+    }
+
     /// Show a message in the popup (for results the plugin reports, such as kit names).
     pub fn notify(&mut self, title: &str, name: &str, value: &str) {
         self.show_text(title, name, value);

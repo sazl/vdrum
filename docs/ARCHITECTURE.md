@@ -25,7 +25,9 @@ CI, where the shipped image is not available.
 | `crates/lxr-emu` | Unicorn (QEMU) based Cortex-M7 emulator that runs firmware code: function calls (`Firmware::call`) and the whole engine (`EmuEngine`) with the same interface as `lxr-core`. |
 | `crates/lxr-difftest` | Differential tests: lxr-core vs lxr-emu, per function and per scenario, bitwise. |
 | `crates/lcxl3` | Message codec for the DAW mode of the Novation Launch Control XL 3 (Programmer's Reference Guide v1.0): pure encode/decode functions, no I/O. |
+| `crates/vdrum-engine` | What every front end shares: the engine wrapper around `lxr-core` with VDrum's sequencer extensions (`LxrEngine`, `SeqAux`, `SeqEv`), sequencer data and edits, the kit library, LXR-02 file formats, defaults and the IEEE floating point guard. |
 | `crates/vdrum-surface` | The Launch Control XL 3 surface as a state machine without I/O: modes, control mappings (design revision 2), fader pickup, held buttons, LED and screen frames, and the `View` snapshot the plugin editor's mode tabs draw. |
+| `crates/vdrum-move` | VDrum on Ableton Move as a Schwung takeover module (`dsp.so` plus `module/ui.js`): engine and sequencer on Move's audio callback, the `vdrum-surface` surface on Move's controls through an adapter, kits and patterns in the module folder. See `docs/ableton-move/vdrum-move.md`. |
 | `plugin/` | nih-plug plugin (CLAP, VST3, standalone) and GUI; AU via clap-wrapper on macOS. The controller thread (`src/controller.rs`) runs the surface and publishes its `View`; the editor's mode tabs (`src/editor/panel.rs`) draw it and send mouse edits back as controller input. |
 | `xtask/` | `cargo xtask bundle vdrum --release` (nih-plug bundler). |
 

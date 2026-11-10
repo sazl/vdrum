@@ -3689,6 +3689,30 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "vdrum-engine",
+ "vdrum-surface",
+]
+
+[[package]]
+name = "vdrum-engine"
+version = "0.1.0"
+dependencies = [
+ "lxr-core",
+ "lxr-params",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "vdrum-move"
+version = "0.1.0"
+dependencies = [
+ "crossbeam-queue",
+ "lcxl3",
+ "libc",
+ "lxr-core",
+ "lxr-params",
+ "vdrum-engine",
  "vdrum-surface",
 ]
 
@@ -3700,6 +3724,7 @@ dependencies = [
  "lxr-params",
  "serde",
  "serde_json",
+ "vdrum-engine",
 ]
 
 [[package]]

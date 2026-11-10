@@ -20,7 +20,7 @@ use lxr_params::kit::{Kit, KIT_FW_FILE_LEN};
 use lxr_params::open_hat::OH_VELOD;
 use lxr_params::par;
 use std::path::{Path, PathBuf};
-use vdrum_surface::seq::{PatternData, SeqData, StepData, NUM_PATTERNS, NUM_STEPS, NUM_TRACKS};
+use crate::seq::{PatternData, SeqData, StepData, NUM_PATTERNS, NUM_STEPS, NUM_TRACKS};
 
 pub const PAT_TAG: &[u8; 6] = b"PatV03";
 const STEP_LEN: usize = 7;
@@ -75,7 +75,7 @@ pub fn pat_from_bytes(b: &[u8]) -> Result<PatFile, String> {
                 velocity: (st[0] & 0x7f).max(1),
                 prob: st[1].min(100),
                 note: st[2] & 0x7f,
-                flam: (timing & 0x0f).min(vdrum_surface::seq::MAX_FLAM),
+                flam: (timing & 0x0f).min(crate::seq::MAX_FLAM),
                 shift: (timing >> 4).min(14),
                 locks: [(st[3], st[4] & 0x7f), (st[5], st[6] & 0x7f)],
             };
