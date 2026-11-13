@@ -10,8 +10,8 @@ use nih_plug::prelude::*;
 use nih_plug_egui::EguiState;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use std::sync::atomic::{AtomicBool, AtomicI32, AtomicI8, AtomicU16, AtomicU32, AtomicU8, Ordering};
-use vdrum_surface::{SeqData, SeqStatus};
+use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU16, AtomicU32, AtomicU8, Ordering};
+use vdrum_engine::seq::SeqData;
 use std::sync::{Arc, Mutex};
 
 /// Parameter indices: the firmware's (`0..NUM_PARAMS`) and the open hi-hat's (`NUM_PARAMS..`).
@@ -97,31 +97,12 @@ pub enum Command {
     Midi([u8; 3]),
     /// Load a kit (`.snd` file bytes).
     LoadKit([u8; KIT_FILE_LEN]),
-    /// Set a parameter (from the controller; the value is already in [`Shared::values`]).
-    Param(u16, u16),
-    /// Move a voice fader to a step 0..=[`FADER_MAX`] (from the controller).
-    Fader(u8, i32),
-    /// Silence every voice (controller panic).
-    Panic,
-    /// Set the *Sum aux* (false) or *Hardware clock* (true) switch.
-    Switch(bool, bool),
-    /// A sequencer operation (from the controller; [`Shared::seq`] is already changed).
-    Seq(crate::engine::SeqEv),
     /// Load all of [`Shared::seq`] into the engine (after a pattern import).
     SeqReload,
 }
 
-/// Input from the editor's mode tabs to the controller surface.
-#[derive(Clone, Debug)]
-pub enum EditorInput {
-    /// A control operated with the mouse, as if on the device.
-    Input(lcxl3::Input),
-    /// A mode tab was clicked.
-    SetMode(vdrum_surface::Mode),
-}
-
 /// The kit file the user works on: where it was loaded from or saved to, and its contents then
-/// (for the controller's kit browsing, *Save kit* and *Compare*).
+/// (for the editor's kit file handling).
 #[derive(Clone, Default)]
 pub struct KitFile {
     pub path: Option<std::path::PathBuf>,
@@ -133,54 +114,9 @@ pub struct KitFile {
 pub struct Restore {
     pub kit: Option<Kit>,
     pub globals: Vec<(u16, u16)>,
-    /// Voice fader steps as saved (they may differ from the host parameters when the controller
+    /// Voice fader steps as saved (they may differ from the host parameters when a learned CC
     /// moved them while the editor was closed).
     pub faders: Option<[i32; NUM_FADERS]>,
-}
-
-/// The sequencer's playback state as the audio thread last reported it.
-pub struct SeqStatusAtomics {
-    pub running: AtomicBool,
-    pub pattern: AtomicU8,
-    pub pending: AtomicU8,
-    pub step: [AtomicI8; 7],
-    pub late: AtomicBool,
-    pub silent: AtomicBool,
-}
-
-impl SeqStatusAtomics {
-    fn new() -> Self {
-        SeqStatusAtomics {
-            running: AtomicBool::new(false),
-            pattern: AtomicU8::new(0),
-            pending: AtomicU8::new(0),
-            step: std::array::from_fn(|_| AtomicI8::new(-1)),
-            late: AtomicBool::new(false),
-            silent: AtomicBool::new(false),
-        }
-    }
-
-    pub fn store(&self, s: &SeqStatus) {
-        self.running.store(s.running, Ordering::Relaxed);
-        self.pattern.store(s.pattern, Ordering::Relaxed);
-        self.pending.store(s.pending, Ordering::Relaxed);
-        for (a, v) in self.step.iter().zip(s.step) {
-            a.store(v, Ordering::Relaxed);
-        }
-        self.late.store(s.late, Ordering::Relaxed);
-        self.silent.store(s.silent, Ordering::Relaxed);
-    }
-
-    pub fn load(&self) -> SeqStatus {
-        SeqStatus {
-            running: self.running.load(Ordering::Relaxed),
-            pattern: self.pattern.load(Ordering::Relaxed),
-            pending: self.pending.load(Ordering::Relaxed),
-            step: std::array::from_fn(|i| self.step[i].load(Ordering::Relaxed)),
-            late: self.late.load(Ordering::Relaxed),
-            silent: self.silent.load(Ordering::Relaxed),
-        }
-    }
 }
 
 /// Lock-free state shared by the audio thread and the GUI.
@@ -213,44 +149,20 @@ pub struct Shared {
     /// `target - LEARN_FADER`).
     pub extra_values: [AtomicI32; EXTRA_TARGETS],
     pub extra_dirty: [AtomicBool; EXTRA_TARGETS],
-    /// Current step of every voice fader (host parameter, learned CC or controller).
+    /// Current step of every voice fader (host parameter or learned CC).
     pub fader_values: [AtomicI32; NUM_FADERS],
-    /// The Launch Control XL 3 surface settings (`vdrum_surface::Settings` as text), saved with the
-    /// plugin state.
-    pub surface_settings: Mutex<String>,
     pub kit_file: Mutex<KitFile>,
     /// Current states of the *Sum aux* and *Hardware clock* switches (set by the audio thread).
     pub sum_aux_on: AtomicBool,
     pub hw_clock_on: AtomicBool,
-    /// The sequencer's pattern data: the controller edits it (and sends the same change to the
-    /// engine), the plugin state saves it, `initialize()` loads it into the engine.
+    /// The sequencer's pattern data: pattern imports replace it (and reload the engine), the
+    /// plugin state saves it, `initialize()` loads it into the engine.
     pub seq: Mutex<SeqData>,
     /// The sequencer follows the host transport (true) or runs on the engine's own clock.
     pub seq_host_clock: AtomicBool,
-    pub seq_status: SeqStatusAtomics,
-    /// Each track's LFO output (0..=1, `f32` bits), stored by the audio thread once per process call.
-    pub lfo_values: [AtomicU32; 7],
-    /// Muted tracks (bit `t` = track `t`): the audio thread drops their note-ons and the
-    /// sequencer skips them.
-    pub mutes: AtomicU8,
-    /// Current tempo (host, or the engine's `PAR_BPM`), for the controller's stutter.
-    pub tempo: AtomicF32,
-    /// Controller snapshots and macros (`vdrum_surface::Surface::state_text`), saved with the
-    /// plugin state.
-    pub surface_state: Mutex<String>,
-    /// The controller surface as last drawn by the controller thread (for the editor's mode tabs),
-    /// and a counter that changes with every new snapshot.
-    pub surface_view: Mutex<Option<Arc<vdrum_surface::View>>>,
-    pub surface_view_gen: AtomicU32,
-    /// Mouse actions from the editor's mode tabs, for the controller thread.
-    pub surface_input: ArrayQueue<EditorInput>,
-    /// The controller thread runs the surface (also without a device), and the device is
-    /// connected.
-    pub surface_running: AtomicBool,
-    pub controller_connected: AtomicBool,
     /// The kit library (64 slots), saved with the plugin state.
     pub library: Mutex<crate::library::Library>,
-    /// Incremented whenever the library changes (for the editor and the controller).
+    /// Incremented whenever the library changes (for the editor).
     pub library_generation: AtomicU32,
 }
 
@@ -273,22 +185,11 @@ impl Shared {
             extra_dirty: std::array::from_fn(|_| AtomicBool::new(false)),
             has_aux: AtomicBool::new(true),
             fader_values: std::array::from_fn(|_| AtomicI32::new(FADER_MAX)),
-            surface_settings: Mutex::new(String::new()),
             kit_file: Mutex::new(KitFile::default()),
             sum_aux_on: AtomicBool::new(false),
             hw_clock_on: AtomicBool::new(false),
             seq: Mutex::new(SeqData::default()),
             seq_host_clock: AtomicBool::new(true),
-            seq_status: SeqStatusAtomics::new(),
-            lfo_values: std::array::from_fn(|_| AtomicU32::new(0.5f32.to_bits())),
-            mutes: AtomicU8::new(0),
-            tempo: AtomicF32::new(120.0),
-            surface_state: Mutex::new(String::new()),
-            surface_view: Mutex::new(None),
-            surface_view_gen: AtomicU32::new(0),
-            surface_input: ArrayQueue::new(256),
-            surface_running: AtomicBool::new(false),
-            controller_connected: AtomicBool::new(false),
             library: Mutex::new(crate::library::Library::default()),
             library_generation: AtomicU32::new(0),
         };
@@ -337,7 +238,7 @@ impl Shared {
         };
         self.library_generation.fetch_add(1, Ordering::Relaxed);
         self.set_name(&kit.name);
-        // *Compare* compares with the slot's kit
+        // the slot's kit is the kit as last loaded
         self.set_kit_file(None, kit.to_file_bytes().to_vec());
         let _ = self.commands.push(Command::LoadKit(kit.to_file_bytes()));
         Some(label)
@@ -481,10 +382,6 @@ pub struct VDrumParams {
     pub editor_state: Arc<EguiState>,
     /// GUI zoom factor (persisted).
     pub ui_scale: AtomicF32,
-    /// Editor tab: 0 = Params, 1..=13 = the controller modes (persisted).
-    pub editor_tab: AtomicU8,
-    /// The editor follows the controller's mode changes, also from the Params tab (persisted).
-    pub follow_controller: AtomicBool,
     pub infos: Vec<&'static ParamInfo>,
     pub ints: Vec<IntParam>,
     /// Host slot of each parameter index, or -1.
@@ -523,8 +420,6 @@ impl VDrumParams {
         VDrumParams {
             editor_state: EguiState::from_size(crate::editor::DEFAULT_SIZE.0, crate::editor::DEFAULT_SIZE.1),
             ui_scale: AtomicF32::new(1.0),
-            editor_tab: AtomicU8::new(0),
-            follow_controller: AtomicBool::new(true),
             infos,
             ints,
             slot_of,
@@ -614,8 +509,6 @@ unsafe impl Params for VDrumParams {
         }
         m.insert("ui-scale".into(), self.ui_scale.load(Ordering::Relaxed).to_string());
         m.insert("editor-layout".into(), crate::editor::LAYOUT_VERSION.to_string());
-        m.insert("editor-tab".into(), self.editor_tab.load(Ordering::Relaxed).to_string());
-        m.insert("follow-controller".into(), self.follow_controller.load(Ordering::Relaxed).to_string());
         let kit = self.kit();
         if let Ok(s) = serde_json::to_string(&hex(&kit.to_file_bytes())) {
             m.insert("kit".into(), s);
@@ -636,7 +529,7 @@ unsafe impl Params for VDrumParams {
         if let Ok(s) = serde_json::to_string(&learn) {
             m.insert("midi_learn".into(), s);
         }
-        // The host parameter, unless the controller moved the fader and the host parameter has not
+        // The host parameter, unless a learned CC moved the fader and the host parameter has not
         // caught up yet (the editor copies it while open). Independent of whether `process` ran.
         let faders: Vec<i32> = (0..NUM_FADERS)
             .map(|i| {
@@ -649,16 +542,6 @@ unsafe impl Params for VDrumParams {
             .collect();
         if let Ok(s) = serde_json::to_string(&faders) {
             m.insert("faders".into(), s);
-        }
-        if let Ok(s) = self.shared.surface_settings.lock() {
-            // Always the normalised text, so that the state does not depend on whether the
-            // controller thread has stored its settings yet.
-            m.insert("lcxl3-settings".into(), vdrum_surface::Settings::from_text(&s).to_text());
-        }
-        if let Ok(s) = self.shared.surface_state.lock() {
-            if !s.is_empty() {
-                m.insert("lcxl3-state".into(), s.clone());
-            }
         }
         if let Ok(l) = self.shared.library.lock() {
             if *l != crate::library::Library::default() {
@@ -704,14 +587,10 @@ unsafe impl Params for VDrumParams {
         if version == Some(2) && self.editor_state.size() == crate::editor::SHARED_HAT_SIZE {
             self.editor_state.set_size(crate::editor::DEFAULT_SIZE);
         }
-        // Layout 3 had no tab bar; its default size is too short for the tab and pill rows.
-        if version == Some(3) && self.editor_state.size() == crate::editor::NO_TABS_SIZE {
+        // Layout 4 had a tab bar and a pill row; its default size is taller than needed.
+        if version == Some(4) && self.editor_state.size() == crate::editor::TABS_SIZE {
             self.editor_state.set_size(crate::editor::DEFAULT_SIZE);
         }
-        let tab = serialized.get("editor-tab").and_then(|s| s.trim_matches('"').parse::<u8>().ok()).filter(|&t| t <= 13);
-        self.editor_tab.store(tab.unwrap_or(0), Ordering::Relaxed);
-        let follow = serialized.get("follow-controller").map(|s| s.trim_matches('"') != "false");
-        self.follow_controller.store(follow.unwrap_or(true), Ordering::Relaxed);
         let mut restore = Restore::default();
         if let Some(s) = serialized.get("kit") {
             if let Some(bytes) = serde_json::from_str::<String>(s).ok().and_then(|h| unhex(&h)) {
@@ -762,16 +641,6 @@ unsafe impl Params for VDrumParams {
             if let Ok(mut f) = self.shared.kit_file.lock() {
                 f.path = Some(p);
             }
-        }
-        if let Some(s) = serialized.get("lcxl3-settings") {
-            if let Ok(mut cur) = self.shared.surface_settings.lock() {
-                *cur = s.clone();
-            }
-            let host = vdrum_surface::Settings::from_text(s).host_clock;
-            self.shared.seq_host_clock.store(host, Ordering::Relaxed);
-        }
-        if let Ok(mut cur) = self.shared.surface_state.lock() {
-            *cur = serialized.get("lcxl3-state").cloned().unwrap_or_default();
         }
         if let Ok(mut l) = self.shared.library.lock() {
             *l = serialized.get("kit-library").map(|s| crate::library::Library::from_text(s)).unwrap_or_default();
@@ -865,8 +734,13 @@ mod tests {
         use crate::editor::SHARED_HAT_SIZE;
         assert_eq!(load(&[("editor-state", state(SHARED_HAT_SIZE)), ("ui-scale", "1.1".into()), ("editor-layout", "2".into())]), (DEFAULT_SIZE, 1.1));
         assert_eq!(load(&[("editor-state", state((1531, 869))), ("ui-scale", "1.1".into()), ("editor-layout", "2".into())]), ((1531, 869), 1.1));
+        // Layout 4 (tab bar and pill row): its default size shrinks to the new default, a size
+        // chosen by hand is kept.
+        use crate::editor::TABS_SIZE;
+        assert_eq!(load(&[("editor-state", state(TABS_SIZE)), ("ui-scale", "1.1".into()), ("editor-layout", "4".into())]), (DEFAULT_SIZE, 1.1));
+        assert_eq!(load(&[("editor-state", state((1600, 900))), ("ui-scale", "1.1".into()), ("editor-layout", "4".into())]), ((1600, 900), 1.1));
         // Current layout: both kept.
-        let cur = [("editor-state", state(SHARED_HAT_SIZE)), ("ui-scale", "1.1".into()), ("editor-layout", "3".into())];
+        let cur = [("editor-state", state(SHARED_HAT_SIZE)), ("ui-scale", "1.1".into()), ("editor-layout", "5".into())];
         assert_eq!(load(&cur), (SHARED_HAT_SIZE, 1.1));
         // And written back.
         let p = VDrumParams::new(Arc::new(Shared::new()));
@@ -905,16 +779,15 @@ mod tests {
     }
 
     #[test]
-    fn controller_state_is_saved_with_the_editor_closed() {
+    fn learned_state_is_saved_with_the_editor_closed() {
         let sh = Arc::new(Shared::new());
         let p = VDrumParams::new(sh.clone());
-        // what the controller does: mirror + dirty flag, fader value, settings
+        // what a learned CC does: mirror + dirty flag, fader value
         sh.values[lxr_params::par::COARSE1 as usize].store(99, Ordering::Relaxed);
         sh.dirty[lxr_params::par::COARSE1 as usize].store(true, Ordering::Relaxed);
         sh.fader_values[3].store(12, Ordering::Relaxed);
         sh.extra_values[3].store(12, Ordering::Relaxed);
         sh.extra_dirty[3].store(true, Ordering::Relaxed);
-        *sh.surface_settings.lock().unwrap() = "pad_velocity=50".into();
         let f = p.serialize_fields();
         let sh2 = Arc::new(Shared::new());
         let p2 = VDrumParams::new(sh2.clone());
@@ -922,33 +795,25 @@ mod tests {
         let r = sh2.restore.lock().unwrap();
         assert_eq!(r.kit.as_ref().unwrap().values[lxr_params::par::COARSE1 as usize], 99);
         assert_eq!(r.faders.unwrap()[3], 12);
-        assert!(sh2.surface_settings.lock().unwrap().contains("pad_velocity=50"));
-        // saving again before `initialize` gives the same fader and settings fields
+        // saving again before `initialize` gives the same fader field
         drop(r);
         let f2 = p2.serialize_fields();
         assert_eq!(f2["faders"], f["faders"]);
-        assert_eq!(f2["lcxl3-settings"], f["lcxl3-settings"]);
     }
 
     #[test]
-    fn sequencer_data_and_clock_are_saved() {
-        use vdrum_surface::SeqEdit;
+    fn sequencer_data_is_saved() {
+        use vdrum_engine::seq::SeqEdit;
         let sh = Arc::new(Shared::new());
         let p = VDrumParams::new(sh.clone());
         assert!(!p.serialize_fields().contains_key("sequencer"), "empty patterns are not saved");
         sh.seq.lock().unwrap().apply(&SeqEdit::Euclid { pat: 2, track: 1, fills: 5, rotate: 1 });
-        *sh.surface_settings.lock().unwrap() = "host_clock=0".into();
         let f = p.serialize_fields();
         let sh2 = Arc::new(Shared::new());
         let p2 = VDrumParams::new(sh2.clone());
         sh2.seq.lock().unwrap().apply(&SeqEdit::Euclid { pat: 0, track: 0, fills: 1, rotate: 0 });
         p2.deserialize_fields(&f);
         assert_eq!(*sh2.seq.lock().unwrap(), *sh.seq.lock().unwrap());
-        assert!(!sh2.seq_host_clock.load(Ordering::Relaxed));
-        assert!(!f.contains_key("lcxl3-state"));
-        *sh.surface_state.lock().unwrap() = "{\"snapshots\":[],\"macros\":[]}".into();
-        p2.deserialize_fields(&p.serialize_fields());
-        assert_eq!(*sh2.surface_state.lock().unwrap(), *sh.surface_state.lock().unwrap());
         // the kit library
         assert!(!f.contains_key("kit-library"));
         {

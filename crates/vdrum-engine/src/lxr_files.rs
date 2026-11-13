@@ -166,7 +166,6 @@ pub const EXPORT_LOSSES: &[&str] = &[
     "Open hi-hat: only its decay is kept (as the hi-hat's open decay); its other 36 parameters are dropped.",
     "Sequencer: track densities and Euclid settings are not saved; the steps they produced are.",
     "Songs are written empty (VDrum has no song mode).",
-    "Controller state (macros, snapshots, LCXL3 settings) is not exported.",
 ];
 
 /// The files of an LXR-02 project folder: (file name, bytes).

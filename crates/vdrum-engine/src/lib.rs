@@ -4,9 +4,7 @@
 //! the LXR-02 file formats (`.SND`, `.PAT`, project folders), VDrum's defaults, and the guard that
 //! keeps the engine's floating point mode IEEE.
 //!
-//! Users: the plugin (`plugin/`), the Launch Control XL 3 surface (`crates/vdrum-surface`, which
-//! re-exports [`seq`]) and the Ableton Move module (`crates/vdrum-move`). Nothing here starts
-//! threads or depends on a plugin framework.
+//! User: the plugin (`plugin/`). Nothing here starts threads or depends on a plugin framework.
 
 pub mod defaults;
 pub mod engine;

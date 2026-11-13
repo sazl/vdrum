@@ -285,7 +285,7 @@ fn faulted_engine_is_silent() {
 #[test]
 fn sequencer_operations_reach_the_engine() {
     use crate::engine::SeqEv;
-    use vdrum_surface::seq::{SeqData, SeqEdit, StepData};
+    use crate::seq::{SeqData, SeqEdit, StepData};
     let mut e = crate::new_engine();
     let on = StepData { on: true, velocity: 90, prob: 80, ..StepData::default() };
     e.seq(SeqEv::Step { pat: 0, track: 3, step: 2, data: on });
@@ -326,7 +326,7 @@ fn sequencer_operations_reach_the_engine() {
     d.apply(&SeqEdit::Shuffle { pat: 5, value: 64 });
     let mut e2 = crate::new_engine();
     e2.seq_load(&d);
-    assert_eq!(e2.0.seq_patternSet.seq_mainSteps[0][5][0], vdrum_surface::seq::euclid(8, 3, 0) as u16);
+    assert_eq!(e2.0.seq_patternSet.seq_mainSteps[0][5][0], crate::seq::euclid(8, 3, 0) as u16);
     assert_eq!(e2.0.seq_patternSet.length[5][0], 8);
     assert_eq!(e2.0.seq_patternSet.shuffle[5], 64);
     assert_eq!(e2.0.seq_patternSet.length[0][0], 16);
@@ -362,21 +362,12 @@ fn mutes_and_lfo_reset() {
     e.0.snareVoice.lfo.phaseOffset = 1234;
     e.seq(SeqEv::LfoReset);
     assert_eq!(e.0.snareVoice.lfo.phase, 1234);
-
-    // muted tracks' note-ons are dropped before the engine
-    let sh = Shared::new();
-    let on = [0x90, crate::params::DEFAULT_TRACK_NOTES[3], 100];
-    assert!(!crate::muted(&sh, on));
-    sh.mutes.store(1 << 3, std::sync::atomic::Ordering::Relaxed);
-    assert!(crate::muted(&sh, on));
-    assert!(!crate::muted(&sh, [0x90, crate::params::DEFAULT_TRACK_NOTES[2], 100]));
-    assert!(!crate::muted(&sh, [0x80, crate::params::DEFAULT_TRACK_NOTES[3], 0]));
 }
 
 #[test]
 fn host_ccs_do_not_reach_the_engine() {
-    // Through the firmware's map, CC 103 on channel 1 (the Launch Control XL 3's Track left
-    // button in DAW mode) sets Drum 1's overdrive, and CC 0 loads a kit.
+    // Through the firmware's map, CC 103 on channel 1 sets Drum 1's overdrive, and CC 0 loads a
+    // kit.
     let shared = Shared::new();
     let mut e = crate::new_engine();
     let before = e.get_parameter(lxr_params::par::DRIVE1);
@@ -399,7 +390,7 @@ fn host_ccs_do_not_reach_the_engine() {
 #[test]
 fn imported_pattern_file_reaches_the_engine_as_in_the_file() {
     use crate::lxr_files::{pat_from_bytes, pat_to_bytes, PatFile};
-    use vdrum_surface::seq::{PatternData, SeqData, StepData};
+    use crate::seq::{PatternData, SeqData, StepData};
     let mut p = PatternData { shuffle: 33, ..Default::default() };
     for (t, track) in p.tracks.iter_mut().enumerate() {
         track.length = 5 + t as u8 * 9;

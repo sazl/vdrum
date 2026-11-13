@@ -140,9 +140,9 @@ change is applied at the start of the next tick.
   engine. A CC that is MIDI-learned changes its learned target (see *MIDI learn*); every other CC is
   dropped. The firmware's own CC/NRPN map (CC 2–127 to parameters 1–126, NRPN through CC 99/98/6,
   CC 0 bank change loading a kit) is therefore not used.
-  * Reason: hosts pass on MIDI from every input. The Launch Control XL 3's DAW port sends CC 5–36
-    on channel 16, and through the firmware map those CCs changed unrelated parameters. For
-    example, fader 2 (CC 6, NRPN data entry) changed the last NRPN-addressed parameter.
+  * Reason: hosts pass on MIDI from every input. Through the firmware map, CCs from an unrelated
+    controller change unrelated parameters; for example CC 6 (NRPN data entry) changes the last
+    NRPN-addressed parameter.
 * **Firmware behaviours worth knowing:**
   * A track triggers when the message is on its channel and the note matches. A track note of 0
     means any note.
@@ -213,8 +213,6 @@ change is applied at the start of the next tick.
   * `globals`: the global settings by ID;
   * `midi_learn`;
   * `faders`: the voice fader steps;
-  * `lcxl3-settings`: the Launch Control XL 3 controller settings;
-  * `lcxl3-state`: the controller's snapshots and macros (JSON);
   * `kit-library`: the kit library (the selected slot, then one line per filled slot with the kit
     file bytes hex encoded and the source file name, then the LXR-02 pattern names and kit numbers;
     absent when the library is empty);
@@ -246,9 +244,8 @@ change is applied at the start of the next tick.
     right-click saves the current kit there, renames, exports one `.snd`, clears, or moves the slot
     up or down.
   * ◀ and ▶ in the top bar load the previous and next filled slot.
-  * Loading a slot selects it. *Save kit* (top bar, and Global mode on the controller) then writes
-    the current kit into that slot only; *Save…* to a file stays separate. *Compare* compares with
-    the slot's kit.
+  * Loading a slot selects it. *Save kit* (top bar) then writes the current kit into that slot
+    only; *Save…* to a file stays separate.
   * The library is not a file on disk: it lives in the plugin state (host project or preset).
 * **LXR-02 patterns and projects** (`plugin/src/lxr_files.rs`, from the firmware's
   `presetManager.c`).
@@ -273,7 +270,7 @@ change is applied at the start of the next tick.
     folder are replaced; other files stay.
   * Before writing, the panel lists what the LXR-02 cannot hold: the open hi-hat (only its decay
     is written, as the hi-hat's open decay `velod6_open`), track densities and Euclid settings (the
-    steps they produced are written), songs, and the controller state.
+    steps they produced are written) and songs.
   * Checked against the uploaded DLC project folder (not in the repository): importing it gives 16
     kits and 16 patterns (48 init kits and 48 empty patterns skipped). Exporting that state gives
     byte-identical `.SND` files for the 16 kits and byte-identical songs. The init kit slots differ
@@ -300,14 +297,14 @@ change is applied at the start of the next tick.
     destinations, the spelled-out target.
   * Values that differ from their default (the init kit, or the plugin default for globals) have an
     amber stripe. The top bar counts them.
-  * The default window is 1584 × 836 logical pixels (macOS points) and holds everything at 100 %
+  * The default window is 1584 × 790 logical pixels (macOS points) and holds everything at 100 %
     without scrolling. With room for the menu bar, a host's plugin window header and the Dock, it
     fits the MacBook Pro 16" default resolution (1728 × 1117) at 100 % and the MacBook Air 13"
     (1470 × 956) and MacBook Pro 14" (1512 × 982) at 90 % zoom (or with horizontal scrolling). The
     `default_size_fits_everything` test lays the editor out headlessly and checks this.
   * States saved by the layout with one shared hi-hat card (layout version 2) at its default size
-    (1392 × 790), and by the layout without tabs (version 3) at its default size (1584 × 790), open
-    at the new default size; a size set by hand is kept.
+    (1392 × 790), and by the layout with a tab bar (version 4) at its default size (1584 × 836),
+    open at the current default size; a size set by hand is kept.
   * A right-hand column holds:
     * the FX bus, with P1–P4 labelled for the current FX type from the firmware's FX page and
       controls not used by the type dimmed;
@@ -322,43 +319,6 @@ change is applied at the start of the next tick.
   * List parameters (waveforms, filter types, LFO and velocity targets, …) open a list on click.
     Mod-target lists offer the destination voice's range (`modTargetVoiceOffsets`).
   * Tooltips show the full name, value, range, default, learned CC and stable ID.
-* **Tabs.** A tab bar under the top bar has *Params* (the parameter view above) and one tab per
-  Launch Control XL 3 mode: 1 Drum 1 to 7 Open hi-hat, 8 Sequencer, 9 Mix + FX, 10 Perform,
-  11 LFO + Mod, 12 Morph + Macro and 16 Global (`src/editor/panel.rs`). The selected tab is saved
-  with the editor state (`editor-tab`).
-  * A mode tab draws the controller's front panel from the surface view (see *Launch Control XL 3*,
-    *Editor view*), styled after the hardware: a dark panel, the screen, knob caps with a value arc
-    in their LED colour and a pointer, recessed fader slots with scale marks and ribbed caps, and
-    buttons lit in their LED colour (dark when the LED is off). Each encoder and fader has a label
-    chip in its section colour. Proportions follow `docs/lcxl3-daw-mode/source/render.py`. No image
-    files are used: the photo behind the PNGs in `docs/` is not in the repository and its rights
-    are unclear.
-  * Faders show a marker at the parameter value and the cap at the hardware position; a fader that
-    has moved but not picked up the value has a grey cap labelled "pickup".
-  * Clicking a mode tab sets the controller's mode. Clicking *Params* leaves it unchanged.
-  * **Follow controller** (checkbox next to the tabs, on by default, saved as
-    `follow-controller`): when the mode changes on the controller, the editor switches to that
-    mode's tab. While a mode tab is shown it always follows; the checkbox decides whether it also
-    switches away from *Params*.
-  * A chip next to the checkbox reads "Controller: connected", "not connected" (the surface runs
-    without a device) or "off" (`VDRUM_LCXL3=0`).
-* **Mouse edits in the mode tabs.** They are sent to the surface as controller input and run
-  through the same handlers as the device.
-  * Drag an encoder up or down: one step per 4 points; Shift for fine steps.
-  * Drag a fader: the press sends the parameter's current value (so the fader picks up at once),
-    then the drag moves it.
-  * Press a button with the left mouse button: pressed while the mouse button is down, released
-    with it (holds such as "hold 1 s" and held sequencer steps work this way).
-  * Right-click a button to latch it held; right-click again to release it. This allows
-    combinations such as a held step plus an encoder edit.
-  * Double-click an encoder or fader bound to an engine parameter to reset it to its default.
-  * Tooltips show the section, parameter name and ID, and value.
-* **Pills.** A row under the tabs, on every tab:
-  * the last edit made on the controller, filled with the section colour ("FILTER · Cutoff · 84"),
-    for 1.5 s after the edit. Mouse edits in the editor do not show it;
-  * one outlined pill per active context layer (for example "SHIFT: select mode",
-    "STEP 5 HELD: locks", "STEPS: 2 D2", "BROWSING KITS: Play loads", "HOLD 1 s: Save kit");
-  * one pill per button latched with the right mouse button.
 * **Window.** Resizable from the corner. Zoom with −/+ in 10 % steps from 50 % to 300 %
   (persisted); click the percentage to reset it to 100 %. Zoom scales the content and asks the host
   to scale the window by the same ratio; if the host refuses, the content is zoomed inside the
@@ -368,171 +328,29 @@ change is applied at the start of the next tick.
 * **Vendored GUI crates.** `third_party/egui-baseview` and `third_party/nih_plug_egui` are copies of
   the revisions nih-plug pins, with fixes for zoom and resizing (see `third_party/README.md`).
 
-## Launch Control XL 3
-
-The plugin drives a Novation Launch Control XL 3 in its DAW mode (`src/controller.rs`, surface
-logic in `crates/vdrum-surface`, messages in `crates/lcxl3`).
-
-* **Thread.** `initialize()` starts a controller thread. It looks for the device every 2 s, opens
-  its DAW ports with `midir`, switches it into DAW mode (relative encoders, own popups) and runs the
-  surface. When the plugin is unloaded, it returns the device to standalone mode.
-* **Ports.** The ports are picked by name: names containing `LCXL3` or "Launch Control XL" and
-  "3", preferring one with "DAW", otherwise the device's second port. `VDRUM_LCXL3_PORT=<text>`
-  picks the ports whose names contain `<text>` instead. `VDRUM_LCXL3=0` disables the controller.
-  `VDRUM_LCXL3_LOG=<file>` appends every message received from the device to `<file>` (time, bytes
-  in hex, decoded form), to check what the hardware sends.
-  The port names have not been checked on a real device.
-* **One owner.** Only one plugin instance per process drives the device. Instances in other
-  processes (another host) are not coordinated. The other instances still run their surface for
-  their editor (below) and take the device over when the owner releases it.
-* **Without a device.** The surface also runs with no device connected, so the editor's mode tabs
-  show values and accept mouse edits. `Shared::controller_connected` says whether a device is
-  connected.
-* **Editor view.** Every frame (20 ms) in which it changed, the controller thread publishes a
-  `vdrum_surface::View` in `Shared::surface_view`: the mode, every control of the mode (label,
-  section and colour, LED colour, value text and position, parameter ID and name, fader position and
-  pickup), the context layers (Shift, sequencer view, pattern select, held steps, Accent, kit
-  browsing, Compare, macro learn, momentary effects, holds in progress), the last hardware edit and
-  the screen lines.
-* **Editor input.** The editor sends mouse edits as `lcxl3::Input` messages and tab clicks as mode
-  changes through `Shared::surface_input`. They run through the same handlers as the device
-  (`Surface::handle_editor`), but do not count as hardware edits, so they do not set the
-  "now editing" pill.
-* **Audio thread.** The controller never touches the engine. Parameter changes, fader moves and
-  pad triggers go through the editor's lock-free command queue. LEDs and the screen read the
-  shared parameter mirror, so they follow host automation, editor edits and kit loads.
-* **Mode buttons.** While Shift is held the 16 buttons show the mode slots: the active mode's button
-  pulses orange (`vdrum_surface::pulse`), the other modes are dim white and the empty slots (13 to
-  15) are off.
-* **LFO mode.** In mode 11 the top-row buttons 1 to 7 follow the LFO of track 1 to 7: the audio
-  thread publishes the seven LFO outputs once per block (`Lxr::vdrum_lfo_values`,
-  `Shared::lfo_values`) and the LED brightness is `(1 - amount) * 0.6 + amount * (0.08 + 0.92 *
-  lfo)` (`vdrum_surface::lfo_brightness`). LFOs faster than about 25 Hz alias at the 20 ms frame
-  rate.
-* **Encoder LEDs.** Each encoder LED shows its section or track colour, scaled by the value:
-  10 % at the minimum, full brightness at the maximum (`vdrum_surface::value_brightness`). The
-  device only does this by itself in its own modes; in DAW mode the plugin sets every LED.
-* **Host parameters.** Controller changes are flagged like changes from MIDI (see below): the
-  editor copies them to the host parameters, and the saved state includes them while the editor is
-  closed. The voice faders are saved separately (`faders`) for the same reason.
-* **Kits.**
-  * Shift + Page up/down shows the previous/next filled slot of the kit library ("Kit 03 · MALWA");
-    Play loads it, any other control cancels.
-  * With an empty library, the controller works on the kit file last loaded or saved (in the editor
-    or on the controller; the path is saved with the plugin state as `kit-path`): Shift + Page
-    up/down shows the previous/next `.snd` file of that folder.
-  * *Save kit* (Global, hold 1 s) writes the current kit into the selected library slot, or, when
-    the kit is not from the library, overwrites the kit file.
-  * *Compare* (Global, hold) plays the kit as last loaded or saved and returns to the edited kit on
-    release. Both kit loads reach the host parameters like any kit load.
-* **Undo/redo** covers parameter changes made on the controller (256 steps; changes to one
-  parameter within 1 s are one step).
-* **Panic** silences the seven voices at once (`Lxr::vdrum_all_sound_off`); FX tails continue.
-* **Settings.** The controller settings of the Global mode (pad velocity, list speed, fader mode,
-  clock, device brightness, popup time, encoder curve) are saved with the plugin state
-  (`lcxl3-settings`).
-
-### Sequencer (mode 8 and the sequencer view)
+## Sequencer
 
 The engine's ported LXR-02 sequencer plays the patterns (7 tracks, 64 patterns, 64 steps per
-track). The controller edits the plugin's copy of the pattern data (`Shared::seq`,
-`vdrum_surface::seq::SeqData`) and sends each change to the engine through the command queue
-(`Command::Seq`), so the audio thread never locks. The plugin state saves the copy; `initialize()`
-loads it into the engine. Engine writes go through `lxr_core::vdrum::seq`, which also updates the
-firmware's backup copy of the playing pattern (`patternBackupBuffer`); without that, the firmware
-discards edits of the playing pattern when the pattern changes.
+track). The plugin keeps a copy of the pattern data (`Shared::seq`, `vdrum_engine::seq::SeqData`);
+pattern imports replace it and reload it into the engine (`Command::SeqReload`), so the audio
+thread never waits for a lock. The plugin state saves the copy; `initialize()` loads it into the
+engine. Engine writes go through `lxr_core::vdrum::seq`, which also updates the firmware's backup
+copy of the playing pattern (`patternBackupBuffer`); without that, the firmware discards edits of
+the playing pattern when the pattern changes.
 
-* **Clock.** Global mode, *Clock*:
-  * *Host* (default): the sequencer follows the host transport. On start the plugin places every
-    track at the host position (16th notes from the song start, modulo the track length) and then
-    sends one pulse per 16th note at its sample position (`process()`), through the firmware's
-    external clock input path (`seq_isSyncExternal` = 1, `trigger_clockReceived`). A jump of the
-    host position (loop, locate) re-places the tracks. The rounded host tempo is passed to the
-    engine for flams and shuffle. Stopping the transport stops the sequencer. The standalone app
-    has no transport, so nothing plays in this setting. The plugin cannot stop the host transport:
-    Play (any mode) silences the running sequencer instead (`Lxr::vdrum.seq_silent`; it keeps
-    following the host but triggers no steps; Play LED red, "silent" on the mode 8 screen) until
-    Play is pressed again. Changing the clock setting ends it.
-  * *Internal*: the engine's own clock at the global tempo (`PAR_BPM`); Play starts it (from step
-    1) in mode 8 and stops it in any mode.
+* **Clock.** The sequencer follows the host transport. On start the plugin places every track at
+  the host position (16th notes from the song start, modulo the track length) and then sends one
+  pulse per 16th note at its sample position (`process()`), through the firmware's external clock
+  input path (`seq_isSyncExternal` = 1, `trigger_clockReceived`). A jump of the host position
+  (loop, locate) re-places the tracks. The rounded host tempo is passed to the engine for flams and
+  shuffle. Stopping the transport stops the sequencer. The standalone app has no transport, so
+  nothing plays there.
   * Pulses are applied at the start of the engine tick they fall into (up to 63 engine frames
     early, like MIDI). On the firmware's external clock path, odd 16th notes are delayed by the
     shuffle time even at shuffle 0, which ends one tick (1.45 ms) later.
-* **Sequencer view.** Solo/Arm toggles the sequencer view in any mode: the 16 buttons become the
-  step buttons of the selected track while knobs and faders keep the mode's functions. Mode 8
-  always has the view. A mode change (Shift + button N) ends the view unless it is sticky: Shift +
-  Solo/Arm toggles sticky (Solo/Arm LED white while the view is on, orange while sticky).
-* **Steps.** In the view the 16 buttons are the steps of the shown bar (Page up/down: bars 1 to 4)
-  of the selected track. A press sets the step if it is off (at the entry velocity); a press and
-  release without other changes clears it. Hold Mute/Select: the 16 buttons queue patterns 1 to 16
-  (at the bar end while running); a short press without using the layer goes to Perform.
-* **Selected track.** In the view Track left/right select track 1 to 7 (they do nothing outside
-  it; modes are chosen with Shift + button N). The step buttons show the selected track's steps;
-  in mode 8 the screen's third line shows it ("Track 2 D2") and its column's knob LEDs pulse at
-  their value brightness (`vdrum_surface::pulse`, raised cosine, 1.2 s period, 8 % floor). Steps
-  are edited on the selected track only (the Solo/Arm track-group layer was removed on 2026-11-05).
-* **Held steps, other modes.** In the view outside mode 8, holding a step and turning a knob or
-  moving a fader that controls a parameter stores a lock of that parameter on the step (knob:
-  starts at the kit value and moves; fader: set to the fader position); the kit value does not
-  change. Controls without a parameter cannot lock.
-* **Held steps, mode 8.** Knob row 1: velocity, probability, note, flam/ratchet, micro-shift, the
-  two lock values, clear locks. Row 2: parameter locks (pitch, decay, cutoff, resonance, drive, pan,
-  sample rate, FX send) for the selected track. A lock starts at the kit's current value; a third lock
-  replaces the older one. Locks use the step's two automation slots, which hold parameter numbers
-  0 to 254 and CC values 0 to 127: the open hi-hat's parameters (numbers from 302) cannot be locked.
-* **Generators.** Fills and Rotate set Euclid pulses and rotation and rewrite the track's steps
-  (hand-set steps stay until Fills is turned); Length is 1 to 64 steps per track. The Euclid
-  pattern comes from the plugin (`vdrum_surface::seq::euclid`), not from the engine's
-  `euklid_generate`, which only covers lengths up to 16. Density faders scale the probability of
-  every step of the track (Density all: of every track) in the engine copy; the saved step
-  probability is unchanged.
-* **Record = Clear.** In the view, hold Record and press a step: the step is cleared (off, default
-  velocity and timing, no locks). Hold Record and press Track left or right: the selected track's
-  pattern is cleared (Euclid pulses off, every step back to default; length and density stay).
-  Record's LED is dim red in the view, bright while held. Live recording was removed on 2026-11-05.
 * **Pattern changes** keep the kit. The firmware's default `PAR_PATTERN_MODE` 1 loads the
   pattern's kit slot from the engine's kit memory on every pattern change, which undid kit edits;
   the plugin sets it to 0 (it is not a host parameter).
-
-### Performance modes (9 to 12)
-
-These act through the same parameter changes as the knobs, except mutes and the LFO phase reset.
-They do not go into the undo history (the LFO offset knob does).
-
-* **Mutes** (Perform, bottom row; button 8 = all). The audio thread drops note-ons whose tracks
-  are all muted (host MIDI and controller pads) and the sequencer skips muted tracks
-  (`seq_mutedTracks`, set without the firmware's note off, so a sounding voice finishes its decay).
-  A note that triggers a muted and an unmuted track plays both. Mutes are not saved.
-* **Momentary effects** (Mix + FX, bottom row, active while held). On release every changed
-  parameter returns to its value before the press; a change to the same parameter made while the
-  effect is held is overwritten.
-  * Stutter 1/16 and 1/32 repeat the tracks hit in the last second, at the host tempo (or
-    `PAR_BPM`), from the controller thread (timing within a few milliseconds, not sample exact).
-  * Filter sweep moves all cutoffs down over 50 ms to 2 s (Effect rate).
-  * Reso up, Swell (attack), Long decay raise those parameters of all voices; Lo-fi lowers the
-    global sample rate; FX throw sends all voices to the FX bus and raises the dry/wet amount.
-  * Effect depth sets how far they go.
-* **LFO + Mod, column 8.**
-  * Rate scale (10 to 400 %), Depth scale fader (0 to 200 %) and Vel scale (0 to 200 %) multiply the
-    LFO rates, LFO amounts and velocity amounts of all voices. The values at 100 % are kept and
-    return when the scale is back at 100 %. A value changed elsewhere while scaled becomes the new
-    value at 100 %. The saved kit holds the scaled values.
-  * LFO offset all moves every LFO phase offset (undoable).
-  * Sync to host sets the free-running LFOs to clock sync 1/1 (the engine's sync follows the
-    sequencer tempo, which follows the host tempo in the Host clock setting); pressed again, the
-    previous sync settings return.
-  * Reset phases restarts every LFO at its phase offset (`Lxr::vdrum_lfo_reset_phases`).
-* **Snapshots** (Morph + Macro, top row). Hold 1 s stores the kit parameters, a short press
-  recalls them. Saved with the plugin state (`lcxl3-state`).
-* **Morph.** Each voice has a morph amount and a target snapshot (knob rows 2 and 3; column 8 sets
-  all voices). Numeric parameters are interpolated from the voice's values when the morph started
-  toward the snapshot; lists switch at the middle; the audio output stays. Amount 0 restores the
-  starting values. The engine's own morph (`PAR_MORPH`) is not used: it needs a morph kit slot in
-  the engine's kit memory, which the plugin does not fill.
-* **Macros.** Press Learn N, move controls in any mode, press Learn N again: every parameter
-  changed in between gets the range from its value before the first change to its last value.
-  The fader sets the position in that range, knob row 1 scales the ranges (0 to 200 %). Saved
-  with the plugin state. Assigning macros in the editor is not implemented.
 
 ## Validation (Linux, x86_64)
 

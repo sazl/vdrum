@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! VDrum's defaults that differ from the firmware's, the voice fader scale, and a new engine with
-//! those defaults applied. Shared by the plugin and the Ableton Move module.
+//! those defaults applied. Used by the plugin.
 
 use crate::engine::{Engine, LxrEngine};
 use crate::fp;

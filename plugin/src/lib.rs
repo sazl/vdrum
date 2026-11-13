@@ -3,9 +3,8 @@
 //!
 //! See `plugin/README.md` for the timing model, MIDI handling and limitations.
 
-pub mod controller;
 pub mod editor;
-pub use vdrum_engine::{engine, fp, library, lxr_files};
+pub use vdrum_engine::{engine, fp, library, lxr_files, seq};
 pub mod params;
 pub mod pipeline;
 #[cfg(test)]
@@ -47,8 +46,6 @@ pub struct VDrum {
     sum_aux_host: bool,
     meter_decay_per_sample: f32,
     meter_state: [f32; 4],
-    /// The Launch Control XL 3 controller thread (started in `initialize()`).
-    controller: Option<controller::Controller>,
     /// Sequencer clock: host transport (true) or the engine's own, as last applied.
     seq_host_clock: Option<bool>,
     /// The host transport is playing and the sequencer follows it.
@@ -86,7 +83,6 @@ impl Default for VDrum {
             sum_aux_host: false,
             meter_decay_per_sample: 0.9999,
             meter_state: [0.0; 4],
-            controller: None,
             seq_host_clock: None,
             seq_playing: false,
             seq_next: 0,
@@ -208,8 +204,8 @@ impl Plugin for VDrum {
             engine.set_fader_adc(i, params::fader_adc(step));
             self.shared.fader_values[i].store(step, Ordering::Relaxed);
             if step != f.value() {
-                // The controller moved it while the editor was closed: the editor copies it to
-                // the host parameter.
+                // A learned CC moved it while the editor was closed: the editor copies it to the
+                // host parameter.
                 self.shared.extra_values[i].store(step, Ordering::Relaxed);
                 self.shared.extra_dirty[i].store(true, Ordering::Relaxed);
             }
@@ -253,9 +249,6 @@ impl Plugin for VDrum {
         self.shared.has_aux.store(self.has_aux, Ordering::Relaxed);
         // Peak meters fall by 20 dB in about 300 ms.
         self.meter_decay_per_sample = 0.1f32.powf(1.0 / (0.3 * buffer_config.sample_rate));
-        if self.controller.is_none() {
-            self.controller = controller::Controller::start(self.shared.clone());
-        }
         true
     }
 
@@ -284,9 +277,6 @@ impl Plugin for VDrum {
         while let Some(cmd) = shared.commands.pop() {
             match cmd {
                 Command::Midi(bytes) => {
-                    if muted(shared, bytes) {
-                        continue;
-                    }
                     pad_hits(shared, bytes);
                     pipeline.push_event(0, Ev::midi(bytes), &mut apply);
                 }
@@ -297,30 +287,7 @@ impl Plugin for VDrum {
                     }
                     sync_mirror(&*pipeline.engine, shared, true);
                 }
-                Command::Param(idx, val) => {
-                    pipeline.push_event(0, Ev::Param { idx, val, learned: true }, &mut apply);
-                }
-                Command::Fader(i, step) => {
-                    pipeline.push_event(0, Ev::Fader { index: i, adc: params::fader_adc(step) }, &mut apply);
-                }
-                Command::Panic => {
-                    let _ieee = fp::IeeeGuard::new();
-                    pipeline.engine.all_sound_off();
-                }
-                Command::Seq(ev) => pipeline.push_event(0, Ev::Seq(ev), &mut apply),
                 Command::SeqReload => self.seq_reload_pending = true,
-                Command::Switch(hw, on) => {
-                    let target = if hw { params::LEARN_HW_CLOCK } else { params::LEARN_SUM_AUX };
-                    if hw {
-                        self.hw_clock_want = on;
-                    } else {
-                        self.sum_aux_want = on;
-                    }
-                    // The editor copies it to the host parameter, as for a learned CC.
-                    let k = (target - params::LEARN_FADER) as usize;
-                    shared.extra_values[k].store(on as i32, Ordering::Relaxed);
-                    shared.extra_dirty[k].store(true, Ordering::Relaxed);
-                }
             }
         }
 
@@ -380,14 +347,6 @@ impl Plugin for VDrum {
                 self.seq_playing = false;
             }
             self.seq_host_clock = Some(host_clock);
-        }
-        {
-            let tr = context.transport();
-            let t = match tr.tempo {
-                Some(t) if host_clock && t > 0.0 => t as f32,
-                _ => (shared.value(lxr_params::par::BPM) as f32).max(20.0),
-            };
-            shared.tempo.store(t, Ordering::Relaxed);
         }
         if host_clock {
             let tr = context.transport();
@@ -493,9 +452,6 @@ impl Plugin for VDrum {
             if !host_message_reaches_engine(bytes) {
                 continue;
             }
-            if muted(shared, bytes) {
-                continue;
-            }
             pad_hits(shared, bytes);
             pipeline.push_event(timing, Ev::midi(bytes), &mut apply);
         }
@@ -550,11 +506,6 @@ impl Plugin for VDrum {
             },
         );
 
-        shared.seq_status.store(&pipeline.engine.seq_status());
-        for (out, v) in shared.lfo_values.iter().zip(pipeline.engine.lfo_values()) {
-            out.store(v.to_bits(), Ordering::Relaxed);
-        }
-
         let decay = self.meter_decay_per_sample.powi(frames as i32);
         for ((m, p), out) in self.meter_state.iter_mut().zip(peak).zip(&shared.meters) {
             *m = p.max(*m * decay);
@@ -591,22 +542,12 @@ fn apply_event<E: Engine>(e: &mut E, shared: &Shared, midi_applied: &Cell<bool>,
     }
 }
 
-/// Whether a message is a note-on that only triggers muted tracks (it is dropped).
 /// Whether a host MIDI message that is not a learned CC goes to the engine. Control changes never
 /// do: the firmware's own CC/NRPN map (CC 2–127 to parameters 1–126, NRPN through CC 99/98/6, CC 0
-/// bank change loading a kit) is not used, so a controller whose messages also reach the host (for
-/// example the Launch Control XL 3's DAW port) cannot change unrelated parameters.
+/// bank change loading a kit) is not used, so a controller whose messages also reach the host
+/// cannot change unrelated parameters.
 fn host_message_reaches_engine(bytes: [u8; 3]) -> bool {
     bytes[0] & 0xf0 != 0xb0
-}
-
-fn muted(shared: &Shared, bytes: [u8; 3]) -> bool {
-    let mutes = shared.mutes.load(Ordering::Relaxed) as u32;
-    if mutes == 0 || bytes[0] & 0xf0 != 0x90 || bytes[2] == 0 {
-        return false;
-    }
-    let mask = tracks_for_note(bytes[0] & 0x0f, bytes[1], |p| shared.value(p)) as u32;
-    mask != 0 && mask & !mutes == 0
 }
 
 /// Light the pads of the tracks a note-on triggers (by the current channel/note settings).
