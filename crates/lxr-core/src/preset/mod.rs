@@ -5,7 +5,6 @@
 //! reference ELF. Function bodies are `todo!()` until ported.
 
 pub mod init_kit;
-pub mod seq_step;
 
 use crate::prelude::*;
 use crate::front_panel_parser::{CC_2, CC_LFO_TARGET, CC_VELO_TARGET};

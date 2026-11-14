@@ -82,8 +82,7 @@ pub trait Engine: Send {
 ///   name (`savefileNames[0][KIT_NAMES]`, set by `load_kit`) and `activeParameters[0..247]`.
 /// * `load_kit` accepts 8..=255 bytes (anything else is ignored).
 /// * Faders start at the top (the contract's power-on state) and move through `set_fader_adc`.
-/// * VDrum has no sequencer: the ported LXR-02 sequencer is silenced (`VdrumState::seq_silent`),
-///   so it triggers no step even if host MIDI starts it. `set_tempo` sets its tempo, which
+/// * VDrum has no sequencer (the LXR-02 sequencer is not ported). `set_tempo` sets the tempo that
 ///   clock-synced LFOs follow (`seq_setBpm`).
 ///
 /// Last-resort safety net: a panic inside the engine (a bug: e.g. an index the C code would read
@@ -110,12 +109,6 @@ impl Engine for LxrEngine {
         // `Lxr` itself is about 14 kB; its large buffers are boxed by `Lxr::new_zeroed`.
         let mut l = lxr_core::Lxr::new();
         l.set_hat_split(true);
-        // `PAR_PATTERN_MODE` 1 (the firmware default) loads the pattern's kit slot from the
-        // engine's kit memory on every pattern change, which would undo kit edits; the plugin keeps
-        // the kit across pattern changes. Not a host parameter.
-        l.activeParameters[lxr_core::parameters::PAR_PATTERN_MODE as usize] = 0;
-        // VDrum has no sequencer; the ported one never triggers a step.
-        l.vdrum.seq_silent = true;
         Box::new(LxrEngine(l, false))
     }
 

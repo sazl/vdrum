@@ -10,11 +10,10 @@
 //! | `Core/{Inc,Src}/Soundengine/DSPAudio/FX/X` | `dsp::fx::x` |
 //! | `Core/{Inc,Src}/Soundengine/DSPAudio/FX/VerbTools/X` | `dsp::fx::verb_tools::x` |
 //! | `Core/{Inc,Src}/Soundengine/MIDI/X` | `midi::x` |
-//! | `Core/{Inc,Src}/Soundengine/Sequencer/sequencer` | `sequencer` |
-//! | `Core/{Inc,Src}/Soundengine/Sequencer/X` | `sequencer::x` |
+//! | `seq_setBpm`, `seq_getBpm`, `seq_setMute`, `seq_isTrackMuted` of `Core/Src/Soundengine/Sequencer/sequencer.c` | `tempo_mute` |
 //! | `Core/{Inc,Src}/Soundengine/X` (FxBus, Soundengine, FIFO, config, ...) | `x` |
 //! | `Core/{Inc,Src}/Preset/presetManager`, `PresetManager.h` | `preset` |
-//! | `Core/{Inc,Src}/Preset/X` (SeqStep, initKit) | `preset::x` |
+//! | `Core/{Inc,Src}/Preset/X` (initKit) | `preset::x` |
 //! | `Core/Inc/Parameters.h`, `Core/Src/Parameters.c` | `parameters` |
 //! | `Core/Src/frontPanelParser.c`, `Core/Inc/frontPanelParser_ui.h` | `front_panel_parser` |
 //! | `Core/Inc/menu/menu.h`, `Core/Src/menu/Cc2Text.c` | `menu`, `menu::cc2_text` |
@@ -51,8 +50,8 @@ pub mod menu;
 pub mod midi;
 pub mod parameters;
 pub mod preset;
-pub mod sequencer;
 pub mod soundengine;
+pub mod tempo_mute;
 
 /// VDrum extensions (not part of the firmware port).
 pub mod vdrum;

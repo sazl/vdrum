@@ -57,27 +57,10 @@ impl CMem for ptrValue {
     fn get_byte(&self, off: u32) -> u8 { self.itg.get_byte(off) }
     fn set_byte(&mut self, off: u32, v: u8) { self.itg.set_byte(off, v) }
 }
-impl CMem for seq_rndValue_t {
-    const SIZE: u32 = 3;
-    fn get_byte(&self, off: u32) -> u8 { [self.prev, self.current, self.next][off as usize] }
-    fn set_byte(&mut self, off: u32, v: u8) {
-        match off { 0 => self.prev = v, 1 => self.current = v, _ => self.next = v }
-    }
-}
 impl CMem for MidiBits {
     const SIZE: u32 = 4;
     fn get_byte(&self, off: u32) -> u8 { self.bits.get_byte(off) }
     fn set_byte(&mut self, off: u32, v: u8) { self.bits.set_byte(off, v) }
-}
-impl CMem for StepTiming {
-    const SIZE: u32 = 1;
-    fn get_byte(&self, off: u32) -> u8 { self.bits }
-    fn set_byte(&mut self, off: u32, v: u8) { self.bits = v }
-}
-impl CMem for ActiveSteps {
-    const SIZE: u32 = 8;
-    fn get_byte(&self, off: u32) -> u8 { self.word.get_byte(off) }
-    fn set_byte(&mut self, off: u32, v: u8) { self.word.set_byte(off, v) }
 }
 impl CMem for midiParser_routing_t {
     const SIZE: u32 = 4;
@@ -85,21 +68,6 @@ impl CMem for midiParser_routing_t {
     fn set_byte(&mut self, off: u32, v: u8) { self.bits.set_byte(off, v) }
 }
 
-impl CMem for AutomationNode {
-    const SIZE: u32 = 2;
-    fn get_byte(&self, off: u32) -> u8 {
-        match off {
-            0..=1 => self.destination.get_byte(off - 0),
-            _ => 0,
-        }
-    }
-    fn set_byte(&mut self, off: u32, v: u8) {
-        match off {
-            0..=1 => self.destination.set_byte(off - 0, v),
-            _ => {}
-        }
-    }
-}
 
 impl CMem for Compressor {
     const SIZE: u32 = 32;
@@ -693,57 +661,7 @@ impl CMem for Parameter {
     }
 }
 
-impl CMem for PatternBackupBuffer {
-    const SIZE: u32 = 3650;
-    fn get_byte(&self, off: u32) -> u8 {
-        match off {
-            0..=3135 => self.seq_subStepPattern.get_byte(off - 0),
-            3136..=3583 => self.seq_stepTiming.get_byte(off - 3136),
-            3584..=3639 => self.seq_mainSteps.get_byte(off - 3584),
-            3640..=3646 => self.length.get_byte(off - 3640),
-            3647..=3647 => self.shuffle.get_byte(off - 3647),
-            3648..=3648 => self.kitNr.get_byte(off - 3648),
-            _ => 0,
-        }
-    }
-    fn set_byte(&mut self, off: u32, v: u8) {
-        match off {
-            0..=3135 => self.seq_subStepPattern.set_byte(off - 0, v),
-            3136..=3583 => self.seq_stepTiming.set_byte(off - 3136, v),
-            3584..=3639 => self.seq_mainSteps.set_byte(off - 3584, v),
-            3640..=3646 => self.length.set_byte(off - 3640, v),
-            3647..=3647 => self.shuffle.set_byte(off - 3647, v),
-            3648..=3648 => self.kitNr.set_byte(off - 3648, v),
-            _ => {}
-        }
-    }
-}
 
-impl CMem for PatternSet {
-    const SIZE: u32 = 233536;
-    fn get_byte(&self, off: u32) -> u8 {
-        match off {
-            0..=200703 => self.seq_subStepPattern.get_byte(off - 0),
-            200704..=229375 => self.seq_stepTiming.get_byte(off - 200704),
-            229376..=232959 => self.seq_mainSteps.get_byte(off - 229376),
-            232960..=233407 => self.length.get_byte(off - 232960),
-            233408..=233471 => self.shuffle.get_byte(off - 233408),
-            233472..=233535 => self.kitNr.get_byte(off - 233472),
-            _ => 0,
-        }
-    }
-    fn set_byte(&mut self, off: u32, v: u8) {
-        match off {
-            0..=200703 => self.seq_subStepPattern.set_byte(off - 0, v),
-            200704..=229375 => self.seq_stepTiming.set_byte(off - 200704, v),
-            229376..=232959 => self.seq_mainSteps.set_byte(off - 229376, v),
-            232960..=233407 => self.length.set_byte(off - 232960, v),
-            233408..=233471 => self.shuffle.set_byte(off - 233408, v),
-            233472..=233535 => self.kitNr.set_byte(off - 233472, v),
-            _ => {}
-        }
-    }
-}
 
 impl CMem for ResonantFilter {
     const SIZE: u32 = 32;
@@ -901,33 +819,6 @@ impl CMem for SnareVoice {
     }
 }
 
-impl CMem for Step {
-    const SIZE: u32 = 7;
-    fn get_byte(&self, off: u32) -> u8 {
-        match off {
-            0..=0 => self.volume.get_byte(off - 0),
-            1..=1 => self.prob.get_byte(off - 1),
-            2..=2 => self.note.get_byte(off - 2),
-            3..=3 => self.param1Nr.get_byte(off - 3),
-            4..=4 => self.param1Val.get_byte(off - 4),
-            5..=5 => self.param2Nr.get_byte(off - 5),
-            6..=6 => self.param2Val.get_byte(off - 6),
-            _ => 0,
-        }
-    }
-    fn set_byte(&mut self, off: u32, v: u8) {
-        match off {
-            0..=0 => self.volume.set_byte(off - 0, v),
-            1..=1 => self.prob.set_byte(off - 1, v),
-            2..=2 => self.note.set_byte(off - 2, v),
-            3..=3 => self.param1Nr.set_byte(off - 3, v),
-            4..=4 => self.param1Val.set_byte(off - 4, v),
-            5..=5 => self.param2Nr.set_byte(off - 5, v),
-            6..=6 => self.param2Val.set_byte(off - 6, v),
-            _ => {}
-        }
-    }
-}
 
 impl CMem for TransientGenerator {
     const SIZE: u32 = 24;
@@ -972,16 +863,10 @@ pub const GLOBALS: &[(CPtr, u32, &str)] = &[
     (ADDR_velocityModulators, 96, "velocityModulators"),
     (ADDR_fxBus, 352, "fxBus"),
     (ADDR_systick_ticks, 4, "systick_ticks"),
-    (ADDR_midiParser_mtcIgnore, 1, "midiParser_mtcIgnore"),
     (ADDR_midiParser_txRxFilter, 1, "midiParser_txRxFilter"),
     (ADDR_parserState, 1, "parserState"),
-    (ADDR_seq_sendMidiNoteOn_msg, 8, "seq_sendMidiNoteOn_msg"),
-    (ADDR_seq_sendProgChg_msg, 8, "seq_sendProgChg_msg"),
-    (ADDR_seq_armedArmedAutomationStep, 1, "seq_armedArmedAutomationStep"),
-    (ADDR_seq_armedArmedAutomationTrack, 1, "seq_armedArmedAutomationTrack"),
-    (ADDR_seq_quantisation, 1, "seq_quantisation"),
-    (ADDR_seq_rollRate, 1, "seq_rollRate"),
     (ADDR_seq_tempo, 2, "seq_tempo"),
+    (ADDR_seq_mutedTracks, 1, "seq_mutedTracks"),
     (ADDR_trigger_dividerClockOut1, 1, "trigger_dividerClockOut1"),
     (ADDR_trigger_prescalerClockInput, 1, "trigger_prescalerClockInput"),
     (ADDR_menu_TargetVoiceGapIndex, 1, "menu_TargetVoiceGapIndex"),
@@ -1006,14 +891,11 @@ pub const GLOBALS: &[(CPtr, u32, &str)] = &[
     (ADDR_frontParser_shownPattern, 1, "frontParser_shownPattern"),
     (ADDR_frontParser_sysexActive, 1, "frontParser_sysexActive"),
     (ADDR_frontParser_sysexBuffer, 7, "frontParser_sysexBuffer"),
-    (ADDR_frontParser_sysexSeqStepNr, 2, "frontParser_sysexSeqStepNr"),
     (ADDR_frontParser_twoByteData, 2, "frontParser_twoByteData"),
     (ADDR_checkMIDIprocPAR, 1, "checkMIDIprocPAR"),
     (ADDR_checkMIDIprocPAR_t, 1, "checkMIDIprocPAR_t"),
     (ADDR_midiMsg_tmp, 8, "midiMsg_tmp"),
     (ADDR_midiParser_activeNrpnNumber, 2, "midiParser_activeNrpnNumber"),
-    (ADDR_midiParser_lastMtcReceived, 4, "midiParser_lastMtcReceived"),
-    (ADDR_midiParser_mtcIsRunning, 1, "midiParser_mtcIsRunning"),
     (ADDR_midiParser_originalCcValues, 255, "midiParser_originalCcValues"),
     (ADDR_midiParser_routing, 4, "midiParser_routing"),
     (ADDR_midi_MidiChannels, 8, "midi_MidiChannels"),
@@ -1021,61 +903,11 @@ pub const GLOBALS: &[(CPtr, u32, &str)] = &[
     (ADDR_parameterArray, 1976, "parameterArray"),
     (ADDR_fifo_midiRx, 258, "fifo_midiRx"),
     (ADDR_midi_process_block, 1, "midi_process_block"),
-    (ADDR_euklid_length, 7, "euklid_length"),
-    (ADDR_euklid_nextCnt1, 2, "euklid_nextCnt1"),
-    (ADDR_euklid_originalLength, 2, "euklid_originalLength"),
-    (ADDR_euklid_patternBuffer, 8, "euklid_patternBuffer"),
-    (ADDR_euklid_rotation, 7, "euklid_rotation"),
-    (ADDR_euklid_steps, 7, "euklid_steps"),
-    (ADDR_sync_clockCnt, 1, "sync_clockCnt"),
-    (ADDR_sync_delayedStepTimer, 4, "sync_delayedStepTimer"),
-    (ADDR_sync_timeLast, 4, "sync_timeLast"),
-    (ADDR_sync_window, 32, "sync_window"),
-    (ADDR_sync_writePos, 1, "sync_writePos"),
-    (ADDR_chokeCurrent, 1, "chokeCurrent"),
-    (ADDR_chokeNext, 1, "chokeNext"),
-    (ADDR_isStepShuffled, 1, "isStepShuffled"),
-    (ADDR_lastWasNoteOn, 7, "lastWasNoteOn"),
-    (ADDR_midi_chan_notes, 16, "midi_chan_notes"),
-    (ADDR_midi_notes_on, 2, "midi_notes_on"),
-    (ADDR_seq_sendRealtime_msg, 8, "seq_sendRealtime_msg"),
-    (ADDR_patternBackupBuffer, 3650, "patternBackupBuffer"),
-    (ADDR_seq_activeAutomTrack, 1, "seq_activeAutomTrack"),
-    (ADDR_seq_activePattern, 1, "seq_activePattern"),
-    (ADDR_seq_automationNodes, 28, "seq_automationNodes"),
-    (ADDR_seq_deltaT, 4, "seq_deltaT"),
-    (ADDR_seq_eraseActive, 1, "seq_eraseActive"),
-    (ADDR_seq_isSyncExternal, 1, "seq_isSyncExternal"),
-    (ADDR_seq_lastMasterStep, 7, "seq_lastMasterStep"),
-    (ADDR_seq_lastShuffle, 4, "seq_lastShuffle"),
-    (ADDR_seq_lastTick, 4, "seq_lastTick"),
-    (ADDR_seq_loadPendigFlag, 1, "seq_loadPendigFlag"),
-    (ADDR_seq_masterStepCnt, 1, "seq_masterStepCnt"),
-    (ADDR_seq_mutedTracks, 1, "seq_mutedTracks"),
-    (ADDR_seq_patternSet, 233536, "seq_patternSet"),
-    (ADDR_seq_pendingPattern, 1, "seq_pendingPattern"),
-    (ADDR_seq_prescaleCounter, 1, "seq_prescaleCounter"),
-    (ADDR_seq_recordActive, 1, "seq_recordActive"),
-    (ADDR_seq_resetBarOnPatternChange, 1, "seq_resetBarOnPatternChange"),
-    (ADDR_seq_rndValue, 21, "seq_rndValue"),
-    (ADDR_seq_rollState, 1, "seq_rollState"),
-    (ADDR_seq_running, 1, "seq_running"),
-    (ADDR_seq_selectedStep, 1, "seq_selectedStep"),
-    (ADDR_seq_shuffle, 4, "seq_shuffle"),
-    (ADDR_seq_songData, 4096, "seq_songData"),
-    (ADDR_seq_songModeEnabled, 1, "seq_songModeEnabled"),
-    (ADDR_seq_songPositionPointer, 1, "seq_songPositionPointer"),
-    (ADDR_seq_stepIndex, 7, "seq_stepIndex"),
-    (ADDR_seq_stepToSkip, 7, "seq_stepToSkip"),
     (ADDR_trigger_clockReceived, 1, "trigger_clockReceived"),
     (ADDR_dmaPtr, 1, "dmaPtr"),
-    (ADDR_frontPanel_sysexMode, 1, "frontPanel_sysexMode"),
     (ADDR_frontParser_midiMsg, 8, "frontParser_midiMsg"),
-    (ADDR_frontParser_newSeqDataAvailable, 1, "frontParser_newSeqDataAvailable"),
     (ADDR_frontParser_nrpnNr, 2, "frontParser_nrpnNr"),
     (ADDR_frontPanelParser_rxCnt, 1, "frontPanelParser_rxCnt"),
-    (ADDR_frontParser_stepData, 7, "frontParser_stepData"),
-    (ADDR_frontPanelParser_sysexBuffer, 7, "frontPanelParser_sysexBuffer"),
     (ADDR_paramToModTarget, 247, "paramToModTarget"),
     (ADDR_activeParameters, 302, "activeParameters"),
     (ADDR_mainParameters, 15808, "mainParameters"),
@@ -1108,16 +940,10 @@ impl Lxr {
             0x2001a1b8..=0x2001a217 => self.velocityModulators.get_byte(a - ADDR_velocityModulators),
             0x2001a218..=0x2001a377 => self.fxBus.get_byte(a - ADDR_fxBus),
             0x2001a378..=0x2001a37b => self.systick_ticks.get_byte(a - ADDR_systick_ticks),
-            0x200202d3..=0x200202d3 => self.midiParser_mtcIgnore.get_byte(a - ADDR_midiParser_mtcIgnore),
             0x200202d4..=0x200202d4 => self.midiParser_txRxFilter.get_byte(a - ADDR_midiParser_txRxFilter),
             0x200202d5..=0x200202d5 => self.parserState.get_byte(a - ADDR_parserState),
-            0x200202d8..=0x200202df => self.seq_sendMidiNoteOn_msg.get_byte(a - ADDR_seq_sendMidiNoteOn_msg),
-            0x200202e0..=0x200202e7 => self.seq_sendProgChg_msg.get_byte(a - ADDR_seq_sendProgChg_msg),
-            0x200202e8..=0x200202e8 => self.seq_armedArmedAutomationStep.get_byte(a - ADDR_seq_armedArmedAutomationStep),
-            0x200202e9..=0x200202e9 => self.seq_armedArmedAutomationTrack.get_byte(a - ADDR_seq_armedArmedAutomationTrack),
-            0x200202ea..=0x200202ea => self.seq_quantisation.get_byte(a - ADDR_seq_quantisation),
-            0x200202eb..=0x200202eb => self.seq_rollRate.get_byte(a - ADDR_seq_rollRate),
             0x200202ec..=0x200202ed => self.seq_tempo.get_byte(a - ADDR_seq_tempo),
+            0x200234ce..=0x200234ce => self.seq_mutedTracks.get_byte(a - ADDR_seq_mutedTracks),
             0x200202ee..=0x200202ee => self.trigger_dividerClockOut1.get_byte(a - ADDR_trigger_dividerClockOut1),
             0x200202f0..=0x200202f0 => self.trigger_prescalerClockInput.get_byte(a - ADDR_trigger_prescalerClockInput),
             0x200202f7..=0x200202f7 => self.menu_TargetVoiceGapIndex.get_byte(a - ADDR_menu_TargetVoiceGapIndex),
@@ -1142,14 +968,11 @@ impl Lxr {
             0x20021997..=0x20021997 => self.frontParser_shownPattern.get_byte(a - ADDR_frontParser_shownPattern),
             0x20021998..=0x20021998 => self.frontParser_sysexActive.get_byte(a - ADDR_frontParser_sysexActive),
             0x2002199c..=0x200219a2 => self.frontParser_sysexBuffer.get_byte(a - ADDR_frontParser_sysexBuffer),
-            0x200219a4..=0x200219a5 => self.frontParser_sysexSeqStepNr.get_byte(a - ADDR_frontParser_sysexSeqStepNr),
             0x200219a6..=0x200219a7 => self.frontParser_twoByteData.get_byte(a - ADDR_frontParser_twoByteData),
             0x200219a8..=0x200219a8 => self.checkMIDIprocPAR.get_byte(a - ADDR_checkMIDIprocPAR),
             0x200219a9..=0x200219a9 => self.checkMIDIprocPAR_t.get_byte(a - ADDR_checkMIDIprocPAR_t),
             0x200219ac..=0x200219b3 => self.midiMsg_tmp.get_byte(a - ADDR_midiMsg_tmp),
             0x200219b4..=0x200219b5 => self.midiParser_activeNrpnNumber.get_byte(a - ADDR_midiParser_activeNrpnNumber),
-            0x200219b8..=0x200219bb => self.midiParser_lastMtcReceived.get_byte(a - ADDR_midiParser_lastMtcReceived),
-            0x200219bc..=0x200219bc => self.midiParser_mtcIsRunning.get_byte(a - ADDR_midiParser_mtcIsRunning),
             0x200219c0..=0x20021abe => self.midiParser_originalCcValues.get_byte(a - ADDR_midiParser_originalCcValues),
             0x20021ac0..=0x20021ac3 => self.midiParser_routing.get_byte(a - ADDR_midiParser_routing),
             0x20021ac4..=0x20021acb => self.midi_MidiChannels.get_byte(a - ADDR_midi_MidiChannels),
@@ -1157,61 +980,11 @@ impl Lxr {
             0x20021ad0..=0x20022287 => self.parameterArray.get_byte(a - ADDR_parameterArray),
             0x200223d0..=0x200224d1 => self.fifo_midiRx.get_byte(a - ADDR_fifo_midiRx),
             0x200225d6..=0x200225d6 => self.midi_process_block.get_byte(a - ADDR_midi_process_block),
-            0x200225d8..=0x200225de => self.euklid_length.get_byte(a - ADDR_euklid_length),
-            0x200225e0..=0x200225e1 => self.euklid_nextCnt1.get_byte(a - ADDR_euklid_nextCnt1),
-            0x200225e2..=0x200225e3 => self.euklid_originalLength.get_byte(a - ADDR_euklid_originalLength),
-            0x200225e8..=0x200225ef => self.euklid_patternBuffer.get_byte(a - ADDR_euklid_patternBuffer),
-            0x200225f0..=0x200225f6 => self.euklid_rotation.get_byte(a - ADDR_euklid_rotation),
-            0x200225f8..=0x200225fe => self.euklid_steps.get_byte(a - ADDR_euklid_steps),
-            0x200225ff..=0x200225ff => self.sync_clockCnt.get_byte(a - ADDR_sync_clockCnt),
-            0x20022600..=0x20022603 => self.sync_delayedStepTimer.get_byte(a - ADDR_sync_delayedStepTimer),
-            0x20022604..=0x20022607 => self.sync_timeLast.get_byte(a - ADDR_sync_timeLast),
-            0x20022608..=0x20022627 => self.sync_window.get_byte(a - ADDR_sync_window),
-            0x20022628..=0x20022628 => self.sync_writePos.get_byte(a - ADDR_sync_writePos),
-            0x20022629..=0x20022629 => self.chokeCurrent.get_byte(a - ADDR_chokeCurrent),
-            0x2002262a..=0x2002262a => self.chokeNext.get_byte(a - ADDR_chokeNext),
-            0x2002262b..=0x2002262b => self.isStepShuffled.get_byte(a - ADDR_isStepShuffled),
-            0x2002262c..=0x20022632 => self.lastWasNoteOn.get_byte(a - ADDR_lastWasNoteOn),
-            0x20022634..=0x20022643 => self.midi_chan_notes.get_byte(a - ADDR_midi_chan_notes),
-            0x20022644..=0x20022645 => self.midi_notes_on.get_byte(a - ADDR_midi_notes_on),
-            0x20022648..=0x2002264f => self.seq_sendRealtime_msg.get_byte(a - ADDR_seq_sendRealtime_msg),
-            0x20022650..=0x20023491 => self.patternBackupBuffer.get_byte(a - ADDR_patternBackupBuffer),
-            0x20023492..=0x20023492 => self.seq_activeAutomTrack.get_byte(a - ADDR_seq_activeAutomTrack),
-            0x20023493..=0x20023493 => self.seq_activePattern.get_byte(a - ADDR_seq_activePattern),
-            0x20023498..=0x200234b3 => self.seq_automationNodes.get_byte(a - ADDR_seq_automationNodes),
-            0x200234b4..=0x200234b7 => self.seq_deltaT.get_byte(a - ADDR_seq_deltaT),
-            0x200234b8..=0x200234b8 => self.seq_eraseActive.get_byte(a - ADDR_seq_eraseActive),
-            0x200234b9..=0x200234b9 => self.seq_isSyncExternal.get_byte(a - ADDR_seq_isSyncExternal),
-            0x200234bc..=0x200234c2 => self.seq_lastMasterStep.get_byte(a - ADDR_seq_lastMasterStep),
-            0x200234c4..=0x200234c7 => self.seq_lastShuffle.get_byte(a - ADDR_seq_lastShuffle),
-            0x200234c8..=0x200234cb => self.seq_lastTick.get_byte(a - ADDR_seq_lastTick),
-            0x200234cc..=0x200234cc => self.seq_loadPendigFlag.get_byte(a - ADDR_seq_loadPendigFlag),
-            0x200234cd..=0x200234cd => self.seq_masterStepCnt.get_byte(a - ADDR_seq_masterStepCnt),
-            0x200234ce..=0x200234ce => self.seq_mutedTracks.get_byte(a - ADDR_seq_mutedTracks),
-            0x200234d0..=0x2005c50f => self.seq_patternSet.get_byte(a - ADDR_seq_patternSet),
-            0x2005c510..=0x2005c510 => self.seq_pendingPattern.get_byte(a - ADDR_seq_pendingPattern),
-            0x2005c511..=0x2005c511 => self.seq_prescaleCounter.get_byte(a - ADDR_seq_prescaleCounter),
-            0x2005c512..=0x2005c512 => self.seq_recordActive.get_byte(a - ADDR_seq_recordActive),
-            0x2005c513..=0x2005c513 => self.seq_resetBarOnPatternChange.get_byte(a - ADDR_seq_resetBarOnPatternChange),
-            0x2005c514..=0x2005c528 => self.seq_rndValue.get_byte(a - ADDR_seq_rndValue),
-            0x2005c529..=0x2005c529 => self.seq_rollState.get_byte(a - ADDR_seq_rollState),
-            0x2005c52a..=0x2005c52a => self.seq_running.get_byte(a - ADDR_seq_running),
-            0x2005c52b..=0x2005c52b => self.seq_selectedStep.get_byte(a - ADDR_seq_selectedStep),
-            0x2005c52c..=0x2005c52f => self.seq_shuffle.get_byte(a - ADDR_seq_shuffle),
-            0x2005c530..=0x2005d52f => self.seq_songData.get_byte(a - ADDR_seq_songData),
-            0x2005d530..=0x2005d530 => self.seq_songModeEnabled.get_byte(a - ADDR_seq_songModeEnabled),
-            0x2005d531..=0x2005d531 => self.seq_songPositionPointer.get_byte(a - ADDR_seq_songPositionPointer),
-            0x2005d534..=0x2005d53a => self.seq_stepIndex.get_byte(a - ADDR_seq_stepIndex),
-            0x2005d53c..=0x2005d542 => self.seq_stepToSkip.get_byte(a - ADDR_seq_stepToSkip),
             0x2005d565..=0x2005d565 => self.trigger_clockReceived.get_byte(a - ADDR_trigger_clockReceived),
             0x2005d56c..=0x2005d56c => self.dmaPtr.get_byte(a - ADDR_dmaPtr),
-            0x2005d594..=0x2005d594 => self.frontPanel_sysexMode.get_byte(a - ADDR_frontPanel_sysexMode),
             0x2005d598..=0x2005d59f => self.frontParser_midiMsg.get_byte(a - ADDR_frontParser_midiMsg),
-            0x2005d5a0..=0x2005d5a0 => self.frontParser_newSeqDataAvailable.get_byte(a - ADDR_frontParser_newSeqDataAvailable),
             0x2005d5a2..=0x2005d5a3 => self.frontParser_nrpnNr.get_byte(a - ADDR_frontParser_nrpnNr),
             0x2005d5a4..=0x2005d5a4 => self.frontPanelParser_rxCnt.get_byte(a - ADDR_frontPanelParser_rxCnt),
-            0x2005d5a8..=0x2005d5ae => self.frontParser_stepData.get_byte(a - ADDR_frontParser_stepData),
-            0x2005d5b0..=0x2005d5b6 => self.frontPanelParser_sysexBuffer.get_byte(a - ADDR_frontPanelParser_sysexBuffer),
             0x2005dec0..=0x2005dfb6 => self.paramToModTarget.get_byte(a - ADDR_paramToModTarget),
             0x2005dfbc..=0x2005e0e9 => self.activeParameters.get_byte(a - ADDR_activeParameters),
             0x2005e134..=0x20061ef3 => self.mainParameters.get_byte(a - ADDR_mainParameters),
@@ -1244,16 +1017,10 @@ impl Lxr {
             0x2001a1b8..=0x2001a217 => self.velocityModulators.set_byte(a - ADDR_velocityModulators, v),
             0x2001a218..=0x2001a377 => self.fxBus.set_byte(a - ADDR_fxBus, v),
             0x2001a378..=0x2001a37b => self.systick_ticks.set_byte(a - ADDR_systick_ticks, v),
-            0x200202d3..=0x200202d3 => self.midiParser_mtcIgnore.set_byte(a - ADDR_midiParser_mtcIgnore, v),
             0x200202d4..=0x200202d4 => self.midiParser_txRxFilter.set_byte(a - ADDR_midiParser_txRxFilter, v),
             0x200202d5..=0x200202d5 => self.parserState.set_byte(a - ADDR_parserState, v),
-            0x200202d8..=0x200202df => self.seq_sendMidiNoteOn_msg.set_byte(a - ADDR_seq_sendMidiNoteOn_msg, v),
-            0x200202e0..=0x200202e7 => self.seq_sendProgChg_msg.set_byte(a - ADDR_seq_sendProgChg_msg, v),
-            0x200202e8..=0x200202e8 => self.seq_armedArmedAutomationStep.set_byte(a - ADDR_seq_armedArmedAutomationStep, v),
-            0x200202e9..=0x200202e9 => self.seq_armedArmedAutomationTrack.set_byte(a - ADDR_seq_armedArmedAutomationTrack, v),
-            0x200202ea..=0x200202ea => self.seq_quantisation.set_byte(a - ADDR_seq_quantisation, v),
-            0x200202eb..=0x200202eb => self.seq_rollRate.set_byte(a - ADDR_seq_rollRate, v),
             0x200202ec..=0x200202ed => self.seq_tempo.set_byte(a - ADDR_seq_tempo, v),
+            0x200234ce..=0x200234ce => self.seq_mutedTracks.set_byte(a - ADDR_seq_mutedTracks, v),
             0x200202ee..=0x200202ee => self.trigger_dividerClockOut1.set_byte(a - ADDR_trigger_dividerClockOut1, v),
             0x200202f0..=0x200202f0 => self.trigger_prescalerClockInput.set_byte(a - ADDR_trigger_prescalerClockInput, v),
             0x200202f7..=0x200202f7 => self.menu_TargetVoiceGapIndex.set_byte(a - ADDR_menu_TargetVoiceGapIndex, v),
@@ -1278,14 +1045,11 @@ impl Lxr {
             0x20021997..=0x20021997 => self.frontParser_shownPattern.set_byte(a - ADDR_frontParser_shownPattern, v),
             0x20021998..=0x20021998 => self.frontParser_sysexActive.set_byte(a - ADDR_frontParser_sysexActive, v),
             0x2002199c..=0x200219a2 => self.frontParser_sysexBuffer.set_byte(a - ADDR_frontParser_sysexBuffer, v),
-            0x200219a4..=0x200219a5 => self.frontParser_sysexSeqStepNr.set_byte(a - ADDR_frontParser_sysexSeqStepNr, v),
             0x200219a6..=0x200219a7 => self.frontParser_twoByteData.set_byte(a - ADDR_frontParser_twoByteData, v),
             0x200219a8..=0x200219a8 => self.checkMIDIprocPAR.set_byte(a - ADDR_checkMIDIprocPAR, v),
             0x200219a9..=0x200219a9 => self.checkMIDIprocPAR_t.set_byte(a - ADDR_checkMIDIprocPAR_t, v),
             0x200219ac..=0x200219b3 => self.midiMsg_tmp.set_byte(a - ADDR_midiMsg_tmp, v),
             0x200219b4..=0x200219b5 => self.midiParser_activeNrpnNumber.set_byte(a - ADDR_midiParser_activeNrpnNumber, v),
-            0x200219b8..=0x200219bb => self.midiParser_lastMtcReceived.set_byte(a - ADDR_midiParser_lastMtcReceived, v),
-            0x200219bc..=0x200219bc => self.midiParser_mtcIsRunning.set_byte(a - ADDR_midiParser_mtcIsRunning, v),
             0x200219c0..=0x20021abe => self.midiParser_originalCcValues.set_byte(a - ADDR_midiParser_originalCcValues, v),
             0x20021ac0..=0x20021ac3 => self.midiParser_routing.set_byte(a - ADDR_midiParser_routing, v),
             0x20021ac4..=0x20021acb => self.midi_MidiChannels.set_byte(a - ADDR_midi_MidiChannels, v),
@@ -1293,61 +1057,11 @@ impl Lxr {
             0x20021ad0..=0x20022287 => self.parameterArray.set_byte(a - ADDR_parameterArray, v),
             0x200223d0..=0x200224d1 => self.fifo_midiRx.set_byte(a - ADDR_fifo_midiRx, v),
             0x200225d6..=0x200225d6 => self.midi_process_block.set_byte(a - ADDR_midi_process_block, v),
-            0x200225d8..=0x200225de => self.euklid_length.set_byte(a - ADDR_euklid_length, v),
-            0x200225e0..=0x200225e1 => self.euklid_nextCnt1.set_byte(a - ADDR_euklid_nextCnt1, v),
-            0x200225e2..=0x200225e3 => self.euklid_originalLength.set_byte(a - ADDR_euklid_originalLength, v),
-            0x200225e8..=0x200225ef => self.euklid_patternBuffer.set_byte(a - ADDR_euklid_patternBuffer, v),
-            0x200225f0..=0x200225f6 => self.euklid_rotation.set_byte(a - ADDR_euklid_rotation, v),
-            0x200225f8..=0x200225fe => self.euklid_steps.set_byte(a - ADDR_euklid_steps, v),
-            0x200225ff..=0x200225ff => self.sync_clockCnt.set_byte(a - ADDR_sync_clockCnt, v),
-            0x20022600..=0x20022603 => self.sync_delayedStepTimer.set_byte(a - ADDR_sync_delayedStepTimer, v),
-            0x20022604..=0x20022607 => self.sync_timeLast.set_byte(a - ADDR_sync_timeLast, v),
-            0x20022608..=0x20022627 => self.sync_window.set_byte(a - ADDR_sync_window, v),
-            0x20022628..=0x20022628 => self.sync_writePos.set_byte(a - ADDR_sync_writePos, v),
-            0x20022629..=0x20022629 => self.chokeCurrent.set_byte(a - ADDR_chokeCurrent, v),
-            0x2002262a..=0x2002262a => self.chokeNext.set_byte(a - ADDR_chokeNext, v),
-            0x2002262b..=0x2002262b => self.isStepShuffled.set_byte(a - ADDR_isStepShuffled, v),
-            0x2002262c..=0x20022632 => self.lastWasNoteOn.set_byte(a - ADDR_lastWasNoteOn, v),
-            0x20022634..=0x20022643 => self.midi_chan_notes.set_byte(a - ADDR_midi_chan_notes, v),
-            0x20022644..=0x20022645 => self.midi_notes_on.set_byte(a - ADDR_midi_notes_on, v),
-            0x20022648..=0x2002264f => self.seq_sendRealtime_msg.set_byte(a - ADDR_seq_sendRealtime_msg, v),
-            0x20022650..=0x20023491 => self.patternBackupBuffer.set_byte(a - ADDR_patternBackupBuffer, v),
-            0x20023492..=0x20023492 => self.seq_activeAutomTrack.set_byte(a - ADDR_seq_activeAutomTrack, v),
-            0x20023493..=0x20023493 => self.seq_activePattern.set_byte(a - ADDR_seq_activePattern, v),
-            0x20023498..=0x200234b3 => self.seq_automationNodes.set_byte(a - ADDR_seq_automationNodes, v),
-            0x200234b4..=0x200234b7 => self.seq_deltaT.set_byte(a - ADDR_seq_deltaT, v),
-            0x200234b8..=0x200234b8 => self.seq_eraseActive.set_byte(a - ADDR_seq_eraseActive, v),
-            0x200234b9..=0x200234b9 => self.seq_isSyncExternal.set_byte(a - ADDR_seq_isSyncExternal, v),
-            0x200234bc..=0x200234c2 => self.seq_lastMasterStep.set_byte(a - ADDR_seq_lastMasterStep, v),
-            0x200234c4..=0x200234c7 => self.seq_lastShuffle.set_byte(a - ADDR_seq_lastShuffle, v),
-            0x200234c8..=0x200234cb => self.seq_lastTick.set_byte(a - ADDR_seq_lastTick, v),
-            0x200234cc..=0x200234cc => self.seq_loadPendigFlag.set_byte(a - ADDR_seq_loadPendigFlag, v),
-            0x200234cd..=0x200234cd => self.seq_masterStepCnt.set_byte(a - ADDR_seq_masterStepCnt, v),
-            0x200234ce..=0x200234ce => self.seq_mutedTracks.set_byte(a - ADDR_seq_mutedTracks, v),
-            0x200234d0..=0x2005c50f => self.seq_patternSet.set_byte(a - ADDR_seq_patternSet, v),
-            0x2005c510..=0x2005c510 => self.seq_pendingPattern.set_byte(a - ADDR_seq_pendingPattern, v),
-            0x2005c511..=0x2005c511 => self.seq_prescaleCounter.set_byte(a - ADDR_seq_prescaleCounter, v),
-            0x2005c512..=0x2005c512 => self.seq_recordActive.set_byte(a - ADDR_seq_recordActive, v),
-            0x2005c513..=0x2005c513 => self.seq_resetBarOnPatternChange.set_byte(a - ADDR_seq_resetBarOnPatternChange, v),
-            0x2005c514..=0x2005c528 => self.seq_rndValue.set_byte(a - ADDR_seq_rndValue, v),
-            0x2005c529..=0x2005c529 => self.seq_rollState.set_byte(a - ADDR_seq_rollState, v),
-            0x2005c52a..=0x2005c52a => self.seq_running.set_byte(a - ADDR_seq_running, v),
-            0x2005c52b..=0x2005c52b => self.seq_selectedStep.set_byte(a - ADDR_seq_selectedStep, v),
-            0x2005c52c..=0x2005c52f => self.seq_shuffle.set_byte(a - ADDR_seq_shuffle, v),
-            0x2005c530..=0x2005d52f => self.seq_songData.set_byte(a - ADDR_seq_songData, v),
-            0x2005d530..=0x2005d530 => self.seq_songModeEnabled.set_byte(a - ADDR_seq_songModeEnabled, v),
-            0x2005d531..=0x2005d531 => self.seq_songPositionPointer.set_byte(a - ADDR_seq_songPositionPointer, v),
-            0x2005d534..=0x2005d53a => self.seq_stepIndex.set_byte(a - ADDR_seq_stepIndex, v),
-            0x2005d53c..=0x2005d542 => self.seq_stepToSkip.set_byte(a - ADDR_seq_stepToSkip, v),
             0x2005d565..=0x2005d565 => self.trigger_clockReceived.set_byte(a - ADDR_trigger_clockReceived, v),
             0x2005d56c..=0x2005d56c => self.dmaPtr.set_byte(a - ADDR_dmaPtr, v),
-            0x2005d594..=0x2005d594 => self.frontPanel_sysexMode.set_byte(a - ADDR_frontPanel_sysexMode, v),
             0x2005d598..=0x2005d59f => self.frontParser_midiMsg.set_byte(a - ADDR_frontParser_midiMsg, v),
-            0x2005d5a0..=0x2005d5a0 => self.frontParser_newSeqDataAvailable.set_byte(a - ADDR_frontParser_newSeqDataAvailable, v),
             0x2005d5a2..=0x2005d5a3 => self.frontParser_nrpnNr.set_byte(a - ADDR_frontParser_nrpnNr, v),
             0x2005d5a4..=0x2005d5a4 => self.frontPanelParser_rxCnt.set_byte(a - ADDR_frontPanelParser_rxCnt, v),
-            0x2005d5a8..=0x2005d5ae => self.frontParser_stepData.set_byte(a - ADDR_frontParser_stepData, v),
-            0x2005d5b0..=0x2005d5b6 => self.frontPanelParser_sysexBuffer.set_byte(a - ADDR_frontPanelParser_sysexBuffer, v),
             0x2005dec0..=0x2005dfb6 => self.paramToModTarget.set_byte(a - ADDR_paramToModTarget, v),
             0x2005dfbc..=0x2005e0e9 => self.activeParameters.set_byte(a - ADDR_activeParameters, v),
             0x2005e134..=0x20061ef3 => self.mainParameters.set_byte(a - ADDR_mainParameters, v),

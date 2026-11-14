@@ -27,8 +27,8 @@ Linux x86_64 in the build container; nothing ran on macOS or Windows hardware.
 |---|---|
 | Per-function differential tests (`crates/lxr-difftest`, p1/p2/p4: oscillators, filters, envelopes, LFO, modulation, FX, f16 conversion, voices, mixer), random sweeps + long runs vs. the GCC 11.3 reference build | 58 tests pass, bit-exact (NaN payload sign ignored in state comparisons; NaN never reaches the output) |
 | libm (`expf`, `logf`, `exp`, `fmod`) vs. shipped binary | bit-exact; `expf` and `logf` checked on all 2^32 inputs |
-| MIDI/control path (`p3_midi`): all CCs on all channels, NRPN, notes, clock, random streams, every parameter over its legal range, compared after every message | 8 tests pass |
-| Shipped-only functions (`voiceControl_noteOn`, `seq_processFlam`) called in the shipped image | bit-exact |
+| MIDI/control path (`p3_midi`): all CCs on all channels, NRPN, notes, random streams, every parameter over its legal range, compared after every message | 8 tests passed before the sequencer port was removed (2026-11-14); the 6 remaining tests have not been run against the firmware since |
+| Shipped-only functions (`voiceControl_noteOn`; `seq_processFlam` until the sequencer port was removed) called in the shipped image | bit-exact |
 | Whole engine, scenario corpus (311 scenarios, 101,414 blocks = 6.5 M frames) vs. the emulated shipped v1.71 image and vs. the GCC 11.3 build | 0 differences in audio or state, except `global_morph_no_target` (see below); 310 of 311 committed v1.71 hashes reproduced |
 | Emulator self-check: corpus rendered from the shipped image vs. committed hashes (`.github/ci/check_scenarios.sh`) | 311 / 311 match |
 | No-panic fuzzing (`p3_fuzz`): random MIDI, parameter values and kit contents, debug + release | pass (1024 seeds) |

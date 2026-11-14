@@ -161,8 +161,8 @@ change is applied at the start of the next tick.
     * The engine itself keeps the firmware defaults, so the scenario reference hashes still hold.
     * Projects saved with older versions restore their stored notes.
   * The global channel defaults to 0, which means off.
-  * Note-off is ignored. Program change on the global channel selects the next pattern of the
-    ported sequencer, which plays nothing in VDrum (see "No sequencer").
+  * Note-off is ignored. Program change does nothing (on the LXR-02 it selects the sequencer's
+    next pattern; see "No sequencer").
 * **MIDI learn.**
   * To learn: right-click a control, choose *MIDI learn*, then move a controller. The next CC on
     any channel is assigned.
@@ -320,14 +320,11 @@ VDrum has no sequencer (removed on 2026-11-14). Notes come from the host, the ed
 once VDrum's OSC server exists, `/vdrum/midi` (`docs/osc-oscquery-plan.md`); surface-control's
 step sequencer is meant to play VDrum that way.
 
-* The ported LXR-02 sequencer stays in `lxr-core`, as the firmware has it (the difftests compare
-  it with the firmware). The plugin silences it (`VdrumState::seq_silent`), so it triggers no
-  step even if host MIDI starts it.
+* The LXR-02 sequencer is not ported either (`lxr-core` keeps only its tempo and track mutes;
+  `docs/ENGINE_CONTRACT.md` section 10). MIDI clock, start, stop and MTC are ignored.
 * **Tempo.** The rounded host tempo is passed to the engine (`Engine::set_tempo`, the firmware's
   `seq_setBpm`), because clock-synced LFOs follow it. Without a host tempo (the standalone app)
   the engine's own tempo, `Global Tempo`, applies.
-* `PAR_PATTERN_MODE` is set to 0 (it is not a host parameter): with the firmware's default 1, a
-  pattern change loads the pattern's kit slot from the engine's kit memory.
 
 ## Validation (Linux, x86_64)
 

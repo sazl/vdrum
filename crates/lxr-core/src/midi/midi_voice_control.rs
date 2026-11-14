@@ -6,7 +6,7 @@ use crate::prelude::*;
 
 /// `1 << voice` as the Cortex-M7 `lsl.w` computes it (a shift by 32 or more gives 0), truncated to u8.
 #[inline(always)]
-fn voice_bit(voice: u8) -> u8 {
+pub(crate) fn voice_bit(voice: u8) -> u8 {
     if voice < 32 { (1u32 << voice) as u8 } else { 0 }
 }
 
@@ -49,17 +49,16 @@ impl Lxr {
     ///
     /// Source: `Core/Src/Soundengine/MIDI/MidiVoiceControl.c:66`. Group P3.
     pub fn voiceControl_noteOff(&mut self, voice: u8) {
+        // The firmware also calls `seq_midiNoteOff` (MIDI note-off for notes the sequencer sent); VDrum
+        // has no sequencer.
         if voice == 0xff {
             self.active_voices = 0;
-            self.seq_midiNoteOff(0xff);
             return;
         }
 
-        // only set voice inactive and send MIDI off when voice is currently playing
+        // only set voice inactive when voice is currently playing
         if self.active_voices & voice_bit(voice) != 0 {
             self.active_voices &= !voice_bit(voice);
-            let midiChan = self.midi_MidiChannels[voice as usize];
-            self.seq_midiNoteOff(midiChan);
         }
     }
 

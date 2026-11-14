@@ -1,6 +1,6 @@
 //! P3 control path against the emulated firmware: MIDI streams (every CC on every channel, NRPN
-//! sequences, notes and other channel messages, random byte streams, MIDI clock with external sync, MTC
-//! start of the internal sequencer) and parameter changes, with audio rendered in between. After every
+//! sequences, notes and other channel messages, random byte streams) and parameter changes, with audio
+//! rendered in between. After every
 //! message (or every few, see each test) the whole engine state is compared (`p3_common::state_diff`,
 //! all globals byte for byte), and every rendered block is compared sample for sample.
 //!
@@ -118,8 +118,8 @@ fn notes_and_channel_messages() {
     });
 }
 
-/// One random "message": structured channel messages, running status data, system common / realtime,
-/// sysex, or raw bytes.
+/// One random "message": structured channel messages, running status data, system realtime, sysex, or
+/// raw bytes.
 fn random_message(rnd: &mut Sweep) -> Vec<u8> {
     let ch = (rnd.next_u32() % 16) as u8;
     let d = |r: &mut Sweep| r.u8() & 0x7f;
@@ -136,7 +136,8 @@ fn random_message(rnd: &mut Sweep) -> Vec<u8> {
         9 => vec![0xE0 | ch, d(rnd), d(rnd)],
         10 => vec![d(rnd) | 1, d(rnd)],                   // running status data (never CC 0)
         11 => vec![0xF8 + (rnd.next_u32() % 8) as u8],     // realtime (F8..FF)
-        12 => vec![0xF1, d(rnd)],                          // MTC quarter frame
+        // no MTC quarter frames: they can start the firmware's sequencer, which `Lxr` does not have
+        12 => vec![0x90 | ch, d(rnd), d(rnd)],
         13 => {
             let n = (rnd.next_u32() % 10) as usize;
             let mut v = vec![0xF0];
@@ -208,111 +209,6 @@ fn random_streams() {
             }
             p.check(&format!("{build}: seed {seed} end"));
         }
-    });
-}
-
-/// Euclidean patterns on every track (through the menu parameters), plus step parameters.
-fn setup_patterns(p: &mut Pair, rnd: &mut Sweep) {
-    for track in 0..7u8 {
-        // the menu's active voice selects the track the EUKLID/step parameters apply to
-        p.midi(&[0xB0 | (track + 1), 0, 0]); // harmless traffic in between
-        // (the UI's menu_setActiveVoice also repaints; only its effect on the engine is set here)
-        p.l.menu_activeVoice = track;
-        push_global(&p.l, &mut p.emu, "menu_activeVoice");
-        p.check(&format!("active voice {track}"));
-        p.event(&Event::SetParameter { param: PAR_EUKLID_LENGTH, value: 8 + (rnd.next_u32() % 9) as u8 });
-        p.event(&Event::SetParameter { param: PAR_EUKLID_STEPS, value: 1 + (rnd.next_u32() % 7) as u8 });
-        p.event(&Event::SetParameter { param: PAR_EUKLID_ROTATION, value: (rnd.next_u32() % 4) as u8 });
-        for _ in 0..4 {
-            p.event(&Event::SetParameter { param: PAR_ACTIVE_STEP, value: (rnd.next_u32() % 128) as u8 });
-            p.event(&Event::SetParameter { param: PAR_STEP_FLAM, value: (rnd.next_u32() % 8) as u8 });
-            p.event(&Event::SetParameter { param: PAR_STEP_NOTE, value: rnd.u8() & 0x7f });
-            p.event(&Event::SetParameter { param: PAR_STEP_PROB, value: 50 + (rnd.next_u32() % 51) as u8 });
-        }
-        p.check(&format!("patterns, track {track}"));
-    }
-}
-
-#[test]
-fn midi_clock_external_sync() {
-    for_each_build(|p, build| {
-        prologue(p);
-        let mut rnd = Sweep(0xc10c_0001);
-        setup_patterns(p, &mut rnd);
-        p.event(&Event::SetParameter { param: PAR_SHUFFLE, value: 40 });
-        // PAR_BPM = 0: external MIDI clock
-        p.event(&Event::SetParameter { param: PAR_BPM, value: 0 });
-        p.check(&format!("{build}: ext sync"));
-        p.midi(&[0xFA]);
-        for i in 0..2400u32 {
-            // ~120 bpm: 24 clocks per quarter, one clock every ~3.7 blocks; jitter it
-            if rnd.next_u32() % 4 == 0 {
-                p.midi(&[0xF8]);
-            }
-            if i == 1200 {
-                p.midi(&[0xFC]);
-            }
-            if i == 1300 {
-                p.midi(&[0xFB]);
-            }
-            if i % 300 == 150 {
-                p.event(&Event::SetParameter { param: PAR_SHUFFLE, value: (rnd.next_u32() % 128) as u8 });
-            }
-            p.tick(&format!("{build}: clock block {i}"));
-            if i % 8 == 0 {
-                p.check(&format!("{build}: clock block {i}"));
-            }
-        }
-    });
-}
-
-/// Shipped build only: `Lxr::seq_processFlam` follows the shipped binary, which has no
-/// `lastWasNoteOn` note-off branch; the reference ELF (built from the C source) sends those note-offs, so
-/// `active_voices` / `midi_notes_on` differ from it as soon as a sequenced note is followed by an empty step.
-#[test]
-fn internal_sequencer_started_by_mtc() {
-    for_each_build(|p, build| {
-        if p.emu.build == lxr_emu::Build::Elf {
-            return;
-        }
-        prologue(p);
-        let mut rnd = Sweep(0x5e9_0002);
-        setup_patterns(p, &mut rnd);
-        p.event(&Event::SetParameter { param: PAR_BPM, value: 150 });
-        // MTC quarter frames: frame 0 resets the ignore flag, 0x70 (piece 7, even) starts the sequencer
-        p.midi(&[0xF1, 0x00, 0xF1, 0x70]);
-        p.check(&format!("{build}: MTC start"));
-        let params = [PAR_SHUFFLE, PAR_ROLL, PAR_TRACK_LENGTH, PAR_PATTERN_NEXT, PAR_STEP_FLAM, PAR_ACTIVE_STEP, PAR_STEP_SHIFT, PAR_BPM];
-        for i in 0..3000u32 {
-            if i % 97 == 50 {
-                let par = params[(rnd.next_u32() as usize) % params.len()];
-                let value = match par {
-                    PAR_BPM => 60 + (rnd.next_u32() % 180) as u8,
-                    PAR_TRACK_LENGTH => 1 + (rnd.next_u32() % 64) as u8,
-                    PAR_PATTERN_NEXT => (rnd.next_u32() % 8) as u8,
-                    PAR_STEP_FLAM | PAR_ROLL => (rnd.next_u32() % 8) as u8,
-                    PAR_STEP_SHIFT => (rnd.next_u32() % 15) as u8,
-                    _ => (rnd.next_u32() % 128) as u8,
-                };
-                p.event(&Event::SetParameter { param: par, value });
-                p.check(&format!("{build}: block {i}: param {par} = {value}"));
-            }
-            if i % 31 == 0 {
-                p.midi(&[0x90 | (1 + (rnd.next_u32() % 7) as u8), rnd.u8() & 0x7f, rnd.u8() & 0x7f]);
-            }
-            // quarter frame piece 0 keeps MTC alive (midiParser_checkMtc stops the sequencer after 400 ms)
-            if i % 32 == 16 && i < 2600 {
-                p.midi(&[0xF1, 0x00]);
-            }
-            p.tick(&format!("{build}: sequencer block {i}"));
-            if i == 2599 {
-                assert!(p.l.seq_running != 0, "the sequencer should be running while MTC arrives");
-            }
-            if i % 8 == 0 {
-                p.check(&format!("{build}: sequencer block {i}"));
-            }
-        }
-        assert!(p.l.seq_running == 0, "the MTC timeout should have stopped the sequencer");
     });
 }
 

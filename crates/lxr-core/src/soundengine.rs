@@ -33,7 +33,7 @@ impl Lxr {
     ///
     /// Source: `Core/Src/Soundengine/Soundengine.c:38`. Reference build: out-of-line in flash. Group P3.
     /// Globals: `bCurrentSampleValid`, `dma_buffer`, `dma_buffer2`, `midi_MidiChannels`, `velocityModulators`.
-    /// Calls: `Lxr::CodecInit`, `Lxr::Cymbal_init`, `Lxr::HiHat_init`, `Lxr::Snare_init`, `Lxr::euklid_init`, `Lxr::initDrumVoice`, `Lxr::mixer_init`, `Lxr::modNode_init`, `Lxr::parameterArray_init`, `Lxr::seq_init`, `Lxr::seq_setBpm`, `Lxr::soundengine_calcNextSampleBlock`.
+    /// Calls: `Lxr::CodecInit`, `Lxr::Cymbal_init`, `Lxr::HiHat_init`, `Lxr::Snare_init`, `Lxr::initDrumVoice`, `Lxr::mixer_init`, `Lxr::modNode_init`, `Lxr::parameterArray_init`, `Lxr::seq_setBpm`, `Lxr::soundengine_calcNextSampleBlock`.
     pub fn soundengine_init(&mut self) {
         self.mixer_init();
 
@@ -42,14 +42,14 @@ impl Lxr {
 
         self.parameterArray_init();
 
-        self.euklid_init();
+        // The firmware calls `euklid_init()` here; VDrum has no sequencer.
 
         for i in 0..6usize {
             self.modNode_init(move |s: &mut Lxr| &mut s.velocityModulators[i]);
         }
 
-        // init the seq speed
-        self.seq_init();
+        // init the seq speed (the tempo synced LFOs follow; the firmware's `seq_init()` before it is
+        // removed: VDrum has no sequencer)
         self.seq_setBpm(120);
 
         self.midi_MidiChannels = [0; 8];
@@ -70,11 +70,11 @@ impl Lxr {
     ///
     /// Source: `Core/Src/Soundengine/Soundengine.c:77`. Reference build: out-of-line in flash. Group P3.
     /// Globals: `bCurrentSampleValid`, `dma_buffer`, `dma_buffer2`.
-    /// Calls: `Lxr::preset_morph_tick`, `Lxr::seq_tick`, `Lxr::soundengine_calcNextSampleBlock`, `Lxr::uart_processMidi`, `Lxr::usb_tick`.
+    /// Calls: `Lxr::preset_morph_tick`, `Lxr::soundengine_calcNextSampleBlock`, `Lxr::uart_processMidi`, `Lxr::usb_tick`.
     pub fn soundengine_process(&mut self) {
         // The reference build has CALC_SAMPLES_IN_INTERRUPT = 1: TIM2 update interrupt disabled around
         // seq_tick + soundengine_calcNextSampleBlock and its counter set to 1950 (hardware only).
-        self.seq_tick();
+        // `seq_tick()` is removed: VDrum has no sequencer.
         self.soundengine_calcNextSampleBlock();
 
         // process midi on midi port

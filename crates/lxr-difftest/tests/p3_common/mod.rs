@@ -36,19 +36,9 @@ pub fn builds() -> Vec<(&'static str, Box<dyn Fn() -> EmuEngine + Send + Sync>)>
     v
 }
 
-/// Globals whose value legitimately differs between `Lxr` (which follows the shipped v1.71 binary) and the
-/// reference ELF build: none of them is read by code that the shipped binary runs.
-/// - `lastWasNoteOn`: written by the C `seq_processFlam` noteOff branch and by `seq_sendMidiNoteOn`,
-///   neither of which exists in the shipped binary.
-/// - `seq_sendMidiNoteOn_msg`: the MIDI output message of `seq_sendMidiNoteOn` (MIDI out only), which the
-///   shipped `voiceControl_noteOn` does not call.
-pub const ELF_ONLY_GLOBALS: &[&str] = &["lastWasNoteOn", "seq_sendMidiNoteOn_msg"];
-
-/// Single bytes whose value depends on the RAM layout of the build: MIDI CC 0 stores to
-/// `midiParser_originalCcValues[65536]`, which is `seq_patternSet + 0xe4e8` in the shipped image (what `Lxr`
-/// reproduces, `midi_parser::CC0_OOB_PATTERNSET_OFFSET`) and `seq_patternSet + 0xe4f0` in the reference ELF.
-/// Both are `param1Nr` bytes of steps of pattern 18; ignored when comparing with the ELF.
-pub const ELF_LAYOUT_BYTES: &[(&str, u32)] = &[("seq_patternSet", 0xe4e8), ("seq_patternSet", 0xe4f0)];
+// The globals that differed by design from the reference ELF (`lastWasNoteOn`,
+// `seq_sendMidiNoteOn_msg`, and the CC 0 store into `seq_patternSet`) were sequencer globals; the
+// sequencer port was removed on 2026-11-14, so they are no longer compared.
 
 /// Runs `f` on a thread with a large stack (`Lxr` is several hundred KB).
 pub fn on_big_stack<F: FnOnce() + Send + 'static>(f: F) {
@@ -70,14 +60,6 @@ pub fn state_diff(l: &Lxr, emu: &EmuEngine, ignore: &[&str]) -> Vec<String> {
         let Some(fa) = addr_of(a, name) else { continue };
         let mut fb = emu.fw.read(fa, size as usize).unwrap();
         let mut rb: Vec<u8> = (0..size).map(|k| l.global_get_byte(a + k).unwrap()).collect();
-        if elf {
-            for &(n, off) in ELF_LAYOUT_BYTES {
-                if n == name {
-                    rb[off as usize] = 0;
-                    fb[off as usize] = 0;
-                }
-            }
-        }
         if name == "parameterArray" {
             for k in 0..rb.len() {
                 // padding bytes (not modelled: `CMem` reads 0; the firmware only writes them with
@@ -166,8 +148,7 @@ pub struct Pair {
 
 impl Pair {
     pub fn new(emu: EmuEngine) -> Self {
-        let ignore: &'static [&'static str] = if emu.build == lxr_emu::Build::Elf { ELF_ONLY_GLOBALS } else { &[] };
-        Pair { l: Box::new(Lxr::new()), emu, ignore, blocks: 0 }
+        Pair { l: Box::new(Lxr::new()), emu, ignore: &[], blocks: 0 }
     }
 
     /// Reference ELF only: true once out-of-range stores have changed bytes of the `parameterArray[0..14]`

@@ -87,8 +87,9 @@ impl midiParser_routing_t {
 pub const RECIP_127: f32 = f32::from_bits(0x3c010204);
 
 /// Offset of the out-of-range store `midiParser_originalCcValues[65536]` (MIDI CC 0 = bank change, see
-/// `midiParser_ccHandler`) inside `seq_patternSet` in the shipped v1.71 image (0x200315a0 - 0x200230b8).
-/// The GCC 11.3 ELF has the same store at offset 0xe4f0 (0x200319c0 - 0x200234d0).
+/// `midiParser_ccHandler`) inside the firmware's `seq_patternSet` in the shipped v1.71 image
+/// (0x200315a0 - 0x200230b8). The GCC 11.3 ELF has the same store at offset 0xe4f0 (0x200319c0 -
+/// 0x200234d0). VDrum has no sequencer, so the store is dropped.
 pub const CC0_OOB_PATTERNSET_OFFSET: u32 = 0xe4e8;
 
 /// `parameterArray` follows `midiParser_originalCcValues` at this offset in both builds (after
@@ -165,12 +166,13 @@ impl Lxr {
     /// 256..=383 (CC2 path with an NRPN number whose low byte is above 126) land in the globals that follow
     /// the array (`midiParser_routing`, `midi_MidiChannels`, `active_voices`, `parameterArray[0..14]`; index
     /// 255 and the other padding bytes are not modelled), and index 65536 (MIDI CC 0: `uint16_t paramNr =
-    /// data1-1` wraps) lands in `seq_patternSet` (shipped layout). Non-C helper, group P3.
+    /// data1-1` wraps) lands in the firmware's `seq_patternSet` (shipped layout), which VDrum does not
+    /// have: that store is dropped. Non-C helper, group P3.
     pub fn midiParser_storeOriginalCcValue(&mut self, idx: u32, v: u8) {
         if idx < 255 {
             self.midiParser_originalCcValues[idx as usize] = v;
         } else if idx == 0x10000 {
-            self.seq_patternSet.set_byte(CC0_OOB_PATTERNSET_OFFSET, v);
+            // the sequencer's pattern memory in the firmware; VDrum has no sequencer
         } else if let Some(k) = idx.checked_sub(PARAMETER_ARRAY_CC_OFFSET).filter(|o| o % 8 < 4) {
             // a byte of `parameterArray[k / 8].ptr`: the firmware changes a byte of the shipped address of the
             // pointer target, so do the byte arithmetic on that address (the relative layout of the target
@@ -594,60 +596,26 @@ impl Lxr {
         }
     }
 
-    /// C: `void midiParser_checkMtc()`
-    ///
-    /// Source: `Core/Src/Soundengine/MIDI/MidiParser.c:1448`. Reference build: out-of-line in flash. Group P3.
-    pub fn midiParser_checkMtc(&mut self) {
-        if self.midiParser_mtcIsRunning == 0 {
-            return;
-        }
-        if self.seq_isRunning() == 0 {
-            self.midiParser_mtcIsRunning = 0;
-            return;
-        }
-        if self.systick_ticks.wrapping_sub(self.midiParser_lastMtcReceived) > 100 * 4 {
-            self.midiParser_mtcIsRunning = 0;
-            self.uart_sendFrontpanelByte(FRONT_SEQ_CC as u8);
-            self.uart_sendFrontpanelByte(FRONT_SEQ_RUN_STOP as u8);
-            self.uart_sendFrontpanelByte(0);
-            self.seq_setRunning(0);
-        }
-    }
-
     /// C: `static void midiParser_noteOn(uint8_t voice, uint8_t note, uint8_t vel, uint8_t do_rec)`
     ///
     /// Source: `Core/Src/Soundengine/MIDI/MidiParser.c:1477`. Reference build: out-of-line as a GCC clone (.part/.isra/.constprop). Group P3.
+    ///
+    /// VDrum has no sequencer: the firmware's sequencer-page branch (a note sets the selected step's
+    /// note) and the recording branch (`seq_addNote`, `seq_midiNoteOff`, `seq_sendMidiNoteOn`) are
+    /// removed. The muted-track test (`seq_isTrackMuted`) stays.
     pub fn midiParser_noteOn(&mut self, voice: u8, mut note: u8, vel: u8, do_rec: u8) {
-        if self.menu_activePage == SEQ_PAGE {
-            let step = self.activeParameters[PAR_ACTIVE_STEP as usize];
-            let trackNr = self.menu_getActiveVoice();
-            let patternNr = self.menu_getViewedPattern();
-            // C indexes unchecked (PAR_ACTIVE_STEP can be set to 0..127 over MIDI): flat helpers
-            let mut st = self.seq_step_read(patternNr, trackNr, step as i32);
-            st.note = note;
-            self.seq_step_write(patternNr, trackNr, step as i32, st);
-            self.activeParameters[PAR_STEP_NOTE as usize] = note;
-            self.menu_repaint();
-        } else {
-            if self.seq_isTrackMuted(voice) != 0 {
+        if self.seq_isTrackMuted(voice) != 0 {
+            return;
+        }
+        let ov = self.activeParameters[(PAR_MIDI_NOTE1 + voice as u16) as usize];
+        if ov != 0 {
+            if note == ov {
+                note = SEQ_DEFAULT_NOTE as u8;
+            } else {
                 return;
             }
-            let ov = self.activeParameters[(PAR_MIDI_NOTE1 + voice as u16) as usize];
-            if ov != 0 {
-                if note == ov {
-                    note = SEQ_DEFAULT_NOTE as u8;
-                } else {
-                    return;
-                }
-            }
-            self.voiceControl_noteOn(voice, note, vel);
-            if do_rec != 0 {
-                let chan = self.midi_MidiChannels[voice as usize];
-                self.seq_addNote(voice, vel, note);
-                self.seq_midiNoteOff(chan);
-                self.seq_sendMidiNoteOn(chan, note, vel);
-            }
         }
+        self.voiceControl_noteOn(voice, note, vel);
     }
 
     /// C: `uint8_t midiParser_isValidChannel(uint8_t chan)`
@@ -685,65 +653,9 @@ impl Lxr {
             return;
         }
 
-        let sys = (self.midiParser_txRxFilter & MIDI_FILTER_SYSTEM) != 0;
         if (msg.status & 0xF0) == 0xF0 {
-            match msg.status as i32 {
-                MIDI_CLOCK => {
-                    if sys && self.seq_getExtSync() != 0 {
-                        self.seq_sync();
-                    }
-                }
-                MIDI_START => {
-                    if sys && self.seq_getExtSync() != 0 {
-                        self.sync_midiResetPosition();
-                        self.sync_midiStartStop(1);
-                    }
-                }
-                MIDI_CONTINUE => {
-                    if sys && self.seq_getExtSync() != 0 {
-                        self.sync_midiStartStop(1);
-                    }
-                }
-                MIDI_STOP => {
-                    if sys && self.seq_getExtSync() != 0 {
-                        self.sync_midiStartStop(0);
-                    }
-                }
-                MIDI_SONG_POSITION_POINTER => {}
-                MIDI_MTC_QFRAME => {
-                    if !sys {
-                        return;
-                    }
-                    if (msg.data1 & 0x70) == 0 {
-                        self.midiParser_lastMtcReceived = self.systick_ticks;
-                    }
-                    if self.seq_isRunning() != 0 {
-                        return;
-                    }
-                    if self.seq_getExtSync() != 0 {
-                        return;
-                    }
-                    if (msg.data1 & 0x7F) == 0 {
-                        self.midiParser_mtcIgnore = 0;
-                    } else if self.midiParser_mtcIgnore != 0 {
-                        return;
-                    } else if (msg.data1 & 0x70) != 0x70 {
-                        if (msg.data1 & 0x0F) != 0 {
-                            self.midiParser_mtcIgnore = 1;
-                            return;
-                        }
-                    } else if (msg.data1 & 0x01) == 0 {
-                        self.uart_sendFrontpanelByte(FRONT_SEQ_CC as u8);
-                        self.uart_sendFrontpanelByte(FRONT_SEQ_RUN_STOP as u8);
-                        self.uart_sendFrontpanelByte(1);
-                        self.midiParser_mtcIgnore = 1;
-                        self.midiParser_mtcIsRunning = 1;
-                        self.midiParser_lastMtcReceived = self.systick_ticks;
-                        self.seq_setRunning(1);
-                    }
-                }
-                _ => {}
-            }
+            // MIDI clock, start, continue, stop, song position and MTC drive the sequencer
+            // (`seq_sync`, `sync_midiStartStop`, `seq_setRunning`); VDrum has no sequencer.
         } else {
             let msgonly = msg.status & 0xF0;
             let chanonly = msg.status & 0x0F;
@@ -768,9 +680,7 @@ impl Lxr {
                     }
                 }
             } else if msgonly as i32 == PROG_CHANGE {
-                if (self.midiParser_txRxFilter & MIDI_FILTER_PROG_C) != 0 && chanonly == self.midi_MidiChannels[7] {
-                    self.seq_setNextPattern(msg.data1);
-                }
+                // selects the sequencer's next pattern (`seq_setNextPattern`); VDrum has no sequencer
             } else if msgonly as i32 == MIDI_CC {
                 let voiceNr = midiParser_cc2voiceNr(msg.data1);
                 let accept = if voiceNr == 0 || voiceNr >= 7 {
@@ -780,8 +690,7 @@ impl Lxr {
                         && (chanonly == self.midi_MidiChannels[voiceNr as usize] || chanonly == self.midi_MidiChannels[7])
                 };
                 if accept {
-                    let t = self.frontParser_activeTrack;
-                    self.seq_recordAutomation(t, msg.data1, msg.data2);
+                    // `seq_recordAutomation` is removed: VDrum has no sequencer.
                     self.midiParser_ccHandler(msg, 1, 0, 0.0);
                     self.uart_sendFrontpanelByte(msg.status);
                     self.uart_sendFrontpanelByte(msg.data1);

@@ -282,36 +282,6 @@ fn faulted_engine_is_silent() {
     assert!(b.dac1.iter().chain(b.dac2.iter()).all(|s| *s == 0));
 }
 
-/// Renders one second of the engine with every step of Drum 1 on in the ported sequencer, which is
-/// running; true if any sample is not zero.
-fn sequencer_sounds(silent: bool) -> bool {
-    let mut e = crate::new_engine();
-    assert!(e.0.vdrum.seq_silent, "VDrum silences the ported sequencer");
-    e.0.vdrum.seq_silent = silent;
-    for bar in 0..4 {
-        e.0.seq_patternSet.seq_mainSteps[bar][0][0] = 0xffff;
-    }
-    for st in e.0.seq_patternSet.seq_subStepPattern[0][0].iter_mut() {
-        st.volume = 0x80 | 127;
-        st.prob = 100;
-    }
-    e.0.seq_setRunning(1);
-    let mut sound = false;
-    for _ in 0..690 {
-        let b = e.tick();
-        sound |= b.dac1.iter().chain(b.dac2.iter()).any(|s| *s != 0);
-    }
-    assert!(!e.faulted());
-    sound
-}
-
-#[test]
-fn the_ported_sequencer_triggers_nothing() {
-    // VDrum has no sequencer: even with steps on and the ported sequencer running, nothing sounds.
-    assert!(sequencer_sounds(false), "the test's steps play when the sequencer is not silenced");
-    assert!(!sequencer_sounds(true));
-}
-
 #[test]
 fn host_tempo_sets_the_clock_of_synced_lfos() {
     let mut e = crate::new_engine();
