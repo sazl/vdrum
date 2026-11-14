@@ -42,7 +42,8 @@ parameter. The address space does not change while the plugin runs, so `PATH_CHA
 sent.
 
 Not included, because Sami said on 2026-11-14 that none of the removed controller features come
-back: kit browsing, kit save, undo, mutes and sequencer editing.
+back: kit browsing, kit save, undo and mutes. The sequencer is removed from VDrum (Sami,
+2026-11-14); surface-control's sequencer plays VDrum through `/vdrum/midi`.
 
 ## Threads and data flow
 
@@ -51,21 +52,27 @@ back: kit browsing, kit save, undo, mutes and sequencer editing.
    - a `TcpListener` for HTTP and WebSocket,
    - a `UdpSocket` for OSC,
    - the mDNS registration.
-2. **Incoming values** (UDP, or binary WebSocket frames) are decoded and pushed onto
-   `Shared::commands` as new variants: `Command::Param(idx, value)`, `Command::Fader(n, step)`,
+2. **Incoming values** (UDP, or binary WebSocket frames) are decoded. A value may be `i`, `f`,
+   `d`, `h`, `T` or `F`; a number is rounded to the nearest step and clamped to the range. Values are pushed
+   onto `Shared::commands` as new variants: `Command::Param(idx, value)`, `Command::Fader(n, step)`,
    `Command::Switch(which, on)` and `Command::Midi(bytes)`. `process()` applies them as it
    applies a learned CC: `Ev::Param { learned: true }` sets the dirty flag, so an open editor
    copies the value to the host parameter. `Command::Midi` already exists for the editor's pads.
 3. **Outgoing values.** Every 10 ms the server thread compares `Shared::values`,
    `fader_values`, `sum_aux_on` and `hw_clock_on` with what it last sent. It sends each changed
    value (and its text) to every client that listens to that address. Changes from the DAW,
-   the editor, MIDI, kit loads and OSC are all seen this way.
+   the editor, MIDI, kit loads and OSC are all seen this way. Clients that use plain OSC without
+   OSCQuery get the same values over UDP: the last 8 distinct addresses and ports that have sent
+   a UDP message since the server started receive each changed value as `/vdrum/param/<id> <value> "<text>"` (an int32 and
+   a string; the faders and switches likewise). surface-control's example target until it reads
+   OSCQuery (`examples/vdrum-lcxl3` there) relies on this.
 4. **Ports.** The ports are chosen by the system (bind to port 0), so several instances do not
    collide. The editor shows the ports. The mDNS instance name is `VDrum` with a number when
-   more than one instance runs (`VDrum 2`). An environment variable, `VDRUM_OSC_PORT`, fixes the
-   HTTP port for clients without mDNS. Binding is to `127.0.0.1` by default;
+   more than one instance runs (`VDrum 2`). An environment variable, `VDRUM_OSC_PORT`, fixes both
+   the HTTP port and the UDP port, which are then the same number (TCP and UDP ports are
+   separate), for clients without mDNS. Binding is to `127.0.0.1` by default;
    `VDRUM_OSC_BIND=0.0.0.0` opens it to the network.
-5. **Off switch.** `VDRUM_OSC=0` disables the server, as `VDRUM_LCXL3=0` did for the
+5. **On by default.** `VDRUM_OSC=0` disables the server, as `VDRUM_LCXL3=0` did for the
    controller.
 
 ## Crates
@@ -105,10 +112,11 @@ The HTTP part is a small hand-written GET handler on the same `TcpListener`. A r
 - **Manual checks:** Vidvox's OSCQuery browser or libossia's client on macOS; two instances in
   one DAW; `clap-validator` passes as before.
 
-## Open points
+## Decisions (Sami, 2026-11-14)
 
-1. Address naming: `/vdrum/param/<id>`, or the flat `/vdrum/<id>`.
-2. Whether the server should be on by default or enabled by a switch in the editor.
-3. Whether to use `TAGS` for groups, or a container per group (`/vdrum/Drum 1/Oscillator/...`).
-   Containers are closer to how other OSCQuery servers group, but then the names are no longer
-   the host IDs.
+1. Addresses are `/vdrum/param/<id>`, as in the table above.
+2. The server is on by default. `VDRUM_OSC=0` turns it off.
+3. Groups go in `TAGS`. The names stay the host IDs.
+
+Point 3 was not one of Sami's answers. It follows from decision 1, which keeps the host IDs as
+names.
