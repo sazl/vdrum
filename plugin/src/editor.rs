@@ -8,7 +8,6 @@
 
 use crate::engine::track_trigger_note;
 
-mod panel;
 use crate::library::{self, ImportPlan};
 use crate::lxr_files::{self, PatternPlan};
 use crate::params::{
@@ -50,10 +49,10 @@ const TRACK_COL_W: f32 = 72.0;
 /// the open hi-hat have their own cards). It fits the MacBook Pro 16" default (1728 × 1117) at 100 %
 /// and the MacBook Air 13" (1470 × 956) at 90 % zoom, leaving room for the menu bar, a host's
 /// plugin window header and the Dock.
-pub const DEFAULT_SIZE: (u32, u32) = (1584, 836);
-/// The default size of layout version 3, before the tab and pill rows. Saved states with this size
-/// are migrated to [`DEFAULT_SIZE`].
-pub const NO_TABS_SIZE: (u32, u32) = (1584, 790);
+pub const DEFAULT_SIZE: (u32, u32) = (1584, 790);
+/// The default size of layout version 4, which had a tab bar and a pill row above the cards. Saved
+/// states with this size are migrated to [`DEFAULT_SIZE`].
+pub const TABS_SIZE: (u32, u32) = (1584, 836);
 /// The default size of layout version 2, where the two hi-hats shared one card. Saved states with
 /// this size are migrated to [`DEFAULT_SIZE`].
 pub const SHARED_HAT_SIZE: (u32, u32) = (1392, 790);
@@ -61,8 +60,8 @@ pub const SHARED_HAT_SIZE: (u32, u32) = (1392, 790);
 /// size are migrated to [`DEFAULT_SIZE`].
 pub const LEGACY_SIZE: (u32, u32) = (1812, 960);
 /// Saved with the plugin state; states without it come from the first layout. 3: one card per
-/// hi-hat. 4: tab bar and pill row.
-pub const LAYOUT_VERSION: u32 = 4;
+/// hi-hat. 4: tab bar and pill row. 5: no tab bar or pill row.
+pub const LAYOUT_VERSION: u32 = 5;
 pub const MIN_ZOOM: f32 = 0.5;
 pub const MAX_ZOOM: f32 = 3.0;
 const ZOOM_STEP: f32 = 0.1;
@@ -265,11 +264,6 @@ struct Data {
     show_patterns: bool,
     /// The slot being renamed and the new name.
     renaming: Option<(usize, String)>,
-    /// The controller surface's view (mode tabs), its counter, and the mode last seen.
-    view: Option<Arc<vdrum_surface::View>>,
-    view_gen: u32,
-    seen_mode: Option<vdrum_surface::Mode>,
-    panel: panel::PanelState,
     /// Size of the scrolled content and of its viewport in the last frame, in points.
     content_size: egui::Vec2,
     viewport_size: egui::Vec2,
@@ -289,10 +283,6 @@ impl Data {
             pending_export: None,
             show_patterns: false,
             renaming: None,
-            view: None,
-            view_gen: u32::MAX,
-            seen_mode: None,
-            panel: panel::PanelState::default(),
             content_size: egui::Vec2::ZERO,
             viewport_size: egui::Vec2::ZERO,
         }
@@ -452,39 +442,8 @@ fn update(ctx: &egui::Context, setter: &ParamSetter, data: &mut Data, params: &V
         None => {}
     }
 
-    // The controller surface's view, and following its mode.
-    let gen = shared.surface_view_gen.load(Ordering::Relaxed);
-    if gen != data.view_gen {
-        data.view_gen = gen;
-        data.view = shared.surface_view.lock().ok().and_then(|v| v.clone());
-    }
-    if let Some(mode) = data.view.as_ref().map(|v| v.mode) {
-        if data.seen_mode.is_some_and(|m| m != mode) {
-            let tab = params.editor_tab.load(Ordering::Relaxed);
-            if tab != 0 || params.follow_controller.load(Ordering::Relaxed) {
-                params.editor_tab.store(panel::tab_of(mode), Ordering::Relaxed);
-            }
-        }
-        data.seen_mode = Some(mode);
-    }
-
     ResizableWindow::new("vdrum-window").min_size(vec2(480.0, 320.0)).show(ctx, egui_state, |ui| {
         top_bar(ui, data, params, shared, egui_state);
-        let tab = params.editor_tab.load(Ordering::Relaxed);
-        if let Some(t) = panel::tab_bar(ui, params, shared, tab) {
-            params.editor_tab.store(t, Ordering::Relaxed);
-            if let Some(m) = panel::mode_of(t) {
-                let _ = shared.surface_input.push(crate::params::EditorInput::SetMode(m));
-            }
-        }
-        panel::pills(ui, data.view.as_deref(), &mut data.panel);
-        ui.add_space(2.0);
-        let tab = params.editor_tab.load(Ordering::Relaxed);
-        if tab != 0 {
-            let view = data.view.clone();
-            panel::front_panel(ui, setter, params, shared, view.as_deref(), &mut data.panel);
-            return;
-        }
         let out = ScrollArea::both().auto_shrink([false, false]).show(ui, |ui| {
             ui.horizontal_top(|ui| {
                 ui.spacing_mut().item_spacing.x = CARD_GAP;
@@ -1623,9 +1582,9 @@ mod tests {
         std::fs::create_dir_all(&dir).unwrap();
         std::fs::write(dir.join("01-NEW.SND"), kit("NEW", 5)).unwrap();
         std::fs::write(dir.join("02-INITK.SND"), Kit::init().to_file_bytes()).unwrap();
-        let mut pat = vdrum_surface::seq::PatternData::default();
+        let mut pat = crate::seq::PatternData::default();
         pat.tracks[0].steps[4].on = true;
-        let pat_file = |p: &vdrum_surface::seq::PatternData| lxr_files::pat_to_bytes(&lxr_files::PatFile { name: *b"GROOVE\0\0", pattern: p.clone(), kit_nr: 1 });
+        let pat_file = |p: &crate::seq::PatternData| lxr_files::pat_to_bytes(&lxr_files::PatFile { name: *b"GROOVE\0\0", pattern: p.clone(), kit_nr: 1 });
         std::fs::write(dir.join("03-GROOV.PAT"), pat_file(&pat)).unwrap();
         std::fs::write(dir.join("04-.PAT"), pat_file(&Default::default())).unwrap();
         let mut data = Data::new();
@@ -1688,144 +1647,6 @@ mod tests {
         assert_eq!(shared.library_selected(), None);
         frame(&mut data);
         let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    /// Writes an egui frame's shapes as SVG (rectangles, circles, lines, paths and text).
-    fn shapes_to_svg(shapes: &[egui::epaint::ClippedShape], size: egui::Vec2) -> String {
-        use egui::epaint::{ColorMode, Shape};
-        fn col(c: Color32) -> String {
-            if c.a() == 0 {
-                "none".into()
-            } else {
-                format!("rgba({},{},{},{:.2})", c.r(), c.g(), c.b(), c.a() as f32 / 255.0)
-            }
-        }
-        fn esc(t: &str) -> String {
-            t.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
-        }
-        fn one(s: &Shape, clip: Rect, out: &mut String) {
-            match s {
-                Shape::Vec(v) => v.iter().for_each(|s| one(s, clip, out)),
-                Shape::Rect(r) => {
-                    let r2 = r.rect.intersect(clip);
-                    if r2.is_positive() {
-                        out.push_str(&format!(
-                            "<rect x='{:.1}' y='{:.1}' width='{:.1}' height='{:.1}' rx='{}' fill='{}' stroke='{}' stroke-width='{}'/>\n",
-                            r2.min.x, r2.min.y, r2.width(), r2.height(), r.corner_radius.nw, col(r.fill), col(r.stroke.color), r.stroke.width
-                        ));
-                    }
-                }
-                Shape::Circle(c) => out.push_str(&format!(
-                    "<circle cx='{:.1}' cy='{:.1}' r='{:.1}' fill='{}' stroke='{}' stroke-width='{}'/>\n",
-                    c.center.x, c.center.y, c.radius, col(c.fill), col(c.stroke.color), c.stroke.width
-                )),
-                Shape::LineSegment { points, stroke } => out.push_str(&format!(
-                    "<line x1='{:.1}' y1='{:.1}' x2='{:.1}' y2='{:.1}' stroke='{}' stroke-width='{}'/>\n",
-                    points[0].x, points[0].y, points[1].x, points[1].y, col(stroke.color), stroke.width
-                )),
-                Shape::Path(p) => {
-                    let pts: Vec<String> = p.points.iter().map(|q| format!("{:.1},{:.1}", q.x, q.y)).collect();
-                    let sc = match &p.stroke.color {
-                        ColorMode::Solid(c) => col(*c),
-                        _ => "none".into(),
-                    };
-                    let tag = if p.closed { "polygon" } else { "polyline" };
-                    out.push_str(&format!("<{tag} points='{}' fill='{}' stroke='{sc}' stroke-width='{}'/>\n", pts.join(" "), if p.closed { col(p.fill) } else { "none".into() }, p.stroke.width));
-                }
-                Shape::Text(t) => {
-                    if !clip.contains(t.pos) {
-                        return;
-                    }
-                    let g = &t.galley;
-                    let size = g.job.sections.first().map_or(12.0, |s| s.format.font_id.size);
-                    let c = t.override_text_color.or_else(|| g.job.sections.first().map(|s| s.format.color)).unwrap_or(t.fallback_color);
-                    let c = if c == Color32::PLACEHOLDER { t.fallback_color } else { c };
-                    for row in &g.rows {
-                        let text: String = row.glyphs.iter().map(|gl| gl.chr).collect();
-                        let y = t.pos.y + row.rect.min.y;
-                        out.push_str(&format!(
-                            "<text x='{:.1}' y='{:.1}' font-size='{:.1}' font-family='sans-serif' dominant-baseline='hanging' fill='{}'>{}</text>\n",
-                            t.pos.x + row.rect.min.x, y, size, col(c), esc(&text)
-                        ));
-                    }
-                }
-                _ => {}
-            }
-        }
-        let mut out = format!("<svg xmlns='http://www.w3.org/2000/svg' width='{}' height='{}'><rect width='100%' height='100%' fill='#18191d'/>\n", size.x, size.y);
-        for c in shapes {
-            one(&c.shape, c.clip_rect, &mut out);
-        }
-        out.push_str("</svg>\n");
-        out
-    }
-
-    /// The mode tabs draw the controller's view and send mouse edits to the surface. With
-    /// `VDRUM_SNAPSHOT_DIR` set, writes each mode tab as SVG there (to look at the drawing).
-    #[test]
-    fn mode_tabs_draw_the_surface_view() {
-        let shared = Arc::new(Shared::new());
-        let params = VDrumParams::new(shared.clone());
-        let egui_state = EguiState::from_size(DEFAULT_SIZE.0, DEFAULT_SIZE.1);
-        let mut session = crate::controller::Session::new(&shared);
-        let mut data = Data::new();
-        let ctx = egui::Context::default();
-        setup(&ctx, 1.0);
-        let setter = ParamSetter::new(&NullContext);
-        let size = vec2(DEFAULT_SIZE.0 as f32, DEFAULT_SIZE.1 as f32);
-        let mut t = 0u64;
-        let mut frame = |data: &mut Data, events: Vec<egui::Event>| {
-            t += 30;
-            session.step(&shared, t, []);
-            let input = egui::RawInput { screen_rect: Some(Rect::from_min_size(pos2(0.0, 0.0), size)), events, ..Default::default() };
-            ctx.run(input, |ctx| update(ctx, &setter, data, &params, &shared, &egui_state))
-        };
-        frame(&mut data, vec![]);
-        assert_eq!(params.editor_tab.load(Ordering::Relaxed), 0);
-        // the hardware changes mode: with Follow controller on, the editor follows from Params
-        let _ = shared.surface_input.push(crate::params::EditorInput::SetMode(vdrum_surface::Mode::Voice(3)));
-        frame(&mut data, vec![]);
-        frame(&mut data, vec![]);
-        assert_eq!(params.editor_tab.load(Ordering::Relaxed), panel::tab_of(vdrum_surface::Mode::Voice(3)));
-        // a mouse drag on encoder 1 of row 1 (snare) changes its parameter through the surface
-        let view = data.view.clone().unwrap();
-        let p0 = view.control(lcxl3::Control::Encoder { row: 0, col: 0 }).and_then(|c| c.param).unwrap();
-        let idx = lxr_params::by_id(p0.0).unwrap().index;
-        let before = shared.value(idx);
-        let out = frame(&mut data, vec![]);
-        let enc = out.shapes.iter().find_map(|c| match &c.shape {
-            egui::epaint::Shape::Text(tx) if tx.galley.text() == view.control(lcxl3::Control::Encoder { row: 0, col: 0 }).unwrap().label => Some(tx.pos),
-            _ => None,
-        });
-        let at = enc.expect("encoder label drawn") + vec2(10.0, 30.0);
-        frame(&mut data, vec![egui::Event::PointerMoved(at)]);
-        frame(&mut data, vec![egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed: true, modifiers: Default::default() }]);
-        for i in 1..=6 {
-            frame(&mut data, vec![egui::Event::PointerMoved(at - vec2(0.0, 4.0 * i as f32))]);
-        }
-        frame(&mut data, vec![egui::Event::PointerButton { pos: at - vec2(0.0, 24.0), button: egui::PointerButton::Primary, pressed: false, modifiers: Default::default() }]);
-        frame(&mut data, vec![]);
-        assert_ne!(shared.value(idx), before, "dragging the encoder changed {}", p0.0);
-        // editor edits do not show the "now editing" pill
-        assert!(data.view.as_ref().unwrap().edit.is_none());
-        // follow off: a hardware mode change while on Params stays on Params
-        params.editor_tab.store(0, Ordering::Relaxed);
-        params.follow_controller.store(false, Ordering::Relaxed);
-        let _ = shared.surface_input.push(crate::params::EditorInput::SetMode(vdrum_surface::Mode::Global));
-        frame(&mut data, vec![]);
-        frame(&mut data, vec![]);
-        assert_eq!(params.editor_tab.load(Ordering::Relaxed), 0);
-        params.follow_controller.store(true, Ordering::Relaxed);
-        if let Ok(dir) = std::env::var("VDRUM_SNAPSHOT_DIR") {
-            for m in vdrum_surface::Mode::ALL {
-                let _ = shared.surface_input.push(crate::params::EditorInput::SetMode(m));
-                params.editor_tab.store(panel::tab_of(m), Ordering::Relaxed);
-                frame(&mut data, vec![]);
-                let out = frame(&mut data, vec![]);
-                let svg = shapes_to_svg(&out.shapes, size);
-                std::fs::write(std::path::Path::new(&dir).join(format!("mode-{:02}.svg", m.number())), svg).unwrap();
-            }
-        }
     }
 
     #[test]

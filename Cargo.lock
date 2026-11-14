@@ -1808,10 +1808,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "20870f649af7073d53e38067b2a84312175d56ea15217e1b15bc83506ec50afb"
 
 [[package]]
-name = "lcxl3"
-version = "0.1.0"
-
-[[package]]
 name = "libc"
 version = "0.2.191"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3678,10 +3674,8 @@ version = "0.1.0"
 dependencies = [
  "cpal",
  "crossbeam-queue",
- "lcxl3",
  "lxr-core",
  "lxr-params",
- "midir",
  "nih_plug",
  "nih_plug_egui",
  "rfd",
@@ -3690,7 +3684,6 @@ dependencies = [
  "serde_json",
  "sha2",
  "vdrum-engine",
- "vdrum-surface",
 ]
 
 [[package]]
@@ -3701,30 +3694,6 @@ dependencies = [
  "lxr-params",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "vdrum-move"
-version = "0.1.0"
-dependencies = [
- "crossbeam-queue",
- "lcxl3",
- "libc",
- "lxr-core",
- "lxr-params",
- "vdrum-engine",
- "vdrum-surface",
-]
-
-[[package]]
-name = "vdrum-surface"
-version = "0.1.0"
-dependencies = [
- "lcxl3",
- "lxr-params",
- "serde",
- "serde_json",
- "vdrum-engine",
 ]
 
 [[package]]

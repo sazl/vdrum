@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //! The sequencer's pattern data as the plugin keeps it (the copy the controller edits and the plugin
-//! saves), the edits the surface asks for, and the Euclid generator.
+//! saves), the edits to it, and the Euclid generator.
 //!
 //! The engine (the ported LXR-02 sequencer) plays a copy of this data. The plugin writes every edit
 //! to both; see `plugin/README.md`.
@@ -149,7 +149,7 @@ impl Default for SeqData {
     }
 }
 
-/// A change the surface asks for.
+/// A change to the pattern data.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SeqEdit {
     /// Replace one step.

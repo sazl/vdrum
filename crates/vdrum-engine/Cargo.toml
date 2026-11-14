@@ -1,6 +1,6 @@
 [package]
 name = "vdrum-engine"
-description = "VDrum's engine wrapper, sequencer data, kit library and LXR-02 file formats, shared by the plugin and the Ableton Move module (no I/O threads, no plugin framework)"
+description = "VDrum's engine wrapper, sequencer data, kit library and LXR-02 file formats (no I/O threads, no plugin framework)"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
