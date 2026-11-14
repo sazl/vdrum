@@ -27,19 +27,12 @@ pub const SHIPPED_GLOBALS: &[(CPtr, u32, u32)] = &[
     (ADDR_FX_BUFFER, 65536, 0x2000a380), // FX_BUFFER
     (ADDR_trigger_dividerClockOut1, 1, 0x20020100), // trigger_dividerClockOut1
     (ADDR_trigger_prescalerClockInput, 1, 0x20020102), // trigger_prescalerClockInput
-    (ADDR_midiParser_mtcIgnore, 1, 0x20020103), // midiParser_mtcIgnore
     (ADDR_midiParser_txRxFilter, 1, 0x20020104), // midiParser_txRxFilter
     (ADDR_parserState, 1, 0x20020105), // parserState
-    (ADDR_seq_armedArmedAutomationStep, 1, 0x20020106), // seq_armedArmedAutomationStep
-    (ADDR_seq_armedArmedAutomationTrack, 1, 0x20020107), // seq_armedArmedAutomationTrack
-    (ADDR_seq_rollRate, 1, 0x20020109), // seq_rollRate
     (ADDR_seq_tempo, 2, 0x2002010a), // seq_tempo
     (ADDR_menu_TargetVoiceGapIndex, 1, 0x2002010e), // menu_TargetVoiceGapIndex
-    (ADDR_frontPanel_sysexMode, 1, 0x20020380), // frontPanel_sysexMode
     (ADDR_frontParser_midiMsg, 8, 0x20020384), // frontParser_midiMsg
-    (ADDR_frontParser_newSeqDataAvailable, 1, 0x2002038c), // frontParser_newSeqDataAvailable
     (ADDR_frontParser_nrpnNr, 2, 0x2002038e), // frontParser_nrpnNr
-    (ADDR_frontParser_stepData, 7, 0x20020394), // frontParser_stepData
     (ADDR_adc_faderValues, 24, 0x20020ce0), // adc_faderValues
     (ADDR_morph_index, 1, 0x20020d11), // morph_index
     (ADDR_morph_state, 1, 0x20020d12), // morph_state
@@ -59,14 +52,11 @@ pub const SHIPPED_GLOBALS: &[(CPtr, u32, u32)] = &[
     (ADDR_frontParser_activeTrack, 1, 0x20021575), // frontParser_activeTrack
     (ADDR_frontParser_shownPattern, 1, 0x20021577), // frontParser_shownPattern
     (ADDR_frontParser_sysexActive, 1, 0x20021578), // frontParser_sysexActive
-    (ADDR_frontParser_sysexSeqStepNr, 2, 0x20021584), // frontParser_sysexSeqStepNr
     (ADDR_frontParser_twoByteData, 2, 0x20021586), // frontParser_twoByteData
     (ADDR_checkMIDIprocPAR, 1, 0x20021588), // checkMIDIprocPAR
     (ADDR_checkMIDIprocPAR_t, 1, 0x20021589), // checkMIDIprocPAR_t
     (ADDR_midiMsg_tmp, 8, 0x2002158c), // midiMsg_tmp
     (ADDR_midiParser_activeNrpnNumber, 2, 0x20021594), // midiParser_activeNrpnNumber
-    (ADDR_midiParser_lastMtcReceived, 4, 0x20021598), // midiParser_lastMtcReceived
-    (ADDR_midiParser_mtcIsRunning, 1, 0x2002159c), // midiParser_mtcIsRunning
     (ADDR_midiParser_originalCcValues, 255, 0x200215a0), // midiParser_originalCcValues
     (ADDR_midiParser_routing, 4, 0x200216a0), // midiParser_routing
     (ADDR_midi_MidiChannels, 8, 0x200216a4), // midi_MidiChannels
@@ -74,49 +64,7 @@ pub const SHIPPED_GLOBALS: &[(CPtr, u32, u32)] = &[
     (ADDR_parameterArray, 1976, 0x200216b0), // parameterArray
     (ADDR_fifo_midiRx, 258, 0x20021fb0), // fifo_midiRx
     (ADDR_midi_process_block, 1, 0x200221b6), // midi_process_block
-    (ADDR_euklid_length, 7, 0x200221b8), // euklid_length
-    (ADDR_euklid_nextCnt1, 2, 0x200221c0), // euklid_nextCnt1
-    (ADDR_euklid_originalLength, 2, 0x200221c2), // euklid_originalLength
-    (ADDR_euklid_patternBuffer, 8, 0x200221c8), // euklid_patternBuffer
-    (ADDR_euklid_rotation, 7, 0x200221d0), // euklid_rotation
-    (ADDR_euklid_steps, 7, 0x200221d8), // euklid_steps
-    (ADDR_sync_clockCnt, 1, 0x200221df), // sync_clockCnt
-    (ADDR_sync_delayedStepTimer, 4, 0x200221e0), // sync_delayedStepTimer
-    (ADDR_sync_timeLast, 4, 0x200221e4), // sync_timeLast
-    (ADDR_sync_writePos, 1, 0x20022208), // sync_writePos
-    (ADDR_chokeCurrent, 1, 0x20022209), // chokeCurrent
-    (ADDR_chokeNext, 1, 0x2002220a), // chokeNext
-    (ADDR_isStepShuffled, 1, 0x2002220b), // isStepShuffled
-    (ADDR_midi_chan_notes, 16, 0x2002220c), // midi_chan_notes
-    (ADDR_midi_notes_on, 2, 0x2002221c), // midi_notes_on
-    (ADDR_patternBackupBuffer, 3650, 0x20022238), // patternBackupBuffer
-    (ADDR_seq_activeAutomTrack, 1, 0x2002307a), // seq_activeAutomTrack
-    (ADDR_seq_activePattern, 1, 0x2002307b), // seq_activePattern
-    (ADDR_seq_automationNodes, 28, 0x20023080), // seq_automationNodes
-    (ADDR_seq_deltaT, 4, 0x2002309c), // seq_deltaT
-    (ADDR_seq_eraseActive, 1, 0x200230a0), // seq_eraseActive
-    (ADDR_seq_isSyncExternal, 1, 0x200230a1), // seq_isSyncExternal
-    (ADDR_seq_lastMasterStep, 7, 0x200230a4), // seq_lastMasterStep
-    (ADDR_seq_lastShuffle, 4, 0x200230ac), // seq_lastShuffle
-    (ADDR_seq_lastTick, 4, 0x200230b0), // seq_lastTick
-    (ADDR_seq_loadPendigFlag, 1, 0x200230b4), // seq_loadPendigFlag
-    (ADDR_seq_masterStepCnt, 1, 0x200230b5), // seq_masterStepCnt
     (ADDR_seq_mutedTracks, 1, 0x200230b6), // seq_mutedTracks
-    (ADDR_seq_patternSet, 233536, 0x200230b8), // seq_patternSet
-    (ADDR_seq_pendingPattern, 1, 0x2005c0f8), // seq_pendingPattern
-    (ADDR_seq_prescaleCounter, 1, 0x2005c0f9), // seq_prescaleCounter
-    (ADDR_seq_recordActive, 1, 0x2005c0fa), // seq_recordActive
-    (ADDR_seq_resetBarOnPatternChange, 1, 0x2005c0fb), // seq_resetBarOnPatternChange
-    (ADDR_seq_rndValue, 21, 0x2005c0fc), // seq_rndValue
-    (ADDR_seq_rollState, 1, 0x2005c111), // seq_rollState
-    (ADDR_seq_running, 1, 0x2005c112), // seq_running
-    (ADDR_seq_selectedStep, 1, 0x2005c113), // seq_selectedStep
-    (ADDR_seq_shuffle, 4, 0x2005c114), // seq_shuffle
-    (ADDR_seq_songData, 4096, 0x2005c118), // seq_songData
-    (ADDR_seq_songModeEnabled, 1, 0x2005d118), // seq_songModeEnabled
-    (ADDR_seq_songPositionPointer, 1, 0x2005d119), // seq_songPositionPointer
-    (ADDR_seq_stepIndex, 7, 0x2005d11c), // seq_stepIndex
-    (ADDR_seq_stepToSkip, 7, 0x2005d124), // seq_stepToSkip
     (ADDR_paramToModTarget, 247, 0x2005d12c), // paramToModTarget
     (ADDR_activeParameters, 302, 0x2005d228), // activeParameters
     (ADDR_mainParameters, 15808, 0x2005d3a0), // mainParameters

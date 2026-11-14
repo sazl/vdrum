@@ -1,7 +1,6 @@
-//! P1 differential tests: lfo, modulationNode / automationNode arithmetic and message construction.
+//! P1 differential tests: lfo, modulationNode arithmetic and message construction.
 mod p1_common;
 
-use lxr_core::dsp::automation_node::*;
 use lxr_core::dsp::lfo::*;
 use lxr_core::dsp::modulation_node::*;
 use lxr_core::rng::xorshift32;
@@ -328,52 +327,5 @@ fn mod_node_update_value_messages() {
         }
         let got: Vec<CcCall> = calls.borrow().iter().map(|c| (c.0, c.1, 0, c.3, c.4, c.5)).collect();
         assert_eq!(got, expected, "it {it}");
-    }
-}
-
-#[test]
-fn auto_node_messages() {
-    let mut fw = fw_or_skip!();
-    fw.fpscr = 0;
-    let calls = hook_cc(&mut fw);
-    let a = fw.alloc(4).unwrap();
-    let orig = fw.addr("midiParser_originalCcValues").unwrap();
-    let mut sw = Sweep(0xa070);
-    let mut rs = AutomationNode::ZERO;
-    w_u16(&mut fw, a, 7);
-    rs.destination = 7;
-    fw.call("autoNode_init", &[a], &[]).unwrap();
-    autoNode_init(&mut rs);
-    assert_eq!(r_u16(&fw, a), rs.destination);
-    for it in 0..20000 {
-        let ov: Vec<u8> = (0..255).map(|_| sw.u8()).collect();
-        fw.write(orig, &ov).unwrap();
-        let dest: u16 = match sw.next_u32() % 4 {
-            0 => 255,
-            _ => (sw.next_u32() % 255) as u16,
-        };
-        let cur: u16 = match sw.next_u32() % 4 {
-            0 => 255,
-            _ => (sw.next_u32() % 255) as u16,
-        };
-        w_u16(&mut fw, a, cur);
-        calls.borrow_mut().clear();
-        let mut expected: Vec<CcCall> = Vec::new();
-        if it % 2 == 0 {
-            fw.call("autoNode_setDestination", &[a, dest as u32], &[]).unwrap();
-            assert_eq!(r_u16(&fw, a), dest);
-            if cur != 255 {
-                let m = autoNode_ccMsg(cur);
-                expected.push((m.status, m.data1, ov[cur as usize], 0, 0, 0));
-            }
-        } else {
-            let val = sw.u8();
-            fw.call("autoNode_updateValue", &[a, val as u32], &[]).unwrap();
-            if cur != 255 {
-                let m = autoNode_ccMsg(cur);
-                expected.push((m.status, m.data1, val, 0, 0, 0));
-            }
-        }
-        assert_eq!(*calls.borrow(), expected, "it {it}");
     }
 }

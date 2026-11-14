@@ -52,7 +52,7 @@ LXR_FW_ELF=$PWD/out/fw/fw.elf LXR_FIRMWARE_IMG=/path/to/LXRV2_update_v1.71.img \
 
 | Path | Purpose |
 |---|---|
-| `crates/lxr-core` | the engine (port of `Core/Src/Soundengine/**` and the MIDI/kit/sequencer code it needs) |
+| `crates/lxr-core` | the engine (port of `Core/Src/Soundengine/**` and the MIDI/kit code it needs; the sequencer is not ported) |
 | `crates/lxr-emu` | Cortex-M7 emulator running the firmware; scenario renderer (`lxr-emu` CLI) |
 | `crates/lxr-difftest` | differential tests, engine vs. emulated firmware |
 | `crates/lxr-params` | parameter metadata (names, ranges, display text, MIDI mapping) |

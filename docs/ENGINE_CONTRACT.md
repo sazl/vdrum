@@ -10,7 +10,7 @@ The reference is the shipped firmware **v1.71** (`LXRV2_update_v1.71.img`), run
 unmodified in Unicorn (Cortex-M7 model, Thumb mode). It uses the recovered symbol map
 `crates/lxr-emu/data/v1.71_symbols.json`. The GCC 11.3 ELF of the v1.7 sources
 (`lxr_v1.7_gcc11.3.elf`) can be run in the same way and gives the same output for the
-corpus, apart from one scenario (see the last section). Function and variable names
+corpus, apart from one scenario (see section 9). Function and variable names
 below are firmware symbols, and source paths are relative to `lxr-desktop-app/Core/Src`.
 
 ## 1. Memory, CPU, FPU
@@ -100,7 +100,7 @@ systick_ticks = floor(blocks * 16384 / 2825)                  // write u32
 [FPSCR_IRQ]  HAL_I2S_TxCpltCallback(&hi2s3)                   // dmaPtr++, HAL_I2S_Transmit_DMA (stub),
                                                               // bCurrentSampleValid = 1 - (dmaPtr & 1)
 half = bCurrentSampleValid                                    // 0 or 1
-[audio FPSCR = 0]  seq_tick()
+[audio FPSCR = 0]  seq_tick()                                 // emulator only: lxr-core has no sequencer (§10)
 [audio FPSCR = 0]  soundengine_calcNextSampleBlock()          // mixer_calcNextSampleBlock(&dma_buffer[half*128],
                                                               //   &dma_buffer2[half*128]); bCurrentSampleValid = SAMPLE_VALID
 dac1 = dma_buffer2[half*128 .. +128]   (int16, L/R interleaved, 64 frames)
@@ -114,7 +114,7 @@ Notes:
   - `Block.dac1` = `dma_buffer2`, `Block.dac2` = `dma_buffer`.
   - With the default routing, `dac2` is all zero.
 - On the hardware the main loop is `seq_tick(); soundengine_calcNextSampleBlock(); uart_processMidi(); usb_tick(); …; preset_morph_tick()`.
-  - The emulator runs `seq_tick` exactly once per rendered block.
+  - The emulator runs `seq_tick` exactly once per rendered block. `Lxr::tick` does not: the sequencer is not ported (§10).
   - It applies all MIDI/parameter events between blocks, which is equivalent to `uart_processMidi` after the previous block.
   - It drains morph transfers synchronously (see below).
 
@@ -211,10 +211,38 @@ lxr-emu check  (--img|--elf) tests/scenarios/reference_v1.71.json tests/scenario
 - Not modelled: pots, buttons/front panel input, LCD/menu navigation, the SD card, USB MIDI, the sequencer clock beyond `seq_tick` once per block, project save (TIM2 interrupt), and DIN MIDI output (`midiParser_txRxFilter` routing is executed but the UART TX is not observed).
 - **Out-of-range indices and corrupted pointers (port behaviour).** The firmware does not range-check several indices that come from MIDI input. `lxr-core` reproduces the shipped v1.71 RAM layout where the memory is modelled, and never panics where it is not:
   - Bank select (CC 0) values 64..127 load kits 64..127 from past the end of `mainParameters[64]`. That memory holds UI / SD card / USB / newlib globals and then heap/stack. `Lxr` reads the modelled globals there and **0 for everything else**. After power-on the emulated shipped firmware matches for every value except 68: its byte 216 is `usb_MidiInBuff[0]`, which the USB code writes. On the device these kits depend on USB, SD and stack contents. Test: `p3_midi::bank_select_above_63`.
-  - CC2/NRPN stores to `midiParser_originalCcValues[272..383]` modify the `parameterArray[0..13]` pointers. The port does the byte arithmetic on the shipped address (`midi::shipped_layout`). Accesses through a pointer that ends up outside the modelled memory (e.g. 0x75000000, where the device takes a bus fault) **read 0 and drop writes** (`memmap::cptr_byte` / `cptr_set_byte`). Sequencer step indices outside `seq_patternSet` do the same.
-  - Step indices 64..127 from the front panel protocol (`FRONT_SET_P1/P2_DEST/VAL`, sysex step data) and from `PAR_ACTIVE_STEP` (MIDI note on the sequencer page) are flat C indexing into the following track/pattern: `Lxr::seq_step_read` / `seq_step_write`.
+  - CC2/NRPN stores to `midiParser_originalCcValues[272..383]` modify the `parameterArray[0..13]` pointers. The port does the byte arithmetic on the shipped address (`midi::shipped_layout`). Accesses through a pointer that ends up outside the modelled memory (e.g. 0x75000000, where the device takes a bus fault) **read 0 and drop writes** (`memmap::cptr_byte` / `cptr_set_byte`).
   - Waveform CCs store the raw value (0..127) in `OscInfo::waveform`, exactly like the firmware. An oscillator with a waveform >= `NUM_OSC_WAVEFORMS` writes nothing. The voice then renders the uninitialised stack contents of the firmware's VLA (e.g. `int16_t mod2[size]` in `HiHat_calcSyncBlock`), which the port cannot reproduce. **The audio diverges until the waveform is back in range**, although the state compares equal (same as the `global_morph_no_target` scenario). `p3_midi::random_streams` reduces such waveforms in both engines after each message.
-  - MIDI channel parameters set above 15 make `seq_sendMidiNoteOn` write `midi_chan_notes[channel]` past the array. This uses the shipped layout (`shipped_layout::shipped_offset`); unmodelled bytes are dropped.
   - `Lxr::set_parameter` does not range-limit `value`, but does what the menu encoder does for `DTYPE_VOICE_LFO` (clamps to 1..6). A mod target index past `modTargets`, which the menu never produces and where C reads past the table in flash, sends target 0.
-  - Euklid lengths above 17 (the menu allows 1..16) can make `euklid_calcRecursive` recurse until the firmware's stack overflows. The port stops after 64 iterations and leaves the pattern empty. Terminating inputs need at most 18.
   - No-panic tests with random MIDI streams, and with random `set_parameter` values and `load_kit` contents, including debug builds with overflow checks: `p3_fuzz`.
+
+## 10. No sequencer (`lxr-core` since 2026-11-14)
+
+VDrum has no sequencer, so `lxr-core` does not port the firmware's `sequencer.c`, `clockSync.c`,
+`EuklidGenerator.c`, `SeqStep.h` and `automationNode.c`. Four functions of `sequencer.c` stay
+(`crates/lxr-core/src/tempo_mute.rs`): `seq_setBpm` / `seq_getBpm` (`seq_tempo`, which clock-synced
+LFOs read) and `seq_setMute` / `seq_isTrackMuted` (`seq_mutedTracks`: `midiParser_noteOn` drops the
+notes of a muted voice; `CC2_MUTE_1..7`, over NRPN or as a modulation destination, set it). The
+emulator still runs the whole firmware, sequencer included.
+
+What `Lxr` does differently from the firmware:
+
+- `tick` does not call `seq_tick`; `soundengine_init` does not call `euklid_init` / `seq_init`;
+  `copyClear_clearCurrentPattern` does not clear a pattern.
+- MIDI clock, start, continue, stop, song position and MTC quarter frames are ignored (the firmware
+  syncs or starts its sequencer with them; `midiParser_checkMtc` is gone). Program change does not
+  select a next pattern. A note on the sequencer page does not edit a step, and nothing is recorded
+  (`seq_addNote`, `seq_recordAutomation`). `voiceControl_noteOff` sends no MIDI note-off for notes
+  the sequencer sent (`seq_midiNoteOff`).
+- Front panel messages that edit steps, patterns, automation or the sequencer's run state, and
+  `FRONT_SET_BPM` values 0 and 1 (external / MIDI clock), are ignored; the CC 0 store past
+  `midiParser_originalCcValues` that lands in `seq_patternSet` is dropped.
+- The sequencer globals are not fields of `Lxr`, so the full-state comparison no longer covers them.
+
+The output and the compared state equal the firmware's as long as the firmware's sequencer stays
+stopped and empty. The firmware starts it only from MTC (quarter frame 0, then piece 7 with an even
+value), MIDI start / continue with external sync (set from the front panel only), or front panel
+run/stop. These inputs are outside the contract; `p3_midi::random_streams` sends no MTC quarter
+frames for that reason. The committed reference hashes are unchanged: all 310 exact scenarios match
+(checked 2026-11-14). The comparisons with the emulator (`p3_scenarios::scenarios_match_emulator`,
+`p3_midi`, `p3_shipped`) need `LXR_FW_ELF` and have not been run since the removal.

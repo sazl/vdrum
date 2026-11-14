@@ -11,7 +11,6 @@ use nih_plug_egui::EguiState;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU16, AtomicU32, AtomicU8, Ordering};
-use vdrum_engine::seq::SeqData;
 use std::sync::{Arc, Mutex};
 
 /// Parameter indices: the firmware's (`0..NUM_PARAMS`) and the open hi-hat's (`NUM_PARAMS..`).
@@ -97,8 +96,6 @@ pub enum Command {
     Midi([u8; 3]),
     /// Load a kit (`.snd` file bytes).
     LoadKit([u8; KIT_FILE_LEN]),
-    /// Load all of [`Shared::seq`] into the engine (after a pattern import).
-    SeqReload,
 }
 
 /// The kit file the user works on: where it was loaded from or saved to, and its contents then
@@ -155,11 +152,6 @@ pub struct Shared {
     /// Current states of the *Sum aux* and *Hardware clock* switches (set by the audio thread).
     pub sum_aux_on: AtomicBool,
     pub hw_clock_on: AtomicBool,
-    /// The sequencer's pattern data: pattern imports replace it (and reload the engine), the
-    /// plugin state saves it, `initialize()` loads it into the engine.
-    pub seq: Mutex<SeqData>,
-    /// The sequencer follows the host transport (true) or runs on the engine's own clock.
-    pub seq_host_clock: AtomicBool,
     /// The kit library (64 slots), saved with the plugin state.
     pub library: Mutex<crate::library::Library>,
     /// Incremented whenever the library changes (for the editor).
@@ -188,8 +180,6 @@ impl Shared {
             kit_file: Mutex::new(KitFile::default()),
             sum_aux_on: AtomicBool::new(false),
             hw_clock_on: AtomicBool::new(false),
-            seq: Mutex::new(SeqData::default()),
-            seq_host_clock: AtomicBool::new(true),
             library: Mutex::new(crate::library::Library::default()),
             library_generation: AtomicU32::new(0),
         };
@@ -548,11 +538,6 @@ unsafe impl Params for VDrumParams {
                 m.insert("kit-library".into(), l.to_text());
             }
         }
-        if let Ok(d) = self.shared.seq.lock() {
-            if *d != SeqData::default() {
-                m.insert("sequencer".into(), d.to_text());
-            }
-        }
         if let Some(p) = self.shared.kit_file.lock().ok().and_then(|f| f.path.clone()) {
             if let Ok(s) = serde_json::to_string(&p) {
                 m.insert("kit-path".into(), s);
@@ -646,12 +631,7 @@ unsafe impl Params for VDrumParams {
             *l = serialized.get("kit-library").map(|s| crate::library::Library::from_text(s)).unwrap_or_default();
             self.shared.library_generation.fetch_add(1, Ordering::Relaxed);
         }
-        // A state without sequencer data has empty patterns; `initialize()` loads them into the
-        // engine.
-        let seq = serialized.get("sequencer").and_then(|s| SeqData::from_text(s)).unwrap_or_default();
-        if let Ok(mut d) = self.shared.seq.lock() {
-            *d = seq;
-        }
+        // The "sequencer" field of states saved while VDrum had a sequencer is ignored.
         if let Some(k) = &restore.kit {
             self.shared.set_name(&k.name);
         }
@@ -802,19 +782,13 @@ mod tests {
     }
 
     #[test]
-    fn sequencer_data_is_saved() {
-        use vdrum_engine::seq::SeqEdit;
+    fn kit_library_is_saved() {
         let sh = Arc::new(Shared::new());
         let p = VDrumParams::new(sh.clone());
-        assert!(!p.serialize_fields().contains_key("sequencer"), "empty patterns are not saved");
-        sh.seq.lock().unwrap().apply(&SeqEdit::Euclid { pat: 2, track: 1, fills: 5, rotate: 1 });
         let f = p.serialize_fields();
+        assert!(!f.contains_key("sequencer"));
         let sh2 = Arc::new(Shared::new());
         let p2 = VDrumParams::new(sh2.clone());
-        sh2.seq.lock().unwrap().apply(&SeqEdit::Euclid { pat: 0, track: 0, fills: 1, rotate: 0 });
-        p2.deserialize_fields(&f);
-        assert_eq!(*sh2.seq.lock().unwrap(), *sh.seq.lock().unwrap());
-        // the kit library
         assert!(!f.contains_key("kit-library"));
         {
             let mut l = sh.library.lock().unwrap();
@@ -826,10 +800,10 @@ mod tests {
         }
         p2.deserialize_fields(&p.serialize_fields());
         assert_eq!(*sh2.library.lock().unwrap(), *sh.library.lock().unwrap());
-        // a state without sequencer data clears the patterns
-        let mut f2 = f.clone();
-        f2.remove("sequencer");
+        // the sequencer data of an older state is ignored
+        let mut f2 = p.serialize_fields();
+        f2.insert("sequencer".into(), "anything".into());
         p2.deserialize_fields(&f2);
-        assert_eq!(*sh2.seq.lock().unwrap(), SeqData::default());
+        assert_eq!(*sh2.library.lock().unwrap(), *sh.library.lock().unwrap());
     }
 }

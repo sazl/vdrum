@@ -182,19 +182,11 @@ pub struct Lxr {
     ///
     /// Declared at `Core/Src/Soundengine/MIDI/CortexParser.c:54`; firmware address 0x2002199c (`.bss`), 7 bytes.
     pub frontParser_sysexBuffer: [u8; 7],
-    /// `uint16_t frontParser_sysexSeqStepNr=0;`
-    ///
-    /// Declared at `Core/Src/Soundengine/MIDI/CortexParser.c:57`; firmware address 0x200219a4 (`.bss`), 2 bytes.
-    pub frontParser_sysexSeqStepNr: u16,
     /// `uint16_t frontParser_twoByteData=0;`
     ///
     /// Declared at `Core/Src/Soundengine/MIDI/CortexParser.c:52`; firmware address 0x200219a6 (`.bss`), 2 bytes.
     pub frontParser_twoByteData: u16,
     // ---------------- Core/Src/Soundengine/MIDI/MidiParser.c
-    /// `static uint8_t midiParser_mtcIgnore=1;`
-    ///
-    /// Declared at `Core/Src/Soundengine/MIDI/MidiParser.c:40`; firmware address 0x200202d3 (`.data`), 1 bytes.
-    pub midiParser_mtcIgnore: u8,
     /// `extern uint8_t midiParser_txRxFilter;`
     ///
     /// Declared at `Core/Inc/Soundengine/MIDI/MidiParser.h:76`; firmware address 0x200202d4 (`.data`), 1 bytes.
@@ -219,14 +211,6 @@ pub struct Lxr {
     ///
     /// Declared at `Core/Src/Soundengine/MIDI/MidiParser.c:35`; firmware address 0x200219b4 (`.bss`), 2 bytes.
     pub midiParser_activeNrpnNumber: u16,
-    /// `static uint32_t volatile midiParser_lastMtcReceived=0x0;`
-    ///
-    /// Declared at `Core/Src/Soundengine/MIDI/MidiParser.c:41`; firmware address 0x200219b8 (`.bss`), 4 bytes.
-    pub midiParser_lastMtcReceived: u32,
-    /// `static uint8_t midiParser_mtcIsRunning=0;`
-    ///
-    /// Declared at `Core/Src/Soundengine/MIDI/MidiParser.c:42`; firmware address 0x200219bc (`.bss`), 1 bytes.
-    pub midiParser_mtcIsRunning: u8,
     /// `extern uint8_t midiParser_originalCcValues[0xff];`
     ///
     /// Declared at `Core/Inc/Soundengine/MIDI/MidiParser.h:53`; firmware address 0x200219c0 (`.bss`), 255 bytes.
@@ -258,229 +242,16 @@ pub struct Lxr {
     ///
     /// Declared at `Core/Inc/Soundengine/MIDI/Uart.h:21`; firmware address 0x200225d6 (`.bss`), 1 bytes.
     pub midi_process_block: u8,
-    // ---------------- Core/Src/Soundengine/Sequencer/EuklidGenerator.c
-    /// `static uint8_t euklid_length[NUM_TRACKS];`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:21`; firmware address 0x200225d8 (`.bss`), 7 bytes.
-    pub euklid_length: [u8; 7],
-    /// `static uint16_t euklid_nextCnt1=0;`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:33`; firmware address 0x200225e0 (`.bss`), 2 bytes.
-    pub euklid_nextCnt1: u16,
-    /// `static uint16_t euklid_originalLength=0;`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:34`; firmware address 0x200225e2 (`.bss`), 2 bytes.
-    pub euklid_originalLength: u16,
-    /// `static ActiveSteps euklid_patternBuffer; / **< 16 bits for maximum 16 steps. 1 is a note 0 is a pause* /`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:31`; firmware address 0x200225e8 (`.bss`), 8 bytes.
-    pub euklid_patternBuffer: ActiveSteps,
-    /// `static uint8_t euklid_rotation[NUM_TRACKS];`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:23`; firmware address 0x200225f0 (`.bss`), 7 bytes.
-    pub euklid_rotation: [u8; 7],
-    /// `static uint8_t euklid_steps[NUM_TRACKS];`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:22`; firmware address 0x200225f8 (`.bss`), 7 bytes.
-    pub euklid_steps: [u8; 7],
-    // ---------------- Core/Src/Soundengine/Sequencer/clockSync.c
-    /// `uint8_t sync_clockCnt = 0;`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/clockSync.c:23`; firmware address 0x200225ff (`.bss`), 1 bytes.
-    pub sync_clockCnt: u8,
-    /// `extern uint32_t sync_delayedStepTimer;`
-    ///
-    /// Declared at `Core/Inc/Soundengine/Sequencer/clockSync.h:43`; firmware address 0x20022600 (`.bss`), 4 bytes.
-    pub sync_delayedStepTimer: u32,
-    /// `float sync_timeLast = 0;`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/clockSync.c:19`; firmware address 0x20022604 (`.bss`), 4 bytes.
-    pub sync_timeLast: f32,
-    /// `static float sync_window[WINDOW_SIZE];`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/clockSync.c:18`; firmware address 0x20022608 (`.bss`), 32 bytes.
-    pub sync_window: [f32; 8],
-    /// `uint8_t sync_writePos = 0;`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/clockSync.c:20`; firmware address 0x20022628 (`.bss`), 1 bytes.
-    pub sync_writePos: u8,
-    // ---------------- Core/Src/Soundengine/Sequencer/sequencer.c
-    /// `static MidiMsg msg = { .bits = { .length = 2 } }; // status + 2 data bytes`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:2727`; firmware address 0x200202d8 (`.data`), 8 bytes.
-    /// Function-local `static` of `seq_sendMidiNoteOn`.
-    pub seq_sendMidiNoteOn_msg: MidiMsg,
-    /// `static MidiMsg msg = { .bits = { .length = 1 } }; // status + 1 data byte`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:2755`; firmware address 0x200202e0 (`.data`), 8 bytes.
-    /// Function-local `static` of `seq_sendProgChg`.
-    pub seq_sendProgChg_msg: MidiMsg,
-    /// `static int8_t seq_armedArmedAutomationStep = -1;`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:78`; firmware address 0x200202e8 (`.data`), 1 bytes.
-    pub seq_armedArmedAutomationStep: i8,
-    /// `static int8_t seq_armedArmedAutomationTrack = -1;`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:79`; firmware address 0x200202e9 (`.data`), 1 bytes.
-    pub seq_armedArmedAutomationTrack: i8,
-    /// `uint8_t seq_quantisation = QUANT_16;`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:96`; firmware address 0x200202ea (`.data`), 1 bytes.
-    pub seq_quantisation: u8,
-    /// `uint8_t seq_rollRate = 1; //start with roll rate = 1/16`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:50`; firmware address 0x200202eb (`.data`), 1 bytes.
-    pub seq_rollRate: u8,
+    // ---------------- Core/Src/Soundengine/Sequencer/sequencer.c (only the tempo and the track mutes
+    // are ported; VDrum has no sequencer)
     /// `static uint16_t seq_tempo = 120; / **< seq speed in bpm* /`
     ///
     /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:56`; firmware address 0x200202ec (`.data`), 2 bytes.
     pub seq_tempo: u16,
-    /// `uint8_t chokeCurrent=0;`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:1089`; firmware address 0x20022629 (`.bss`), 1 bytes.
-    pub chokeCurrent: u8,
-    /// `uint8_t chokeNext=0;`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:1090`; firmware address 0x2002262a (`.bss`), 1 bytes.
-    pub chokeNext: u8,
-    /// `uint8_t isStepShuffled=0;`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:59`; firmware address 0x2002262b (`.bss`), 1 bytes.
-    pub isStepShuffled: u8,
-    /// `uint8_t lastWasNoteOn[NUM_TRACKS];`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:174`; firmware address 0x2002262c (`.bss`), 7 bytes.
-    pub lastWasNoteOn: [u8; 7],
-    /// `static uint8_t midi_chan_notes[16]; / **< what note is playing on each channel * /`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:116`; firmware address 0x20022634 (`.bss`), 16 bytes.
-    pub midi_chan_notes: [u8; 16],
-    /// `static uint16_t midi_notes_on=0; / **< which channels have a note currently playing * /`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:117`; firmware address 0x20022644 (`.bss`), 2 bytes.
-    pub midi_notes_on: u16,
-    /// `static MidiMsg msg = {0};`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:2714`; firmware address 0x20022648 (`.bss`), 8 bytes.
-    /// Function-local `static` of `seq_sendRealtime`.
-    pub seq_sendRealtime_msg: MidiMsg,
-    /// `extern PatternBackupBuffer patternBackupBuffer;`
-    ///
-    /// Declared at `Core/Inc/Soundengine/Sequencer/sequencer.h:149`; firmware address 0x20022650 (`.bss`), 3650 bytes.
-    pub patternBackupBuffer: PatternBackupBuffer,
-    /// `uint8_t seq_activeAutomTrack=0;`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:63`; firmware address 0x20023492 (`.bss`), 1 bytes.
-    pub seq_activeAutomTrack: u8,
-    /// `extern uint8_t seq_activePattern;`
-    ///
-    /// Declared at `Core/Inc/Soundengine/Sequencer/sequencer.h:128`; firmware address 0x20023493 (`.bss`), 1 bytes.
-    pub seq_activePattern: u8,
-    /// `extern uint8_t *seq_activeSong;`
-    ///
-    /// Declared at `Core/Inc/Soundengine/Sequencer/sequencer.h:159`; firmware address 0x20023494 (`.bss`), 4 bytes.
-    /// C: `uint8_t *seq_activeSong`. Representation: `Some(i)` = `seq_songData[i]` (the only values the firmware assigns), `None` = NULL (power-on value, set by `seq_init`).
-    pub seq_activeSong: Option<usize>,
-    /// `static AutomationNode seq_automationNodes[NUM_TRACKS][2];`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:157`; firmware address 0x20023498 (`.bss`), 28 bytes.
-    pub seq_automationNodes: [[AutomationNode; 2]; 7],
-    /// `static float seq_deltaT; / **< time in [ms] until the next step`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:60`; firmware address 0x200234b4 (`.bss`), 4 bytes.
-    pub seq_deltaT: f32,
-    /// `uint8_t seq_eraseActive=0; / **RECORD will be 1 if live erasing the active voice * /`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:94`; firmware address 0x200234b8 (`.bss`), 1 bytes.
-    pub seq_eraseActive: u8,
-    /// `uint8_t seq_isSyncExternal = 0;`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:68`; firmware address 0x200234b9 (`.bss`), 1 bytes.
-    pub seq_isSyncExternal: u8,
-    /// `uint8_t seq_lastMasterStep[NUM_TRACKS]; //keeps track of the last triggered master sync step of each track`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:69`; firmware address 0x200234bc (`.bss`), 7 bytes.
-    pub seq_lastMasterStep: [u8; 7],
-    /// `float seq_lastShuffle = 0;`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:139`; firmware address 0x200234c4 (`.bss`), 4 bytes.
-    pub seq_lastShuffle: f32,
-    /// `static uint32_t seq_lastTick = 0; / **< stores the time the last step change occured* /`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:58`; firmware address 0x200234c8 (`.bss`), 4 bytes.
-    pub seq_lastTick: u32,
-    /// `static uint8_t seq_loadPendigFlag = 0;`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:109`; firmware address 0x200234cc (`.bss`), 1 bytes.
-    pub seq_loadPendigFlag: u8,
-    /// `uint8_t seq_masterStepCnt=0; / ** keeps track of the played steps between 0 and 127 independent from the track counters* /`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:49`; firmware address 0x200234cd (`.bss`), 1 bytes.
-    pub seq_masterStepCnt: u8,
     /// `static uint8_t seq_mutedTracks=0; / **< indicate which tracks are muted * /`
     ///
     /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:81`; firmware address 0x200234ce (`.bss`), 1 bytes.
     pub seq_mutedTracks: u8,
-    /// `extern PatternSet seq_patternSet;`
-    ///
-    /// Declared at `Core/Inc/Soundengine/Sequencer/sequencer.h:143`; firmware address 0x200234d0 (`.bss`), 233536 bytes.
-    pub seq_patternSet: Box<PatternSet>,
-    /// `extern uint8_t seq_pendingPattern;`
-    ///
-    /// Declared at `Core/Inc/Soundengine/Sequencer/sequencer.h:129`; firmware address 0x2005c510 (`.bss`), 1 bytes.
-    pub seq_pendingPattern: u8,
-    /// `extern uint8_t seq_prescaleCounter;`
-    ///
-    /// Declared at `Core/Inc/Soundengine/Sequencer/sequencer.h:131`; firmware address 0x2005c511 (`.bss`), 1 bytes.
-    pub seq_prescaleCounter: u8,
-    /// `uint8_t seq_recordActive = 0; / **< set to 1 to activate the reording mode* /`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:92`; firmware address 0x2005c512 (`.bss`), 1 bytes.
-    pub seq_recordActive: u8,
-    /// `extern uint8_t seq_resetBarOnPatternChange;`
-    ///
-    /// Declared at `Core/Inc/Soundengine/Sequencer/sequencer.h:166`; firmware address 0x2005c513 (`.bss`), 1 bytes.
-    pub seq_resetBarOnPatternChange: u8,
-    /// `}seq_rndValue[NUM_TRACKS];`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:104`; firmware address 0x2005c514 (`.bss`), 21 bytes.
-    pub seq_rndValue: [seq_rndValue_t; 7],
-    /// `uint8_t seq_rollState = 0; / **< each bit represents a voice. if bit is set, roll is active* /`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:51`; firmware address 0x2005c529 (`.bss`), 1 bytes.
-    pub seq_rollState: u8,
-    /// `uint8_t seq_running = 0; / **< 1 running, 0 if stopped* /`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:83`; firmware address 0x2005c52a (`.bss`), 1 bytes.
-    pub seq_running: u8,
-    /// `extern uint8_t seq_selectedStep;`
-    ///
-    /// Declared at `Core/Inc/Soundengine/Sequencer/sequencer.h:164`; firmware address 0x2005c52b (`.bss`), 1 bytes.
-    pub seq_selectedStep: u8,
-    /// `float seq_shuffle = 0;`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:72`; firmware address 0x2005c52c (`.bss`), 4 bytes.
-    pub seq_shuffle: f32,
-    /// `extern uint8_t seq_songData[NUM_KIT_SLOTS][MAX_SONG_LENGTH];`
-    ///
-    /// Declared at `Core/Inc/Soundengine/Sequencer/sequencer.h:158`; firmware address 0x2005c530 (`.bss`), 4096 bytes.
-    pub seq_songData: Box<[[u8; 64]; 64]>,
-    /// `uint8_t seq_songModeEnabled=0;`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:82`; firmware address 0x2005d530 (`.bss`), 1 bytes.
-    pub seq_songModeEnabled: u8,
-    /// `extern uint8_t seq_songPositionPointer;`
-    ///
-    /// Declared at `Core/Inc/Soundengine/Sequencer/sequencer.h:160`; firmware address 0x2005d531 (`.bss`), 1 bytes.
-    pub seq_songPositionPointer: u8,
-    /// `static int8_t seq_stepIndex[NUM_TRACKS]; / **< we have 16 steps con 4 bars = 64 steps.`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:53`; firmware address 0x2005d534 (`.bss`), 7 bytes.
-    pub seq_stepIndex: [i8; 7],
-    /// `int8_t seq_stepToSkip[NUM_TRACKS];`
-    ///
-    /// Declared at `Core/Src/Soundengine/Sequencer/sequencer.c:74`; firmware address 0x2005d53c (`.bss`), 7 bytes.
-    pub seq_stepToSkip: [i8; 7],
     // ---------------- Core/Src/Soundengine/TriggerOut.c
     /// `extern uint8_t trigger_dividerClockOut1;`
     ///
@@ -543,22 +314,13 @@ pub struct Lxr {
     pub systick_ticks: u32,
     // ---------------- P3 additions: globals of UI-side files that engine code reaches
     // (`uart_sendFrontpanelByte` -> `frontPanel_parseData`, `menu_init`, `HAL_I2S_TxCpltCallback`)
-    /// `uint8_t frontPanel_sysexMode = 0;` (Core/Src/frontPanelParser.c); firmware address 0x2005d594, 1 bytes.
-    pub frontPanel_sysexMode: u8,
     /// `volatile MidiMsg frontParser_midiMsg;` (Core/Src/frontPanelParser.c); firmware address 0x2005d598, 8 bytes.
     pub frontParser_midiMsg: MidiMsg,
-    /// `volatile uint8_t frontParser_newSeqDataAvailable = 0;` (Core/Src/frontPanelParser.c); 0x2005d5a0, 1 bytes.
-    pub frontParser_newSeqDataAvailable: u8,
     /// `static uint16_t frontParser_nrpnNr = 0;` (Core/Src/frontPanelParser.c); firmware address 0x2005d5a2, 2 bytes.
     pub frontParser_nrpnNr: u16,
     /// `static uint8_t frontParser_rxCnt=0;` of Core/Src/frontPanelParser.c (a different variable than
     /// `frontParser_rxCnt` of CortexParser.c); firmware address 0x2005d5a4, 1 bytes.
     pub frontPanelParser_rxCnt: u8,
-    /// `volatile Step frontParser_stepData;` (Core/Src/frontPanelParser.c); firmware address 0x2005d5a8, 7 bytes.
-    pub frontParser_stepData: Step,
-    /// `volatile static uint8_t frontParser_sysexBuffer[7];` of Core/Src/frontPanelParser.c (a different
-    /// variable than `frontParser_sysexBuffer` of CortexParser.c); firmware address 0x2005d5b0, 7 bytes.
-    pub frontPanelParser_sysexBuffer: [u8; 7],
     /// `uint8_t paramToModTarget[END_OF_SOUND_PARAMETERS];` (Core/Src/menu/Cc2Text.c); 0x2005dec0, 247 bytes.
     pub paramToModTarget: [u8; 247],
     /// `uint8_t menu_activeVoice = 0;` (Core/Src/menu/menu.c); firmware address 0x20061ef8, 1 bytes.
@@ -619,17 +381,13 @@ impl Lxr {
             frontParser_shownPattern: 0,
             frontParser_sysexActive: 0,
             frontParser_sysexBuffer: [0; 7],
-            frontParser_sysexSeqStepNr: 0,
             frontParser_twoByteData: 0,
-            midiParser_mtcIgnore: 1,
             midiParser_txRxFilter: 255,
             parserState: 4,
             checkMIDIprocPAR: 0,
             checkMIDIprocPAR_t: 0,
             midiMsg_tmp: MidiMsg::ZERO,
             midiParser_activeNrpnNumber: 0,
-            midiParser_lastMtcReceived: 0,
-            midiParser_mtcIsRunning: 0,
             midiParser_originalCcValues: [0; 255],
             midiParser_routing: midiParser_routing_t::ZERO,
             midi_MidiChannels: [0; 8],
@@ -637,60 +395,8 @@ impl Lxr {
             parameterArray: [Parameter::ZERO; 247],
             fifo_midiRx: Fifo::ZERO,
             midi_process_block: 0,
-            euklid_length: [0; 7],
-            euklid_nextCnt1: 0,
-            euklid_originalLength: 0,
-            euklid_patternBuffer: ActiveSteps::ZERO,
-            euklid_rotation: [0; 7],
-            euklid_steps: [0; 7],
-            sync_clockCnt: 0,
-            sync_delayedStepTimer: 0,
-            sync_timeLast: 0.0,
-            sync_window: [0.0; 8],
-            sync_writePos: 0,
-            seq_sendMidiNoteOn_msg: MidiMsg { status: 0, lastNonSysStatus: 0, data1: 0, data2: 0, bits: MidiBits { bits: 0x8 } },
-            seq_sendProgChg_msg: MidiMsg { status: 0, lastNonSysStatus: 0, data1: 0, data2: 0, bits: MidiBits { bits: 0x4 } },
-            seq_armedArmedAutomationStep: -1,
-            seq_armedArmedAutomationTrack: -1,
-            seq_quantisation: 2,
-            seq_rollRate: 1,
             seq_tempo: 120,
-            chokeCurrent: 0,
-            chokeNext: 0,
-            isStepShuffled: 0,
-            lastWasNoteOn: [0; 7],
-            midi_chan_notes: [0; 16],
-            midi_notes_on: 0,
-            seq_sendRealtime_msg: MidiMsg::ZERO,
-            patternBackupBuffer: PatternBackupBuffer::ZERO,
-            seq_activeAutomTrack: 0,
-            seq_activePattern: 0,
-            seq_activeSong: None,
-            seq_automationNodes: [[AutomationNode::ZERO; 2]; 7],
-            seq_deltaT: 0.0,
-            seq_eraseActive: 0,
-            seq_isSyncExternal: 0,
-            seq_lastMasterStep: [0; 7],
-            seq_lastShuffle: 0.0,
-            seq_lastTick: 0,
-            seq_loadPendigFlag: 0,
-            seq_masterStepCnt: 0,
             seq_mutedTracks: 0,
-            seq_patternSet: Box::new(PatternSet::ZERO),
-            seq_pendingPattern: 0,
-            seq_prescaleCounter: 0,
-            seq_recordActive: 0,
-            seq_resetBarOnPatternChange: 0,
-            seq_rndValue: [seq_rndValue_t::ZERO; 7],
-            seq_rollState: 0,
-            seq_running: 0,
-            seq_selectedStep: 0,
-            seq_shuffle: 0.0,
-            seq_songData: Box::new([[0; 64]; 64]),
-            seq_songModeEnabled: 0,
-            seq_songPositionPointer: 0,
-            seq_stepIndex: [0; 7],
-            seq_stepToSkip: [0; 7],
             trigger_dividerClockOut1: 1,
             trigger_prescalerClockInput: 1,
             trigger_clockReceived: 0,
@@ -705,13 +411,9 @@ impl Lxr {
             menu_songMenuPosition: 0,
             morphParameters: None,
             systick_ticks: 0,
-            frontPanel_sysexMode: 0,
             frontParser_midiMsg: MidiMsg::ZERO,
-            frontParser_newSeqDataAvailable: 0,
             frontParser_nrpnNr: 0,
             frontPanelParser_rxCnt: 0,
-            frontParser_stepData: Step::ZERO,
-            frontPanelParser_sysexBuffer: [0; 7],
             paramToModTarget: [0; 247],
             menu_activeVoice: 0,
             menu_TargetVoiceGapIndex: 0xFF,
@@ -772,7 +474,7 @@ impl Lxr {
     /// Renders one block (`docs/ENGINE_CONTRACT.md` section 3): advances `systick_ticks` (TIM14 at 4 kHz,
     /// 16384/2825 ticks per 64-frame block at fs = 44140.625 Hz), runs the SPI3 DMA transfer-complete
     /// interrupt (`HAL_I2S_TxCpltCallback`: `dmaPtr++`, `bCurrentSampleValid = 1 - (dmaPtr & 1)`), then the
-    /// main loop's `seq_tick(); soundengine_calcNextSampleBlock();` with FZ = 0. `dac1` is `dma_buffer2`
+    /// main loop's `soundengine_calcNextSampleBlock();` (the firmware's `seq_tick()` before it is removed: VDrum has no sequencer) with FZ = 0. `dac1` is `dma_buffer2`
     /// (the mixer's `output2`, DAC 1 routing), `dac2` is `dma_buffer`. Group P3.
     pub fn tick(&mut self) -> Block {
         self.blocks += 1;
@@ -780,7 +482,7 @@ impl Lxr {
         self.HAL_I2S_TxCpltCallback_SPI3();
         let half = self.bCurrentSampleValid as usize;
         assert!(half <= 1, "bCurrentSampleValid = {half} after the DMA callback");
-        self.seq_tick();
+        // The firmware calls `seq_tick()` here; VDrum has no sequencer.
         self.soundengine_calcNextSampleBlock();
         let mut blk = Block::default();
         blk.dac1.copy_from_slice(&self.dma_buffer2[half * 128..half * 128 + 128]);

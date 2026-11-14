@@ -1,6 +1,5 @@
 //! Port of `Core/Src/Soundengine/DSPAudio/` (voices, oscillators, filters, envelopes, mixer).
 
-pub mod automation_node;
 pub mod buffer_tools;
 pub mod cymbal_voice;
 pub mod decay;

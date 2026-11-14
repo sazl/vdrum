@@ -20,6 +20,15 @@ Functions marked `gc`/`absent` cannot be checked against the reference binary.
 | P3 | 144 |
 | P4 | 31 |
 
+VDrum has no sequencer. On 2026-11-14 the ported sequencer (`sequencer.c`, `clockSync.c`,
+`EuklidGenerator.c`, `SeqStep.h`, and `automationNode.c` of its automation tracks) and
+`midiParser_checkMtc` were removed from `lxr-core`; their rows below say "removed" and their Rust
+column is `-`. Four functions of `sequencer.c` stay, in `tempo_mute`: `seq_setBpm` and `seq_getBpm`
+(the tempo that clock-synced LFOs follow) and `seq_setMute` and `seq_isTrackMuted` (a muted voice
+ignores MIDI notes; the `CC2_MUTE_1..7` parameters set it). The callers of the removed functions in
+MIDI, front-panel and menu code skip those calls. The function counts in the table above include the
+removed functions; the "Calls between groups" lists below were generated before the removal.
+
 ## Functions
 
 | C file | C name | Rust | Group | Ref build | Status |
@@ -113,9 +122,9 @@ Functions marked `gc`/`absent` cannot be checked against the reference binary.
 | `Core/Src/Soundengine/DSPAudio/TiltEq.c:40` | `TiltEq_process` | `dsp::tilt_eq::TiltEq_process` | P1 | absent | ported (not in firmware build, untestable) |
 | `Core/Src/Soundengine/DSPAudio/TiltEq.c:51` | `TiltEq_setFreq` | `dsp::tilt_eq::TiltEq_setFreq` | P1 | absent | ported (not in firmware build, untestable) |
 | `Core/Src/Soundengine/DSPAudio/TiltEq.c:60` | `TiltEq_setParameter` | `dsp::tilt_eq::TiltEq_setParameter` | P1 | absent | ported (not in firmware build, untestable) |
-| `Core/Src/Soundengine/DSPAudio/automationNode.c:17` | `autoNode_init` | `dsp::automation_node::autoNode_init` | P1 | flash | ported+difftested |
-| `Core/Src/Soundengine/DSPAudio/automationNode.c:22` | `autoNode_setDestination` | `Lxr::autoNode_setDestination` | P1 | flash | ported+difftested (midiParser_ccHandler intercepted: messages and values compared; callee is P3) |
-| `Core/Src/Soundengine/DSPAudio/automationNode.c:44` | `autoNode_updateValue` | `Lxr::autoNode_updateValue` | P1 | flash | ported+difftested (midiParser_ccHandler intercepted: messages and values compared; callee is P3) |
+| `Core/Src/Soundengine/DSPAudio/automationNode.c:17` | `autoNode_init` | - | P1 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/DSPAudio/automationNode.c:22` | `autoNode_setDestination` | - | P1 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/DSPAudio/automationNode.c:44` | `autoNode_updateValue` | - | P1 | flash | removed (VDrum has no sequencer, 2026-11-14) |
 | `Core/Src/Soundengine/DSPAudio/distortion.c:18` | `setDistortionShape` | `dsp::distortion::setDistortionShape` | P1 | itcm | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/distortion.c:24` | `calcDistBlock` | `dsp::distortion::calcDistBlock` | P1 | itcm | ported+difftested |
 | `Core/Src/Soundengine/DSPAudio/distortion.c:36` | `calcDistBlockFiltered` | `dsp::distortion::calcDistBlockFiltered` | P1 | flash | ported+difftested |
@@ -268,7 +277,7 @@ Functions marked `gc`/`absent` cannot be checked against the reference binary.
 | `Core/Src/Soundengine/MIDI/MidiParser.c:118` | `midiParser_calcDetune` | `midi::midi_parser::midiParser_calcDetune` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
 | `Core/Src/Soundengine/MIDI/MidiParser.c:134` | `midiParser_nrpnHandler` | `Lxr::midiParser_nrpnHandler` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
 | `Core/Src/Soundengine/MIDI/MidiParser.c:144` | `midiParser_ccHandler` | `Lxr::midiParser_ccHandler` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/MIDI/MidiParser.c:1448` | `midiParser_checkMtc` | `Lxr::midiParser_checkMtc` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/MIDI/MidiParser.c:1448` | `midiParser_checkMtc` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
 | `Core/Src/Soundengine/MIDI/MidiParser.c:1477` | `midiParser_noteOn` | `Lxr::midiParser_noteOn` | P3 | clone | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
 | `Core/Src/Soundengine/MIDI/MidiParser.c:1543` | `midiParser_isValidChannel` | `Lxr::midiParser_isValidChannel` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
 | `Core/Src/Soundengine/MIDI/MidiParser.c:1553` | `midiParser_cc2voiceNr` | `midi::midi_parser::midiParser_cc2voiceNr` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
@@ -287,81 +296,81 @@ Functions marked `gc`/`absent` cannot be checked against the reference binary.
 | `Core/Src/Soundengine/MIDI/Uart.c:97` | `uart_sendMidi` | `Lxr::uart_sendMidi` | P3 | flash | external: no-op (MIDI out is not part of the engine) |
 | `Core/Src/Soundengine/MIDI/Uart.c:137` | `uart_sendFrontpanelByte` | `Lxr::uart_sendFrontpanelByte` | P3 | flash | external: feeds the byte to the front-panel model (`frontPanel_parseData`) |
 | `Core/Src/Soundengine/MIDI/Uart.c:155` | `uart_sendFrontpanelSysExByte` | `Lxr::uart_sendFrontpanelSysExByte` | P3 | flash | external: no-op |
-| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:36` | `euklid_init` | `Lxr::euklid_init` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:53` | `getObjSize` | `sequencer::euklid_generator::getObjSize` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:60` | `euklid_calcRecursive` | `Lxr::euklid_calcRecursive` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:142` | `euklid_generate` | `Lxr::euklid_generate` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:169` | `euklid_getLength` | `Lxr::euklid_getLength` | P3 | flash | ported, not difftested (only reachable from front-panel/UI commands that the engine API does not produce) |
-| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:174` | `euklid_getSteps` | `Lxr::euklid_getSteps` | P3 | flash | ported, not difftested (only reachable from front-panel/UI commands that the engine API does not produce) |
-| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:180` | `euklid_setLength` | `Lxr::euklid_setLength` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:187` | `euklid_setSteps` | `Lxr::euklid_setSteps` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:197` | `euklid_getRotation` | `Lxr::euklid_getRotation` | P3 | flash | ported, not difftested (only reachable from front-panel/UI commands that the engine API does not produce) |
-| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:202` | `euklid_setRotation` | `Lxr::euklid_setRotation` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:210` | `euklid_rotatePattern` | `Lxr::euklid_rotatePattern` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:221` | `euklid_transferPattern` | `Lxr::euklid_transferPattern` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/clockSync.c:29` | `sync_calcBpm` | `sequencer::clock_sync::sync_calcBpm` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/clockSync.c:42` | `sync_tick` | `Lxr::sync_tick` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/clockSync.c:129` | `sync_midiResetPosition` | `Lxr::sync_midiResetPosition` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/clockSync.c:135` | `sync_midiStartStop` | `Lxr::sync_midiStartStop` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/clockSync.c:147` | `sync_getClockCnt` | `Lxr::sync_getClockCnt` | P3 | gc | ported (not linked in the firmware: not difftestable) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:176` | `seq_getMasterStepCnt` | `Lxr::seq_getMasterStepCnt` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:181` | `seq_init` | `Lxr::seq_init` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:225` | `seq_copyPatternToBackupBuffer` | `Lxr::seq_copyPatternToBackupBuffer` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:242` | `seq_copyBackupBufferToPattern` | `Lxr::seq_copyBackupBufferToPattern` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:269` | `seq_setShuffle` | `Lxr::seq_setShuffle` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:274` | `seq_setTrackLength` | `Lxr::seq_setTrackLength` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:293` | `seq_getTrackLength` | `Lxr::seq_getTrackLength` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:354` | `seq_getDeltaTShuffleDelay` | `Lxr::seq_getDeltaTShuffleDelay` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:386` | `seq_calcDeltaT` | `Lxr::seq_calcDeltaT` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:437` | `seq_setBpm` | `Lxr::seq_setBpm` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:444` | `seq_getBpm` | `Lxr::seq_getBpm` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:449` | `seq_sync` | `Lxr::seq_sync` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:457` | `seq_setNextPattern` | `Lxr::seq_setNextPattern` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:470` | `seq_sendMidi` | `Lxr::seq_sendMidi` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:482` | `seq_parseAutomationNodes` | `Lxr::seq_parseAutomationNodes` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:492` | `seq_triggerVoice` | `Lxr::seq_triggerVoice` | P3 | clone | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:565` | `seq_determineNextPattern` | `Lxr::seq_determineNextPattern` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:602` | `seq_setPendingPatternActive` | `Lxr::seq_setPendingPatternActive` | P3 | itcm | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:831` | `seq_getLongestTrack` | `Lxr::seq_getLongestTrack` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:845` | `getShiftValue` | `sequencer::getShiftValue` | P3 | gc | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:911` | `flamIdxToPattern` | `sequencer::flamIdxToPattern` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:942` | `seq_getShiftFlamPattern` | `Lxr::seq_getShiftFlamPattern` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:1091` | `seq_processFlam` | `Lxr::seq_processFlam` | P3 | clone | ported from the shipped v1.71 binary + difftested (p3_shipped: call_addr in the shipped image; engine level p3_scenarios, p3_midi) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:1236` | `seq_MidiSyncQueue` | `Lxr::seq_MidiSyncQueue` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:1254` | `seq_nextStep` | `Lxr::seq_nextStep` | P3 | itcm | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:1518` | `seq_getExtSync` | `Lxr::seq_getExtSync` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:1523` | `seq_setExtSync` | `Lxr::seq_setExtSync` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:1528` | `seq_armAutomationStep` | `Lxr::seq_armAutomationStep` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:1642` | `seq_getElapsedStepTimePercent` | `Lxr::seq_getElapsedStepTimePercent` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:1650` | `seq_tick` | `Lxr::seq_tick` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:1860` | `seq_setQuantisation` | `Lxr::seq_setQuantisation` | P3 | flash | ported, not difftested (only reachable from front-panel/UI commands that the engine API does not produce) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:1882` | `seq_setMainStep` | `Lxr::seq_setMainStep` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:1910` | `seq_isRunning` | `Lxr::seq_isRunning` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:1914` | `seq_resetPosition` | `Lxr::seq_resetPosition` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:1956` | `seq_setRunning` | `Lxr::seq_setRunning` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2034` | `seq_intIsMainStepActive` | `Lxr::seq_intIsMainStepActive` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2047` | `seq_setMute` | `Lxr::seq_setMute` | P3 | itcm | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2067` | `seq_isTrackMuted` | `Lxr::seq_isTrackMuted` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2115` | `seq_sendStepInfoToFront` | `Lxr::seq_sendStepInfoToFront` | P3 | flash | ported, not difftested (only reachable from front-panel/UI commands that the engine API does not produce) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2153` | `seq_setRoll` | `Lxr::seq_setRoll` | P3 | flash | ported, not difftested (only reachable from front-panel/UI commands that the engine API does not produce) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2171` | `seq_setRollRate` | `Lxr::seq_setRollRate` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2301` | `seq_isAutomationStepArmed` | `Lxr::seq_isAutomationStepArmed` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2307` | `seq_recordAutomation` | `Lxr::seq_recordAutomation` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2364` | `seq_addNote` | `Lxr::seq_addNote` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2514` | `seq_setRecordingMode` | `Lxr::seq_setRecordingMode` | P3 | flash | ported, not difftested (only reachable from front-panel/UI commands that the engine API does not produce) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2519` | `seq_setErasingMode` | `Lxr::seq_setErasingMode` | P3 | flash | ported, not difftested (only reachable from front-panel/UI commands that the engine API does not produce) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2526` | `seq_resetNote` | `sequencer::seq_resetNote` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2537` | `seq_clearTrack` | `Lxr::seq_clearTrack` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2560` | `seq_clearPattern` | `Lxr::seq_clearPattern` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2568` | `seq_clearAutomation` | `Lxr::seq_clearAutomation` | P3 | flash | ported, not difftested (only reachable from front-panel/UI commands that the engine API does not produce) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2588` | `seq_copyTrack` | `Lxr::seq_copyTrack` | P3 | flash | ported, not difftested (only reachable from front-panel/UI commands that the engine API does not produce) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2618` | `seq_copyPattern` | `Lxr::seq_copyPattern` | P3 | flash | ported, not difftested (only reachable from front-panel/UI commands that the engine API does not produce) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2652` | `seq_setActiveAutomationTrack` | `Lxr::seq_setActiveAutomationTrack` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2679` | `seq_midiNoteOff` | `Lxr::seq_midiNoteOff` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2712` | `seq_sendRealtime` | `Lxr::seq_sendRealtime` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2725` | `seq_sendMidiNoteOn` | `Lxr::seq_sendMidiNoteOn` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2753` | `seq_sendProgChg` | `Lxr::seq_sendProgChg` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
-| `Core/Src/Soundengine/Sequencer/sequencer.c:2774` | `seq_setStepIndexToStart` | `Lxr::seq_setStepIndexToStart` | P3 | inlined | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:36` | `euklid_init` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:53` | `getObjSize` | - | P3 | inlined | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:60` | `euklid_calcRecursive` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:142` | `euklid_generate` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:169` | `euklid_getLength` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:174` | `euklid_getSteps` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:180` | `euklid_setLength` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:187` | `euklid_setSteps` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:197` | `euklid_getRotation` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:202` | `euklid_setRotation` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:210` | `euklid_rotatePattern` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/EuklidGenerator.c:221` | `euklid_transferPattern` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/clockSync.c:29` | `sync_calcBpm` | - | P3 | inlined | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/clockSync.c:42` | `sync_tick` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/clockSync.c:129` | `sync_midiResetPosition` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/clockSync.c:135` | `sync_midiStartStop` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/clockSync.c:147` | `sync_getClockCnt` | - | P3 | gc | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:176` | `seq_getMasterStepCnt` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:181` | `seq_init` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:225` | `seq_copyPatternToBackupBuffer` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:242` | `seq_copyBackupBufferToPattern` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:269` | `seq_setShuffle` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:274` | `seq_setTrackLength` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:293` | `seq_getTrackLength` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:354` | `seq_getDeltaTShuffleDelay` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:386` | `seq_calcDeltaT` | - | P3 | inlined | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:437` | `seq_setBpm` | `Lxr::seq_setBpm` (`tempo_mute`) | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:444` | `seq_getBpm` | `Lxr::seq_getBpm` (`tempo_mute`) | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:449` | `seq_sync` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:457` | `seq_setNextPattern` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:470` | `seq_sendMidi` | - | P3 | inlined | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:482` | `seq_parseAutomationNodes` | - | P3 | inlined | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:492` | `seq_triggerVoice` | - | P3 | clone | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:565` | `seq_determineNextPattern` | - | P3 | inlined | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:602` | `seq_setPendingPatternActive` | - | P3 | itcm | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:831` | `seq_getLongestTrack` | - | P3 | inlined | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:845` | `getShiftValue` | - | P3 | gc | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:911` | `flamIdxToPattern` | - | P3 | inlined | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:942` | `seq_getShiftFlamPattern` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:1091` | `seq_processFlam` | - | P3 | clone | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:1236` | `seq_MidiSyncQueue` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:1254` | `seq_nextStep` | - | P3 | itcm | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:1518` | `seq_getExtSync` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:1523` | `seq_setExtSync` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:1528` | `seq_armAutomationStep` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:1642` | `seq_getElapsedStepTimePercent` | - | P3 | inlined | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:1650` | `seq_tick` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:1860` | `seq_setQuantisation` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:1882` | `seq_setMainStep` | - | P3 | inlined | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:1910` | `seq_isRunning` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:1914` | `seq_resetPosition` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:1956` | `seq_setRunning` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2034` | `seq_intIsMainStepActive` | - | P3 | inlined | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2047` | `seq_setMute` | `Lxr::seq_setMute` (`tempo_mute`) | P3 | itcm | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2067` | `seq_isTrackMuted` | `Lxr::seq_isTrackMuted` (`tempo_mute`) | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2115` | `seq_sendStepInfoToFront` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2153` | `seq_setRoll` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2171` | `seq_setRollRate` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2301` | `seq_isAutomationStepArmed` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2307` | `seq_recordAutomation` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2364` | `seq_addNote` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2514` | `seq_setRecordingMode` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2519` | `seq_setErasingMode` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2526` | `seq_resetNote` | - | P3 | inlined | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2537` | `seq_clearTrack` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2560` | `seq_clearPattern` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2568` | `seq_clearAutomation` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2588` | `seq_copyTrack` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2618` | `seq_copyPattern` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2652` | `seq_setActiveAutomationTrack` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2679` | `seq_midiNoteOff` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2712` | `seq_sendRealtime` | - | P3 | inlined | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2725` | `seq_sendMidiNoteOn` | - | P3 | flash | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2753` | `seq_sendProgChg` | - | P3 | inlined | removed (VDrum has no sequencer, 2026-11-14) |
+| `Core/Src/Soundengine/Sequencer/sequencer.c:2774` | `seq_setStepIndexToStart` | - | P3 | inlined | removed (VDrum has no sequencer, 2026-11-14) |
 | `Core/Src/Soundengine/Soundengine.c:21` | `soundengine_calcNextSampleBlock` | `Lxr::soundengine_calcNextSampleBlock` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
 | `Core/Src/Soundengine/Soundengine.c:38` | `soundengine_init` | `Lxr::soundengine_init` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |
 | `Core/Src/Soundengine/Soundengine.c:77` | `soundengine_process` | `Lxr::soundengine_process` | P3 | flash | ported+difftested (engine level: p3_scenarios, p3_midi; full state vs shipped v1.71 and ELF) |

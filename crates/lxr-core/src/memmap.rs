@@ -45,20 +45,12 @@ pub const ADDR_fxBus: CPtr = 0x2001a218;
 /// `systick_ticks` (4 bytes)
 pub const ADDR_systick_ticks: CPtr = 0x2001a378;
 // P3 additions (globals of UI-side files reached by engine code)
-/// `frontPanel_sysexMode` (1 bytes)
-pub const ADDR_frontPanel_sysexMode: CPtr = 0x2005d594;
 /// `frontParser_midiMsg` (8 bytes)
 pub const ADDR_frontParser_midiMsg: CPtr = 0x2005d598;
-/// `frontParser_newSeqDataAvailable` (1 bytes)
-pub const ADDR_frontParser_newSeqDataAvailable: CPtr = 0x2005d5a0;
 /// `frontParser_nrpnNr` (2 bytes)
 pub const ADDR_frontParser_nrpnNr: CPtr = 0x2005d5a2;
 /// `frontParser_rxCnt` of frontPanelParser.c (1 bytes)
 pub const ADDR_frontPanelParser_rxCnt: CPtr = 0x2005d5a4;
-/// `frontParser_stepData` (7 bytes)
-pub const ADDR_frontParser_stepData: CPtr = 0x2005d5a8;
-/// `frontParser_sysexBuffer` of frontPanelParser.c (7 bytes)
-pub const ADDR_frontPanelParser_sysexBuffer: CPtr = 0x2005d5b0;
 /// `paramToModTarget` (247 bytes)
 pub const ADDR_paramToModTarget: CPtr = 0x2005dec0;
 /// `menu_activeVoice` (1 bytes)
@@ -67,26 +59,14 @@ pub const ADDR_menu_activeVoice: CPtr = 0x20061ef8;
 pub const ADDR_menu_TargetVoiceGapIndex: CPtr = 0x200202f7;
 /// `dmaPtr` (1 bytes)
 pub const ADDR_dmaPtr: CPtr = 0x2005d56c;
-/// `midiParser_mtcIgnore` (1 bytes)
-pub const ADDR_midiParser_mtcIgnore: CPtr = 0x200202d3;
 /// `midiParser_txRxFilter` (1 bytes)
 pub const ADDR_midiParser_txRxFilter: CPtr = 0x200202d4;
 /// `parserState` (1 bytes)
 pub const ADDR_parserState: CPtr = 0x200202d5;
-/// `seq_sendMidiNoteOn_msg` (8 bytes)
-pub const ADDR_seq_sendMidiNoteOn_msg: CPtr = 0x200202d8;
-/// `seq_sendProgChg_msg` (8 bytes)
-pub const ADDR_seq_sendProgChg_msg: CPtr = 0x200202e0;
-/// `seq_armedArmedAutomationStep` (1 bytes)
-pub const ADDR_seq_armedArmedAutomationStep: CPtr = 0x200202e8;
-/// `seq_armedArmedAutomationTrack` (1 bytes)
-pub const ADDR_seq_armedArmedAutomationTrack: CPtr = 0x200202e9;
-/// `seq_quantisation` (1 bytes)
-pub const ADDR_seq_quantisation: CPtr = 0x200202ea;
-/// `seq_rollRate` (1 bytes)
-pub const ADDR_seq_rollRate: CPtr = 0x200202eb;
 /// `seq_tempo` (2 bytes)
 pub const ADDR_seq_tempo: CPtr = 0x200202ec;
+/// `seq_mutedTracks` (1 bytes)
+pub const ADDR_seq_mutedTracks: CPtr = 0x200234ce;
 /// `trigger_dividerClockOut1` (1 bytes)
 pub const ADDR_trigger_dividerClockOut1: CPtr = 0x200202ee;
 /// `trigger_prescalerClockInput` (1 bytes)
@@ -133,8 +113,6 @@ pub const ADDR_frontParser_shownPattern: CPtr = 0x20021997;
 pub const ADDR_frontParser_sysexActive: CPtr = 0x20021998;
 /// `frontParser_sysexBuffer` (7 bytes)
 pub const ADDR_frontParser_sysexBuffer: CPtr = 0x2002199c;
-/// `frontParser_sysexSeqStepNr` (2 bytes)
-pub const ADDR_frontParser_sysexSeqStepNr: CPtr = 0x200219a4;
 /// `frontParser_twoByteData` (2 bytes)
 pub const ADDR_frontParser_twoByteData: CPtr = 0x200219a6;
 /// `checkMIDIprocPAR` (1 bytes)
@@ -145,10 +123,6 @@ pub const ADDR_checkMIDIprocPAR_t: CPtr = 0x200219a9;
 pub const ADDR_midiMsg_tmp: CPtr = 0x200219ac;
 /// `midiParser_activeNrpnNumber` (2 bytes)
 pub const ADDR_midiParser_activeNrpnNumber: CPtr = 0x200219b4;
-/// `midiParser_lastMtcReceived` (4 bytes)
-pub const ADDR_midiParser_lastMtcReceived: CPtr = 0x200219b8;
-/// `midiParser_mtcIsRunning` (1 bytes)
-pub const ADDR_midiParser_mtcIsRunning: CPtr = 0x200219bc;
 /// `midiParser_originalCcValues` (255 bytes)
 pub const ADDR_midiParser_originalCcValues: CPtr = 0x200219c0;
 /// `midiParser_routing` (4 bytes)
@@ -163,100 +137,8 @@ pub const ADDR_parameterArray: CPtr = 0x20021ad0;
 pub const ADDR_fifo_midiRx: CPtr = 0x200223d0;
 /// `midi_process_block` (1 bytes)
 pub const ADDR_midi_process_block: CPtr = 0x200225d6;
-/// `euklid_length` (7 bytes)
-pub const ADDR_euklid_length: CPtr = 0x200225d8;
-/// `euklid_nextCnt1` (2 bytes)
-pub const ADDR_euklid_nextCnt1: CPtr = 0x200225e0;
-/// `euklid_originalLength` (2 bytes)
-pub const ADDR_euklid_originalLength: CPtr = 0x200225e2;
-/// `euklid_patternBuffer` (8 bytes)
-pub const ADDR_euklid_patternBuffer: CPtr = 0x200225e8;
-/// `euklid_rotation` (7 bytes)
-pub const ADDR_euklid_rotation: CPtr = 0x200225f0;
-/// `euklid_steps` (7 bytes)
-pub const ADDR_euklid_steps: CPtr = 0x200225f8;
-/// `sync_clockCnt` (1 bytes)
-pub const ADDR_sync_clockCnt: CPtr = 0x200225ff;
-/// `sync_delayedStepTimer` (4 bytes)
-pub const ADDR_sync_delayedStepTimer: CPtr = 0x20022600;
-/// `sync_timeLast` (4 bytes)
-pub const ADDR_sync_timeLast: CPtr = 0x20022604;
-/// `sync_window` (32 bytes)
-pub const ADDR_sync_window: CPtr = 0x20022608;
-/// `sync_writePos` (1 bytes)
-pub const ADDR_sync_writePos: CPtr = 0x20022628;
-/// `chokeCurrent` (1 bytes)
-pub const ADDR_chokeCurrent: CPtr = 0x20022629;
-/// `chokeNext` (1 bytes)
-pub const ADDR_chokeNext: CPtr = 0x2002262a;
-/// `isStepShuffled` (1 bytes)
-pub const ADDR_isStepShuffled: CPtr = 0x2002262b;
-/// `lastWasNoteOn` (7 bytes)
-pub const ADDR_lastWasNoteOn: CPtr = 0x2002262c;
-/// `midi_chan_notes` (16 bytes)
-pub const ADDR_midi_chan_notes: CPtr = 0x20022634;
-/// `midi_notes_on` (2 bytes)
-pub const ADDR_midi_notes_on: CPtr = 0x20022644;
-/// `seq_sendRealtime_msg` (8 bytes)
-pub const ADDR_seq_sendRealtime_msg: CPtr = 0x20022648;
-/// `patternBackupBuffer` (3650 bytes)
-pub const ADDR_patternBackupBuffer: CPtr = 0x20022650;
-/// `seq_activeAutomTrack` (1 bytes)
-pub const ADDR_seq_activeAutomTrack: CPtr = 0x20023492;
-/// `seq_activePattern` (1 bytes)
-pub const ADDR_seq_activePattern: CPtr = 0x20023493;
 /// `seq_activeSong` (4 bytes)
 pub const ADDR_seq_activeSong: CPtr = 0x20023494;
-/// `seq_automationNodes` (28 bytes)
-pub const ADDR_seq_automationNodes: CPtr = 0x20023498;
-/// `seq_deltaT` (4 bytes)
-pub const ADDR_seq_deltaT: CPtr = 0x200234b4;
-/// `seq_eraseActive` (1 bytes)
-pub const ADDR_seq_eraseActive: CPtr = 0x200234b8;
-/// `seq_isSyncExternal` (1 bytes)
-pub const ADDR_seq_isSyncExternal: CPtr = 0x200234b9;
-/// `seq_lastMasterStep` (7 bytes)
-pub const ADDR_seq_lastMasterStep: CPtr = 0x200234bc;
-/// `seq_lastShuffle` (4 bytes)
-pub const ADDR_seq_lastShuffle: CPtr = 0x200234c4;
-/// `seq_lastTick` (4 bytes)
-pub const ADDR_seq_lastTick: CPtr = 0x200234c8;
-/// `seq_loadPendigFlag` (1 bytes)
-pub const ADDR_seq_loadPendigFlag: CPtr = 0x200234cc;
-/// `seq_masterStepCnt` (1 bytes)
-pub const ADDR_seq_masterStepCnt: CPtr = 0x200234cd;
-/// `seq_mutedTracks` (1 bytes)
-pub const ADDR_seq_mutedTracks: CPtr = 0x200234ce;
-/// `seq_patternSet` (233536 bytes)
-pub const ADDR_seq_patternSet: CPtr = 0x200234d0;
-/// `seq_pendingPattern` (1 bytes)
-pub const ADDR_seq_pendingPattern: CPtr = 0x2005c510;
-/// `seq_prescaleCounter` (1 bytes)
-pub const ADDR_seq_prescaleCounter: CPtr = 0x2005c511;
-/// `seq_recordActive` (1 bytes)
-pub const ADDR_seq_recordActive: CPtr = 0x2005c512;
-/// `seq_resetBarOnPatternChange` (1 bytes)
-pub const ADDR_seq_resetBarOnPatternChange: CPtr = 0x2005c513;
-/// `seq_rndValue` (21 bytes)
-pub const ADDR_seq_rndValue: CPtr = 0x2005c514;
-/// `seq_rollState` (1 bytes)
-pub const ADDR_seq_rollState: CPtr = 0x2005c529;
-/// `seq_running` (1 bytes)
-pub const ADDR_seq_running: CPtr = 0x2005c52a;
-/// `seq_selectedStep` (1 bytes)
-pub const ADDR_seq_selectedStep: CPtr = 0x2005c52b;
-/// `seq_shuffle` (4 bytes)
-pub const ADDR_seq_shuffle: CPtr = 0x2005c52c;
-/// `seq_songData` (4096 bytes)
-pub const ADDR_seq_songData: CPtr = 0x2005c530;
-/// `seq_songModeEnabled` (1 bytes)
-pub const ADDR_seq_songModeEnabled: CPtr = 0x2005d530;
-/// `seq_songPositionPointer` (1 bytes)
-pub const ADDR_seq_songPositionPointer: CPtr = 0x2005d531;
-/// `seq_stepIndex` (7 bytes)
-pub const ADDR_seq_stepIndex: CPtr = 0x2005d534;
-/// `seq_stepToSkip` (7 bytes)
-pub const ADDR_seq_stepToSkip: CPtr = 0x2005d53c;
 /// `trigger_clockReceived` (1 bytes)
 pub const ADDR_trigger_clockReceived: CPtr = 0x2005d565;
 /// `activeParameters` (302 bytes)
@@ -308,7 +190,6 @@ pub const ADDR_parameterOrder: CPtr = 0x200201dc;
 pub mod size_of_c {
     pub const AllpassDelay: u32 = 28;
     pub const AllpassModDelay: u32 = 64;
-    pub const AutomationNode: u32 = 2;
     pub const Compressor: u32 = 32;
     pub const CymbalVoice: u32 = 384;
     pub const DecayEg: u32 = 12;
@@ -328,8 +209,6 @@ pub mod size_of_c {
     pub const OnePoleFilter: u32 = 16;
     pub const OscInfo: u32 = 40;
     pub const Parameter: u32 = 8;
-    pub const PatternBackupBuffer: u32 = 3650;
-    pub const PatternSet: u32 = 233536;
     pub const ResonantFilter: u32 = 32;
     pub const Reverb: u32 = 520;
     pub const Ringmod: u32 = 44;
@@ -337,13 +216,11 @@ pub mod size_of_c {
     pub const SlopeEg2: u32 = 56;
     pub const SnapEg: u32 = 4;
     pub const SnareVoice: u32 = 368;
-    pub const Step: u32 = 7;
     pub const TiltEq: u32 = 28;
     pub const TransientGenerator: u32 = 24;
     pub const VerbDelay: u32 = 16;
     pub const VerbModDelay: u32 = 48;
     pub const pair: u32 = 8;
-    pub const seq_rndValue_t: u32 = 3;
 }
 
 /// C `offsetof(<struct>, <member>)` of every C struct type, named `<struct>_<member>`.
@@ -356,7 +233,6 @@ pub mod offset_of_c {
     pub const AllpassModDelay_out: u32 = 4;
     pub const AllpassModDelay_in: u32 = 8;
     pub const AllpassModDelay_delay: u32 = 16;
-    pub const AutomationNode_destination: u32 = 0;
     pub const Compressor_tresh: u32 = 0;
     pub const Compressor_attack: u32 = 4;
     pub const Compressor_release: u32 = 8;
@@ -539,18 +415,6 @@ pub mod offset_of_c {
     pub const OscInfo_startPhase: u32 = 36;
     pub const Parameter_ptr: u32 = 0;
     pub const Parameter_type: u32 = 4;
-    pub const PatternBackupBuffer_seq_subStepPattern: u32 = 0;
-    pub const PatternBackupBuffer_seq_stepTiming: u32 = 3136;
-    pub const PatternBackupBuffer_seq_mainSteps: u32 = 3584;
-    pub const PatternBackupBuffer_length: u32 = 3640;
-    pub const PatternBackupBuffer_shuffle: u32 = 3647;
-    pub const PatternBackupBuffer_kitNr: u32 = 3648;
-    pub const PatternSet_seq_subStepPattern: u32 = 0;
-    pub const PatternSet_seq_stepTiming: u32 = 200704;
-    pub const PatternSet_seq_mainSteps: u32 = 229376;
-    pub const PatternSet_length: u32 = 232960;
-    pub const PatternSet_shuffle: u32 = 233408;
-    pub const PatternSet_kitNr: u32 = 233472;
     pub const ResonantFilter_f: u32 = 0;
     pub const ResonantFilter_g: u32 = 4;
     pub const ResonantFilter_q: u32 = 8;
@@ -613,13 +477,6 @@ pub mod offset_of_c {
     pub const SnareVoice_combinedVolume: u32 = 336;
     pub const SnareVoice_FaderVolumeFilter: u32 = 344;
     pub const SnareVoice_pwm: u32 = 360;
-    pub const Step_volume: u32 = 0;
-    pub const Step_prob: u32 = 1;
-    pub const Step_note: u32 = 2;
-    pub const Step_param1Nr: u32 = 3;
-    pub const Step_param1Val: u32 = 4;
-    pub const Step_param2Nr: u32 = 5;
-    pub const Step_param2Val: u32 = 6;
     pub const TiltEq_amp: u32 = 0;
     pub const TiltEq_gfactor: u32 = 4;
     pub const TiltEq_a0: u32 = 8;
@@ -649,9 +506,6 @@ pub mod offset_of_c {
     pub const VerbModDelay_roomSz: u32 = 44;
     pub const pair_point: u32 = 0;
     pub const pair_value: u32 = 4;
-    pub const seq_rndValue_t_prev: u32 = 0;
-    pub const seq_rndValue_t_current: u32 = 1;
-    pub const seq_rndValue_t_next: u32 = 2;
 }
 
 /// Byte at firmware address `p` of a DTCM table (initialised RAM holding constant data), for reads through

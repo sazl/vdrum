@@ -114,27 +114,8 @@ impl Lxr {
             return;
         }
         if self.frontParser_midiMsg.status as i32 == SYSEX_START {
-            if self.frontPanel_sysexMode as i32 == SYSEX_REQUEST_STEP_DATA {
-                if self.frontPanelParser_rxCnt < 7 {
-                    self.frontPanelParser_sysexBuffer[self.frontPanelParser_rxCnt as usize] = data;
-                    self.frontPanelParser_rxCnt += 1;
-                } else {
-                    for i in 0..7u32 {
-                        let add = (((data as u32) & (1 << i)) << (7 - i)) as u8;
-                        self.frontPanelParser_sysexBuffer[i as usize] |= add;
-                    }
-                    let b = self.frontPanelParser_sysexBuffer;
-                    self.frontParser_stepData.volume = b[0];
-                    self.frontParser_stepData.prob = b[1];
-                    self.frontParser_stepData.note = b[2];
-                    self.frontParser_stepData.param1Nr = b[3];
-                    self.frontParser_stepData.param1Val = b[4];
-                    self.frontParser_stepData.param2Nr = b[5];
-                    self.frontParser_stepData.param2Val = b[6];
-                    self.frontParser_newSeqDataAvailable = 1;
-                    self.frontPanelParser_rxCnt = 0;
-                }
-            }
+            // The only sysex mode handled here (`SYSEX_REQUEST_STEP_DATA`) receives sequencer step data;
+            // VDrum has no sequencer.
         } else if self.frontPanelParser_rxCnt == 0 {
             self.frontParser_midiMsg.data1 = data;
             self.frontPanelParser_rxCnt += 1;

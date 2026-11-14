@@ -87,10 +87,11 @@ impl Default for ModTarg {
 impl Lxr {
     /// C: `void copyClear_clearCurrentPattern()` (`Core/Src/menu/copyClearTools.c:37`). Group P3 (engine
     /// init, `docs/ENGINE_CONTRACT.md` section 2).
+    ///
+    /// VDrum has no sequencer: the firmware's `seq_clearPattern(pattern)` is removed.
     pub fn copyClear_clearCurrentPattern(&mut self) {
         let pattern = self.menu_getViewedPattern();
         self.led_clearSequencerLeds();
-        self.seq_clearPattern(pattern);
     }
 
     /// C: `void menu_setShownPattern(uint8_t patternNr)`
@@ -352,34 +353,9 @@ impl Lxr {
                 self.frontPanel_sendData(VOICE_CC, VOICE_DECIMATION, value);
             }
             PAR_ROLL => self.frontPanel_sendData(SEQ_CC, SEQ_ROLL_RATE, value),
-            PAR_EUKLID_LENGTH => {
-                let length = value.wrapping_sub(1);
-                let pattern = self.menu_shownPattern;
-                let v = self.menu_getActiveVoice();
-                self.frontPanel_sendData(SEQ_CC, SEQ_SET_ACTIVE_TRACK, v);
-                let v = self.menu_getActiveVoice();
-                self.euklid_setLength(v, length.wrapping_add(1));
-                let steps = self.activeParameters[PAR_EUKLID_STEPS as usize];
-                let v = self.menu_getActiveVoice();
-                self.euklid_setSteps(v, steps, pattern);
-                self.led_updateSeqLeds();
-            }
-            PAR_EUKLID_STEPS => {
-                let pattern = self.menu_shownPattern;
-                let v = self.menu_getActiveVoice();
-                self.frontPanel_sendData(SEQ_CC, SEQ_SET_ACTIVE_TRACK, v);
-                let v = self.menu_getActiveVoice();
-                self.euklid_setSteps(v, value, pattern);
-                self.led_updateSeqLeds();
-            }
-            PAR_EUKLID_ROTATION => {
-                let pattern = self.menu_shownPattern;
-                let v = self.menu_getActiveVoice();
-                self.frontPanel_sendData(SEQ_CC, SEQ_SET_ACTIVE_TRACK, v);
-                let v = self.menu_getActiveVoice();
-                self.euklid_setRotation(v, value, pattern);
-                self.led_updateSeqLeds();
-            }
+            // PAR_EUKLID_LENGTH, PAR_EUKLID_STEPS, PAR_EUKLID_ROTATION set the sequencer's Euclid
+            // generator (`euklid_*`); VDrum has no sequencer.
+            PAR_EUKLID_LENGTH | PAR_EUKLID_STEPS | PAR_EUKLID_ROTATION => {}
             PAR_ACTIVE_STEP => self.frontPanel_sendData(SEQ_CC, SEQ_REQUEST_STEP_PARAMS, value),
             PAR_STEP_PROB => self.frontPanel_sendData(SEQ_CC, SEQ_PROB, value),
             PAR_STEP_NOTE => self.frontPanel_sendData(SEQ_CC, SEQ_NOTE, value),

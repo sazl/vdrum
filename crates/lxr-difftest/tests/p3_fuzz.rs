@@ -55,10 +55,7 @@ fn random_midi_streams_do_not_panic() {
                 }
                 l.set_parameter(PAR_MIDI_CHAN_7, 7);
             }
-            if seed % 4 == 2 {
-                l.set_parameter(PAR_BPM, 0); // external clock: F8/FA/FB/FC drive the sequencer
-            }
-            for i in 0..len {
+            for _ in 0..len {
                 let m = message(&mut rnd);
                 for &b in &m {
                     l.midi_byte(b);
@@ -66,16 +63,12 @@ fn random_midi_streams_do_not_panic() {
                 if rnd.next_u32() % 3 == 0 {
                     l.tick();
                 }
-                if i % 500 == 250 {
-                    // MTC start of the internal sequencer
-                    l.midi(&[0xF1, 0x00, 0xF1, 0x70]);
-                }
             }
         }
     });
 }
 
-/// Bank select with every value on every channel, directly after power-on and with a running sequencer.
+/// Bank select with every value on every channel.
 #[test]
 fn bank_select_all_values_do_not_panic() {
     on_big_stack(|| {
@@ -88,7 +81,6 @@ fn bank_select_all_values_do_not_panic() {
             }
             l.tick();
         }
-        l.midi(&[0xF1, 0x00, 0xF1, 0x70]);
         for v in 0..128u8 {
             l.midi(&[0xB0, 0, v]);
             for _ in 0..4 {
@@ -107,7 +99,6 @@ fn random_parameters_and_kits_do_not_panic() {
         for seed in 0..seeds.div_ceil(8) {
             let mut rnd = Sweep(0x5e7_0000 + seed);
             let mut l = Box::new(Lxr::new());
-            l.midi(&[0xF1, 0x00, 0xF1, 0x70]);
             for i in 0..4000u32 {
                 let param = (rnd.next_u32() % NUM_PARAMS as u32) as u16;
                 let value = rnd.u8();

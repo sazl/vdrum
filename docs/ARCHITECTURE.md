@@ -21,16 +21,16 @@ CI, where the shipped image is not available.
 
 | Path | Purpose |
 |---|---|
-| `crates/lxr-core` | The engine: a faithful port of `Core/Src/Soundengine/**` plus the parts of the MIDI, preset and sequencer code that affect sound. `no_std`-friendly, no allocation in `tick`. |
+| `crates/lxr-core` | The engine: a faithful port of `Core/Src/Soundengine/**` plus the parts of the MIDI and preset code that affect sound. The sequencer is not ported (removed 2026-11-14); only its tempo and track mutes are (`tempo_mute`). `no_std`-friendly, no allocation in `tick`. |
 | `crates/lxr-emu` | Unicorn (QEMU) based Cortex-M7 emulator that runs firmware code: function calls (`Firmware::call`) and the whole engine (`EmuEngine`) with the same interface as `lxr-core`. |
 | `crates/lxr-difftest` | Differential tests: lxr-core vs lxr-emu, per function and per scenario, bitwise. |
-| `crates/vdrum-engine` | What every front end shares: the engine wrapper around `lxr-core` with VDrum's sequencer extensions (`LxrEngine`, `SeqAux`, `SeqEv`), sequencer data and edits, the kit library, LXR-02 file formats, defaults and the IEEE floating point guard. |
+| `crates/vdrum-engine` | What every front end shares: the engine wrapper around `lxr-core` (`LxrEngine`), the kit library, LXR-02 file formats, defaults and the IEEE floating point guard. |
 | `plugin/` | nih-plug plugin (CLAP, VST3, standalone) and GUI; AU via clap-wrapper on macOS. |
 | `xtask/` | `cargo xtask bundle vdrum --release` (nih-plug bundler). |
 
 ## Engine contract (both `lxr-core::Lxr` and `lxr-emu::EmuEngine` implement it)
 
-The firmware renders audio in the TIM2 interrupt: `seq_tick(); soundengine_calcNextSampleBlock();`.
+The firmware renders audio in the TIM2 interrupt: `seq_tick(); soundengine_calcNextSampleBlock();`. `lxr-core` has no sequencer, so `Lxr::tick` only renders (see `docs/ENGINE_CONTRACT.md`, "No sequencer").
 One call produces `OUTPUT_DMA_SIZE` = 64 stereo frames for DAC1 and 64 for DAC2 (int16, L/R interleaved).
 MIDI bytes are parsed in the main loop between interrupts (`uart_processMidi()`).
 
