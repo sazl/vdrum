@@ -1011,6 +1011,11 @@ fn global_column(ui: &mut Ui, setter: &ParamSetter, data: &mut Data, params: &VD
                 };
                 ui.label(RichText::new(format!("{rate:.0} Hz ({mode}), latency {lat} samples")).size(SMALL_FONT).color(LABEL));
             }
+            if let Ok(st) = shared.osc_status.lock() {
+                if !st.is_empty() {
+                    ui.label(RichText::new(st.as_str()).size(SMALL_FONT).color(LABEL));
+                }
+            }
             section_header(ui, "MIDI learn", GLOBAL_W);
             let n = shared.learn.iter().filter(|s| s.load(Ordering::Relaxed) != 0).count();
             ui.horizontal(|ui| {

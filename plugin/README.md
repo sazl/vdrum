@@ -316,15 +316,35 @@ change is applied at the start of the next tick.
 
 ## No sequencer
 
-VDrum has no sequencer (removed on 2026-11-14). Notes come from the host, the editor's pads and,
-once VDrum's OSC server exists, `/vdrum/midi` (`docs/osc-oscquery-plan.md`); surface-control's
-step sequencer is meant to play VDrum that way.
+VDrum has no sequencer (removed on 2026-11-14). Notes come from the host, the editor's pads and
+OSC `/vdrum/midi` (see "OSC and OSCQuery"); surface-control's step sequencer plays VDrum that
+way.
 
 * The LXR-02 sequencer is not ported either (`lxr-core` keeps only its tempo and track mutes;
   `docs/ENGINE_CONTRACT.md` section 10). MIDI clock, start, stop and MTC are ignored.
 * **Tempo.** The rounded host tempo is passed to the engine (`Engine::set_tempo`, the firmware's
   `seq_setBpm`), because clock-synced LFOs follow it. Without a host tempo (the standalone app)
   the engine's own tempo, `Global Tempo`, applies.
+
+## OSC and OSCQuery
+
+Each instance runs an OSC 1.0 and OSCQuery server (`src/osc.rs`, on the
+`surface-control-oscquery` crate; `docs/osc-oscquery-plan.md`), so that
+[surface-control](https://github.com/sazl/surface-control) and other OSCQuery clients can read
+and set VDrum's parameters.
+
+* **Addresses.** `/vdrum/param/<id>` (every host parameter, plain integer values),
+  `/vdrum/fader/<1..7>`, `/vdrum/switch/sum_aux`, `/vdrum/switch/hardware_clock` (booleans),
+  `/vdrum/midi` (OSC MIDI messages, type `m`, played like host MIDI), `/vdrum/kit/name`
+  (read-only). Each parameter and fader has `<address>/text`, the value as the editor shows it.
+* **Transport.** HTTP and the OSCQuery WebSocket on one TCP port, OSC on UDP; both bound to
+  `127.0.0.1` on ports the system chooses, announced over mDNS as `VDrum` (`VDrum 2`, ... for
+  more instances in one process). The editor shows the name and ports. Changed values go to
+  WebSocket listeners and, as `<address> <value> "<text>"`, to the last 8 UDP senders.
+* **Environment.** `VDRUM_OSC=0` turns it off; `VDRUM_OSC_PORT` fixes the TCP and UDP port;
+  `VDRUM_OSC_BIND` sets the address; `VDRUM_OSC_MDNS=0` turns off mDNS.
+* **Host parameters.** A value set over OSC reaches the engine at once and is copied to the host
+  parameter (and recorded as automation) only while the editor is open, as for a learned CC.
 
 ## Validation (Linux, x86_64)
 

@@ -4,6 +4,7 @@
 //! See `plugin/README.md` for the timing model, MIDI handling and limitations.
 
 pub mod editor;
+pub mod osc;
 pub use vdrum_engine::{engine, fp, library, lxr_files};
 pub mod params;
 pub mod pipeline;
@@ -48,6 +49,9 @@ pub struct VDrum {
     meter_state: [f32; 4],
     /// Host tempo last sent to the engine (0: none yet).
     tempo: u16,
+    /// The OSC and OSCQuery server, started in the first `initialize()`.
+    osc: Option<surface_control_oscquery::Server>,
+    osc_started: bool,
 }
 
 impl Default for VDrum {
@@ -71,6 +75,8 @@ impl Default for VDrum {
             meter_decay_per_sample: 0.9999,
             meter_state: [0.0; 4],
             tempo: 0,
+            osc: None,
+            osc_started: false,
         };
         if let Some(e) = s.engine.as_deref() {
             sync_mirror(e, &s.shared, false);
@@ -196,6 +202,25 @@ impl Plugin for VDrum {
         }
         self.tempo = 0;
         drop(ieee);
+        if !self.osc_started {
+            self.osc_started = true;
+            self.osc = osc::start(self.shared.clone());
+            let status = match &self.osc {
+                Some(s) => format!(
+                    "OSCQuery '{}': HTTP port {}, OSC UDP port {}",
+                    s.name(),
+                    s.http_port(),
+                    s.udp_port()
+                ),
+                None => String::new(),
+            };
+            if !status.is_empty() {
+                nih_log!("VDrum: {status}");
+            }
+            if let Ok(mut st) = self.shared.osc_status.lock() {
+                *st = status;
+            }
+        }
         sync_mirror(&*engine, &self.shared, false);
         // Host parameters that differ from the engine are updated by the GUI.
         for (slot, info) in self.params.infos.iter().enumerate() {
@@ -263,6 +288,31 @@ impl Plugin for VDrum {
                         pipeline.engine.load_kit(&bytes);
                     }
                     sync_mirror(&*pipeline.engine, shared, true);
+                }
+                // From OSC: like a learned CC (the editor copies the values to the host
+                // parameters).
+                Command::Param(idx, val) => {
+                    pipeline.push_event(0, Ev::Param { idx, val, learned: true }, &mut apply);
+                }
+                Command::Fader(i, step) => {
+                    let i = (i as usize).min(params::NUM_FADERS - 1);
+                    let step = step.clamp(0, params::FADER_MAX);
+                    shared.fader_values[i].store(step, Ordering::Relaxed);
+                    pipeline.push_event(0, Ev::Fader { index: i as u8, adc: params::fader_adc(step) }, &mut apply);
+                    shared.extra_values[i].store(step, Ordering::Relaxed);
+                    shared.extra_dirty[i].store(true, Ordering::Relaxed);
+                }
+                Command::Switch(s, on) => {
+                    let target = if s == 0 {
+                        self.sum_aux_want = on;
+                        params::LEARN_SUM_AUX
+                    } else {
+                        self.hw_clock_want = on;
+                        params::LEARN_HW_CLOCK
+                    };
+                    let extra = (target - params::LEARN_FADER) as usize;
+                    shared.extra_values[extra].store(on as i32, Ordering::Relaxed);
+                    shared.extra_dirty[extra].store(true, Ordering::Relaxed);
                 }
             }
         }

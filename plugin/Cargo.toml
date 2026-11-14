@@ -32,6 +32,8 @@ crossbeam-queue = "0.3"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rfd = "0.15"
+# The OSC and OSCQuery server (src/osc.rs).
+surface-control-oscquery = { git = "https://github.com/sazl/surface-control", rev = "e9e4b76a646faa9038af10193a4faaa5b42753d3" }
 
 [dev-dependencies]
 sha2 = "0.10"

@@ -26,7 +26,7 @@ pub const HARDWARE_CLOCK_ID: &str = "vdrum_hardware_clock";
 pub const FADER_ID_PREFIX: &str = "vdrum_fader_";
 /// Number of voice faders: the firmware's six and the open hi-hat's.
 pub const NUM_FADERS: usize = 7;
-const FADER_NAMES: [&str; NUM_FADERS] =
+pub const FADER_NAMES: [&str; NUM_FADERS] =
     ["Drum 1 Fader", "Drum 2 Fader", "Drum 3 Fader", "Snare Fader", "Cymbal Fader", "Hi-hat Fader", "Open Hi-hat Fader"];
 
 pub use vdrum_engine::defaults::{fader_adc, fader_gain, plugin_default, DEFAULT_TRACK_NOTES, FADER_MAX};
@@ -92,10 +92,16 @@ pub fn learn_name(target: u16) -> String {
 #[derive(Clone, Copy)]
 #[allow(clippy::large_enum_variant)] // inline on purpose: no allocation or deallocation on the audio thread
 pub enum Command {
-    /// A MIDI message (pads).
+    /// A MIDI message (pads, OSC `/vdrum/midi`).
     Midi([u8; 3]),
     /// Load a kit (`.snd` file bytes).
     LoadKit([u8; KIT_FILE_LEN]),
+    /// Set an engine parameter (by index) from OSC; handled like a learned CC.
+    Param(u16, u16),
+    /// Set a voice fader (0-based) to a step from OSC; handled like a learned CC.
+    Fader(u8, i32),
+    /// Set *Sum aux* (0) or *Hardware clock* (1) from OSC; handled like a learned CC.
+    Switch(u8, bool),
 }
 
 /// The kit file the user works on: where it was loaded from or saved to, and its contents then
@@ -152,6 +158,8 @@ pub struct Shared {
     /// Current states of the *Sum aux* and *Hardware clock* switches (set by the audio thread).
     pub sum_aux_on: AtomicBool,
     pub hw_clock_on: AtomicBool,
+    /// Where the OSC server listens, for the editor (empty: not running).
+    pub osc_status: Mutex<String>,
     /// The kit library (64 slots), saved with the plugin state.
     pub library: Mutex<crate::library::Library>,
     /// Incremented whenever the library changes (for the editor).
@@ -180,6 +188,7 @@ impl Shared {
             kit_file: Mutex::new(KitFile::default()),
             sum_aux_on: AtomicBool::new(false),
             hw_clock_on: AtomicBool::new(false),
+            osc_status: Mutex::new(String::new()),
             library: Mutex::new(crate::library::Library::default()),
             library_generation: AtomicU32::new(0),
         };
@@ -351,7 +360,8 @@ pub fn value_text(info: &ParamInfo, v: u16) -> String {
     }
 }
 
-fn group_of(info: &ParamInfo) -> String {
+/// The group of a parameter in the editor and in OSCQuery TAGS (`Drum 1/Oscillator`, `Global/...`).
+pub fn group_of(info: &ParamInfo) -> String {
     match info.kind {
         ParamKind::Global => format!("Global/{}", info.section.label()),
         _ => match info.section.label() {

@@ -1,6 +1,6 @@
 # Plan: OSC and OSCQuery server in the VDrum plugin
 
-Status: plan, not implemented. Written 2026-11-14 against commit 60f8abc.
+Status: implemented on 2026-11-14 (`plugin/src/osc.rs`). Written 2026-11-14 against commit 60f8abc; the differences from the plan are under "As implemented" at the end.
 
 ## Purpose
 
@@ -120,3 +120,23 @@ The HTTP part is a small hand-written GET handler on the same `TcpListener`. A r
 
 Point 3 was not one of Sami's answers. It follows from decision 1, which keeps the host IDs as
 names.
+
+## As implemented (2026-11-14)
+
+- **The protocol is a surface-control crate.** Sami asked that other plugins and apps make the
+  same integration with standard, importable code, so HTTP, WebSocket, UDP and mDNS are the crate
+  `surface-control-oscquery` (sazl/surface-control `crates/surface-control-oscquery`, MIT OR
+  Apache-2.0), a git dependency pinned by commit in `plugin/Cargo.toml`. It uses the crates of
+  the table above. `plugin/src/osc.rs` holds only VDrum's address space and implements the
+  crate's `App` trait: `nodes`, `value`, `text`, `set`.
+- **Texts** are read-only string nodes `<address>/text` for every parameter and fader.
+- **Values from clients** become `Command::Param`, `Command::Fader` and `Command::Switch` on the
+  audio thread, applied like a learned MIDI CC; `/vdrum/midi` becomes `Command::Midi`, as the
+  editor's pads.
+- **Environment:** `VDRUM_OSC=0`, `VDRUM_OSC_PORT`, `VDRUM_OSC_BIND` as planned, and
+  `VDRUM_OSC_MDNS=0` to skip mDNS. The editor shows the name and ports under the sample rate.
+- **Instances:** the first server in a process is `VDrum`, the next `VDrum 2`, and so on; a name
+  is free again when its instance is removed.
+- **Tested:** unit tests of the address space and commands; end to end on Linux, VDrum's CLAP in
+  a headless host driven by `surfacectl run --simulate` (sazl/surface-control
+  `docs/guide-vdrum-lcxl3.md` section 1). Not tested: a DAW, macOS, Windows, the editor's label.
