@@ -8,7 +8,6 @@
 use lxr_params::kit::{Kit, KIT_FW_FILE_LEN, KIT_PARAMS};
 use lxr_params::open_hat::{oh_index, oh_k};
 use lxr_params::{par, GLOBAL_PARAMS, NUM_ALL_PARAMS, NUM_PARAMS, OH_NUM_PARAMS};
-use crate::seq::{SeqData, SeqStatus, StepData, NUM_PATTERNS, NUM_STEPS, NUM_TRACKS};
 
 /// Frames per engine tick.
 pub const TICK_FRAMES: usize = 64;
@@ -30,42 +29,6 @@ impl Default for Block {
     fn default() -> Self {
         Block { dac1: [0; 128], dac2: [0; 128] }
     }
-}
-
-/// A sequencer operation (pattern data from the controller, or the host transport), applied on
-/// the audio thread.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum SeqEv {
-    /// Replace one step (`data.prob` is the step's own probability; the engine plays it scaled by
-    /// the densities).
-    Step { pat: u8, track: u8, step: u8, data: StepData },
-    /// On/off state of all steps of a track (bit `n` = step `n`).
-    Bits { pat: u8, track: u8, bits: u64 },
-    Length { pat: u8, track: u8, length: u8 },
-    Shuffle { pat: u8, value: u8 },
-    /// Playback density 0..=100 of a track, or of all tracks (`track` 7).
-    Density { track: u8, value: u8 },
-    /// Switch to a pattern at the end of the bar (at once when stopped).
-    NextPattern(u8),
-    /// Start or stop on the internal clock.
-    Run(bool),
-    /// Silence the sequencer (it keeps following the clock but triggers no steps).
-    Silence(bool),
-    /// Host transport: start; the argument is the position of the next 16th note.
-    HostStart(u32),
-    /// Host transport: the position jumped; the argument is the position of the next 16th note.
-    HostAlign(u32),
-    /// Host transport: one 16th note.
-    HostPulse,
-    HostStop,
-    /// Tempo in bpm (rounded), for flams and shuffle.
-    Tempo(u16),
-    /// Back to the engine's own clock (`PAR_BPM`).
-    InternalClock,
-    /// Muted sequencer tracks (bit `t` = track `t`).
-    Mutes(u8),
-    /// Restart every LFO at its phase offset.
-    LfoReset,
 }
 
 /// A sound engine. `lxr-core` (the port) and `lxr-emu` (the firmware in an emulator) implement this
@@ -93,14 +56,9 @@ pub trait Engine: Send {
     fn set_fader_adc(&mut self, _i: usize, _adc: u16) {}
     /// Silence every voice (the controller's panic action). The default does nothing.
     fn all_sound_off(&mut self) {}
-    /// Apply a sequencer operation. The default ignores it.
-    fn seq(&mut self, _ev: SeqEv) {}
-    /// Replace all sequencer data (outside the audio thread). The default ignores it.
-    fn seq_load(&mut self, _data: &SeqData) {}
-    /// The sequencer's playback state.
-    fn seq_status(&self) -> SeqStatus {
-        SeqStatus::default()
-    }
+    /// Set the tempo in bpm that clock-synced LFOs follow (the host's tempo). The default ignores
+    /// it.
+    fn set_tempo(&mut self, _bpm: u16) {}
     /// The current LFO output (0..=1) of each track's voice. The default is 0.5 for all.
     fn lfo_values(&self) -> [f32; 7] {
         [0.5; 7]
@@ -124,55 +82,16 @@ pub trait Engine: Send {
 ///   name (`savefileNames[0][KIT_NAMES]`, set by `load_kit`) and `activeParameters[0..247]`.
 /// * `load_kit` accepts 8..=255 bytes (anything else is ignored).
 /// * Faders start at the top (the contract's power-on state) and move through `set_fader_adc`.
+/// * VDrum has no sequencer: the ported LXR-02 sequencer is silenced (`VdrumState::seq_silent`),
+///   so it triggers no step even if host MIDI starts it. `set_tempo` sets its tempo, which
+///   clock-synced LFOs follow (`seq_setBpm`).
 ///
 /// Last-resort safety net: a panic inside the engine (a bug: e.g. an index the C code would read
 /// out of bounds) must not unwind into the host, which aborts it. It is caught, the engine is
 /// marked faulted, renders silence and ignores all input from then on; `VDrum::initialize()`
 /// replaces a faulted engine (outside the audio thread). Unwinding allocates, so this is not
 /// real-time safe; it only runs on that bug path.
-pub struct LxrEngine(pub lxr_core::Lxr, pub bool, pub Box<SeqAux>);
-
-/// What the plugin needs besides the engine's pattern data to apply densities: every step's own
-/// probability, the on/off states and the densities.
-pub struct SeqAux {
-    prob: [[[u8; NUM_STEPS]; NUM_TRACKS]; NUM_PATTERNS],
-    bits: [[u64; NUM_TRACKS]; NUM_PATTERNS],
-    density: [u8; NUM_TRACKS],
-    density_all: u8,
-}
-
-impl SeqAux {
-    fn new() -> Box<SeqAux> {
-        Box::new(SeqAux {
-            prob: [[[100; NUM_STEPS]; NUM_TRACKS]; NUM_PATTERNS],
-            bits: [[0; NUM_TRACKS]; NUM_PATTERNS],
-            density: [100; NUM_TRACKS],
-            density_all: 100,
-        })
-    }
-
-    /// The on/off state of all steps of a track (bit `n` = step `n`), as the engine plays them.
-    pub fn bits(&self, pat: usize, track: usize) -> u64 {
-        self.bits.get(pat).and_then(|p| p.get(track)).copied().unwrap_or(0)
-    }
-
-    fn effective(&self, track: usize, prob: u8) -> u8 {
-        let d = self.density[track] as u32 * self.density_all as u32;
-        ((prob.min(100) as u32 * d + 5000) / 10000) as u8
-    }
-}
-
-fn vdrum_step(d: &StepData, prob: u8) -> lxr_core::vdrum::seq::VdrumStep {
-    lxr_core::vdrum::seq::VdrumStep {
-        on: d.on,
-        velocity: d.velocity,
-        prob,
-        note: d.note,
-        flam: d.flam,
-        shift: d.shift,
-        locks: d.locks,
-    }
-}
+pub struct LxrEngine(pub lxr_core::Lxr, pub bool);
 
 impl LxrEngine {
     /// Runs an engine call unless the engine is faulted; marks it faulted if the call panics.
@@ -195,7 +114,9 @@ impl Engine for LxrEngine {
         // engine's kit memory on every pattern change, which would undo kit edits; the plugin keeps
         // the kit across pattern changes. Not a host parameter.
         l.activeParameters[lxr_core::parameters::PAR_PATTERN_MODE as usize] = 0;
-        Box::new(LxrEngine(l, false, SeqAux::new()))
+        // VDrum has no sequencer; the ported one never triggers a step.
+        l.vdrum.seq_silent = true;
+        Box::new(LxrEngine(l, false))
     }
 
     fn midi_byte(&mut self, b: u8) {
@@ -259,162 +180,16 @@ impl Engine for LxrEngine {
         self.guarded(|e| e.vdrum_all_sound_off());
     }
 
-    fn seq(&mut self, ev: SeqEv) {
-        let (p, t) = match ev {
-            SeqEv::Step { pat, track, .. } | SeqEv::Bits { pat, track, .. } | SeqEv::Length { pat, track, .. } => {
-                (pat as usize, track as usize)
+    fn set_tempo(&mut self, bpm: u16) {
+        self.guarded(|e| {
+            if e.seq_tempo != bpm {
+                e.seq_setBpm(bpm);
             }
-            _ => (0, 0),
-        };
-        if p >= NUM_PATTERNS || t >= NUM_TRACKS {
-            return;
-        }
-        match ev {
-            SeqEv::Step { pat, track, step, data } => {
-                if step as usize >= NUM_STEPS {
-                    return;
-                }
-                let aux = &mut self.2;
-                aux.prob[p][t][step as usize] = data.prob;
-                let bit = 1u64 << step;
-                aux.bits[p][t] = if data.on { aux.bits[p][t] | bit } else { aux.bits[p][t] & !bit };
-                let s = vdrum_step(&data, aux.effective(t, data.prob));
-                self.guarded(|e| e.vdrum_seq_set_step(pat, track, step, s, true));
-            }
-            SeqEv::Bits { pat, track, bits } => {
-                self.2.bits[p][t] = bits;
-                let probs: [u8; NUM_STEPS] = std::array::from_fn(|i| self.2.effective(t, self.2.prob[p][t][i]));
-                self.guarded(|e| {
-                    for (i, pr) in probs.iter().enumerate() {
-                        e.vdrum_seq_set_prob(pat, track, i as u8, *pr, false);
-                    }
-                    e.vdrum_seq_set_bits(pat, track, bits);
-                });
-            }
-            SeqEv::Length { pat, track, length } => {
-                self.guarded(|e| e.vdrum_seq_set_length(pat, track, length, true));
-            }
-            SeqEv::Shuffle { pat, value } => {
-                if (pat as usize) < NUM_PATTERNS {
-                    self.guarded(|e| e.vdrum_seq_set_shuffle(pat, value, true));
-                }
-            }
-            SeqEv::Density { track, value } => {
-                let v = value.min(100);
-                match self.2.density.get_mut(track as usize) {
-                    Some(d) => *d = v,
-                    None => self.2.density_all = v,
-                }
-                let tracks = if (track as usize) < NUM_TRACKS { track..track + 1 } else { 0..NUM_TRACKS as u8 };
-                let aux = &*self.2;
-                let Self(e, faulted, _) = self;
-                if *faulted {
-                    return;
-                }
-                // only the steps that are on (a step turned on later gets its probability then)
-                let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                    for pat in 0..NUM_PATTERNS {
-                        for t in tracks.clone() {
-                            let mut b = aux.bits[pat][t as usize];
-                            while b != 0 {
-                                let s = b.trailing_zeros() as usize;
-                                b &= b - 1;
-                                let pr = aux.effective(t as usize, aux.prob[pat][t as usize][s]);
-                                e.vdrum_seq_set_prob(pat as u8, t, s as u8, pr, false);
-                            }
-                        }
-                    }
-                    e.vdrum_seq_loaded();
-                }));
-                *faulted = r.is_err();
-            }
-            SeqEv::NextPattern(n) => {
-                self.guarded(|e| e.seq_setNextPattern(n));
-            }
-            SeqEv::Run(on) => {
-                self.guarded(|e| e.vdrum_seq_run(on));
-            }
-            SeqEv::Silence(on) => {
-                self.guarded(|e| e.vdrum.seq_silent = on);
-            }
-            SeqEv::HostStart(n) => {
-                self.guarded(|e| e.vdrum_seq_host_start(n));
-            }
-            SeqEv::HostAlign(n) => {
-                self.guarded(|e| e.vdrum_seq_align(n));
-            }
-            SeqEv::HostPulse => {
-                self.guarded(|e| e.vdrum_seq_host_pulse());
-            }
-            SeqEv::HostStop => {
-                self.guarded(|e| e.vdrum_seq_stop());
-            }
-            SeqEv::Tempo(bpm) => {
-                self.guarded(|e| {
-                    if e.seq_tempo != bpm {
-                        e.seq_setBpm(bpm);
-                    }
-                });
-            }
-            SeqEv::InternalClock => {
-                self.guarded(|e| e.vdrum_seq_internal_clock());
-            }
-            SeqEv::Mutes(m) => {
-                self.guarded(|e| e.vdrum_seq_set_mutes(m));
-            }
-            SeqEv::LfoReset => {
-                self.guarded(|e| e.vdrum_lfo_reset_phases());
-            }
-        }
-    }
-
-    fn seq_load(&mut self, data: &SeqData) {
-        let aux = &mut self.2;
-        aux.density = data.density;
-        aux.density_all = data.density_all;
-        for (p, pd) in data.patterns.iter().enumerate().take(NUM_PATTERNS) {
-            for (t, td) in pd.tracks.iter().enumerate() {
-                aux.bits[p][t] = td.bits();
-                for (s, sd) in td.steps.iter().enumerate() {
-                    aux.prob[p][t][s] = sd.prob;
-                }
-            }
-        }
-        let aux = &*self.2;
-        let Self(e, faulted, _) = self;
-        if *faulted {
-            return;
-        }
-        let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            for (p, pd) in data.patterns.iter().enumerate().take(NUM_PATTERNS) {
-                for (t, td) in pd.tracks.iter().enumerate() {
-                    for (s, sd) in td.steps.iter().enumerate() {
-                        let st = vdrum_step(sd, aux.effective(t, sd.prob));
-                        e.vdrum_seq_set_step(p as u8, t as u8, s as u8, st, false);
-                    }
-                    e.vdrum_seq_set_length(p as u8, t as u8, td.length, false);
-                }
-                e.vdrum_seq_set_shuffle(p as u8, pd.shuffle, false);
-            }
-            e.vdrum_seq_loaded();
-        }));
-        *faulted = r.is_err();
+        });
     }
 
     fn lfo_values(&self) -> [f32; 7] {
         self.0.vdrum_lfo_values()
-    }
-
-    fn seq_status(&self) -> SeqStatus {
-        let e = &self.0;
-        SeqStatus {
-            running: e.seq_running != 0,
-            pattern: e.seq_activePattern,
-            pending: e.seq_pendingPattern,
-            step: e.seq_stepIndex,
-            late: (12..24).contains(&e.seq_prescaleCounter),
-            silent: e.vdrum.seq_silent,
-        }
     }
 
     fn faulted(&self) -> bool {

@@ -24,7 +24,7 @@ CI, where the shipped image is not available.
 | `crates/lxr-core` | The engine: a faithful port of `Core/Src/Soundengine/**` plus the parts of the MIDI, preset and sequencer code that affect sound. `no_std`-friendly, no allocation in `tick`. |
 | `crates/lxr-emu` | Unicorn (QEMU) based Cortex-M7 emulator that runs firmware code: function calls (`Firmware::call`) and the whole engine (`EmuEngine`) with the same interface as `lxr-core`. |
 | `crates/lxr-difftest` | Differential tests: lxr-core vs lxr-emu, per function and per scenario, bitwise. |
-| `crates/vdrum-engine` | What every front end shares: the engine wrapper around `lxr-core` with VDrum's sequencer extensions (`LxrEngine`, `SeqAux`, `SeqEv`), sequencer data and edits, the kit library, LXR-02 file formats, defaults and the IEEE floating point guard. |
+| `crates/vdrum-engine` | What every front end shares: the engine wrapper around `lxr-core` (`LxrEngine`, with the ported sequencer silenced: VDrum has no sequencer), the kit library, LXR-02 file formats, defaults and the IEEE floating point guard. |
 | `plugin/` | nih-plug plugin (CLAP, VST3, standalone) and GUI; AU via clap-wrapper on macOS. |
 | `xtask/` | `cargo xtask bundle vdrum --release` (nih-plug bundler). |
 

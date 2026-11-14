@@ -31,8 +31,8 @@ pub enum Ev {
     Param { idx: u16, val: u16, learned: bool },
     /// A voice fader moved (`Engine::set_fader_adc`).
     Fader { index: u8, adc: u16 },
-    /// A sequencer operation (`Engine::seq`).
-    Seq(crate::engine::SeqEv),
+    /// The host's tempo in bpm, for clock-synced LFOs (`Engine::set_tempo`).
+    Tempo(u16),
 }
 
 impl Ev {

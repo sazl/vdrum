@@ -161,7 +161,8 @@ change is applied at the start of the next tick.
     * The engine itself keeps the firmware defaults, so the scenario reference hashes still hold.
     * Projects saved with older versions restore their stored notes.
   * The global channel defaults to 0, which means off.
-  * Note-off is ignored. Program change on the global channel selects the next pattern.
+  * Note-off is ignored. Program change on the global channel selects the next pattern of the
+    ported sequencer, which plays nothing in VDrum (see "No sequencer").
 * **MIDI learn.**
   * To learn: right-click a control, choose *MIDI learn*, then move a controller. The next CC on
     any channel is assigned.
@@ -214,13 +215,11 @@ change is applied at the start of the next tick.
   * `midi_learn`;
   * `faders`: the voice fader steps;
   * `kit-library`: the kit library (the selected slot, then one line per filled slot with the kit
-    file bytes hex encoded and the source file name, then the LXR-02 pattern names and kit numbers;
-    absent when the library is empty);
-  * `sequencer`: the sequencer's patterns and densities (JSON, only what differs from empty
-    patterns; absent when all patterns are empty);
+    file bytes hex encoded and the source file name; absent when the library is empty);
   * the editor size and zoom.
 * **Restoring state.** The kit and the globals are authoritative. They are loaded into the engine
-  in `initialize()`, and so are the sequencer patterns (a state without `sequencer` clears them).
+  in `initialize()`. The `sequencer` field and the library's `pattern` lines of states saved
+  while VDrum had a sequencer are ignored.
 * **Kit files.**
   * *Load…* reads the firmware's `.snd` format (`preset_loadDrumsetSD`) and VDrum kits. A firmware
     kit has no open hi-hat block; its open hi-hat is imported from the hi-hat.
@@ -247,36 +246,23 @@ change is applied at the start of the next tick.
   * Loading a slot selects it. *Save kit* (top bar) then writes the current kit into that slot
     only; *Save…* to a file stays separate.
   * The library is not a file on disk: it lives in the plugin state (host project or preset).
-* **LXR-02 patterns and projects** (`plugin/src/lxr_files.rs`, from the firmware's
+* **LXR-02 projects** (`crates/vdrum-engine/src/lxr_files.rs`, from the firmware's
   `presetManager.c`).
-  * *Library ▾ → Import patterns…* loads `.pat` files (`PatV03`, 3663 bytes) into the sequencer:
-    `NN-NAME.PAT` goes to pattern `NN + 1` (the firmware numbers files from `00`), any other file
-    to the first empty pattern. Empty patterns (no step on) are skipped. An import that replaces
-    patterns with steps asks first.
-  * *Import LXR-02 project folder…* imports the folder's kits and asks "Also import N patterns?
-    This replaces patterns NN to NN in the sequencer." (*Import kits and patterns*, *Kits only*,
-    *Cancel*).
-  * A pattern file's steps, timing (flam, shift), parameter locks, main steps, track lengths and
-    shuffle go to the sequencer as they are. Its name and kit number go to the library (the
-    *Patterns* view of the library panel, where right-click renames or exports one `.pat`). VDrum
-    does not change kits with patterns; the kit number is kept for export.
-  * The firmware's step byte has an active bit (0x80) next to the main-step bits; playback uses
-    only the main steps. Export sets the active bit from the main step, so a file where the two
-    differ is not exported byte-identical (the DLC project's patterns differ in this bit only).
+  * *Import LXR-02 project folder…* imports the folder's kits (see the kit library). Its patterns
+    (`.PAT`) and songs (`.SNG`) are not read.
   * *Export LXR-02 project…* writes a folder an LXR-02 can load: `PRJ.NFO` (the current kit name),
     `GLO.CFG` (the 30 global parameters), and for each of the 64 slots `NN-NAME.SND` (255 bytes;
-    an empty slot is the init kit, `NN-INITK.SND`), `NN-NAME.PAT` and an empty song `NN-EMPTY.SNG`.
-    File names are upper case, as a FAT card shows them. LXR-02 project files already in the
-    folder are replaced; other files stay.
-  * Before writing, the panel lists what the LXR-02 cannot hold: the open hi-hat (only its decay
-    is written, as the hi-hat's open decay `velod6_open`), track densities and Euclid settings (the
-    steps they produced are written) and songs.
-  * Checked against the uploaded DLC project folder (not in the repository): importing it gives 16
-    kits and 16 patterns (48 init kits and 48 empty patterns skipped). Exporting that state gives
-    byte-identical `.SND` files for the 16 kits and byte-identical songs. The init kit slots differ
-    in 1 to 5 FX bytes (the firmware's `INITK` slots keep FX values from other kits; VDrum writes
-    its init kit). `GLO.CFG` and `PRJ.NFO` come from the plugin's state, not from the imported
-    folder, so they were not compared.
+    an empty slot is the init kit, `NN-INITK.SND`), an empty pattern `NN-.PAT` (the firmware's
+    cleared pattern, `PatV03`, 3663 bytes) and an empty song `NN-EMPTY.SNG`. File names are upper
+    case, as a FAT card shows them. LXR-02 project files already in the folder are replaced;
+    other files stay.
+  * Before writing, the panel lists what is not exported: the open hi-hat (only its decay is
+    written, as the hi-hat's open decay `velod6_open`), and patterns and songs (written empty).
+  * Checked against the uploaded DLC project folder (not in the repository), before the
+    sequencer was removed: importing it gives 16 kits (48 init kits skipped), and exporting that
+    state gives byte-identical `.SND` files for the 16 kits. The init kit slots differ in 1 to 5
+    FX bytes (the firmware's `INITK` slots keep FX values from other kits; VDrum writes its init
+    kit).
 
 ## GUI
 
@@ -328,29 +314,20 @@ change is applied at the start of the next tick.
 * **Vendored GUI crates.** `third_party/egui-baseview` and `third_party/nih_plug_egui` are copies of
   the revisions nih-plug pins, with fixes for zoom and resizing (see `third_party/README.md`).
 
-## Sequencer
+## No sequencer
 
-The engine's ported LXR-02 sequencer plays the patterns (7 tracks, 64 patterns, 64 steps per
-track). The plugin keeps a copy of the pattern data (`Shared::seq`, `vdrum_engine::seq::SeqData`);
-pattern imports replace it and reload it into the engine (`Command::SeqReload`), so the audio
-thread never waits for a lock. The plugin state saves the copy; `initialize()` loads it into the
-engine. Engine writes go through `lxr_core::vdrum::seq`, which also updates the firmware's backup
-copy of the playing pattern (`patternBackupBuffer`); without that, the firmware discards edits of
-the playing pattern when the pattern changes.
+VDrum has no sequencer (removed on 2026-11-14). Notes come from the host, the editor's pads and,
+once VDrum's OSC server exists, `/vdrum/midi` (`docs/osc-oscquery-plan.md`); surface-control's
+step sequencer is meant to play VDrum that way.
 
-* **Clock.** The sequencer follows the host transport. On start the plugin places every track at
-  the host position (16th notes from the song start, modulo the track length) and then sends one
-  pulse per 16th note at its sample position (`process()`), through the firmware's external clock
-  input path (`seq_isSyncExternal` = 1, `trigger_clockReceived`). A jump of the host position
-  (loop, locate) re-places the tracks. The rounded host tempo is passed to the engine for flams and
-  shuffle. Stopping the transport stops the sequencer. The standalone app has no transport, so
-  nothing plays there.
-  * Pulses are applied at the start of the engine tick they fall into (up to 63 engine frames
-    early, like MIDI). On the firmware's external clock path, odd 16th notes are delayed by the
-    shuffle time even at shuffle 0, which ends one tick (1.45 ms) later.
-* **Pattern changes** keep the kit. The firmware's default `PAR_PATTERN_MODE` 1 loads the
-  pattern's kit slot from the engine's kit memory on every pattern change, which undid kit edits;
-  the plugin sets it to 0 (it is not a host parameter).
+* The ported LXR-02 sequencer stays in `lxr-core`, as the firmware has it (the difftests compare
+  it with the firmware). The plugin silences it (`VdrumState::seq_silent`), so it triggers no
+  step even if host MIDI starts it.
+* **Tempo.** The rounded host tempo is passed to the engine (`Engine::set_tempo`, the firmware's
+  `seq_setBpm`), because clock-synced LFOs follow it. Without a host tempo (the standalone app)
+  the engine's own tempo, `Global Tempo`, applies.
+* `PAR_PATTERN_MODE` is set to 0 (it is not a host parameter): with the firmware's default 1, a
+  pattern change loads the pattern's kit slot from the engine's kit memory.
 
 ## Validation (Linux, x86_64)
 

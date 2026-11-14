@@ -282,86 +282,44 @@ fn faulted_engine_is_silent() {
     assert!(b.dac1.iter().chain(b.dac2.iter()).all(|s| *s == 0));
 }
 
-#[test]
-fn sequencer_operations_reach_the_engine() {
-    use crate::engine::SeqEv;
-    use crate::seq::{SeqData, SeqEdit, StepData};
+/// Renders one second of the engine with every step of Drum 1 on in the ported sequencer, which is
+/// running; true if any sample is not zero.
+fn sequencer_sounds(silent: bool) -> bool {
     let mut e = crate::new_engine();
-    let on = StepData { on: true, velocity: 90, prob: 80, ..StepData::default() };
-    e.seq(SeqEv::Step { pat: 0, track: 3, step: 2, data: on });
-    let s = e.0.seq_step_read(0, 3, 2);
-    assert_eq!((s.volume, s.prob), (0x80 | 90, 80));
-    assert_eq!(e.0.seq_patternSet.seq_mainSteps[0][0][3], 1 << 2);
-    // densities scale the probability of the steps that are on
-    e.seq(SeqEv::Density { track: 3, value: 50 });
-    assert_eq!(e.0.seq_step_read(0, 3, 2).prob, 40);
-    e.seq(SeqEv::Density { track: 7, value: 50 });
-    assert_eq!(e.0.seq_step_read(0, 3, 2).prob, 20);
-    // a step turned on later gets the scaled probability too
-    e.seq(SeqEv::Bits { pat: 0, track: 3, bits: 0b1100 });
-    assert_eq!(e.0.seq_step_read(0, 3, 3).prob, 25);
-    assert_eq!(e.0.seq_patternSet.seq_mainSteps[0][0][3], 0b1100);
-    // host transport: steps advance on pulses only
-    e.seq(SeqEv::HostStart(2));
-    let st = e.seq_status();
-    assert!(st.running);
-    assert_eq!(st.step[3], 1);
-    e.seq(SeqEv::HostPulse);
-    for _ in 0..3 {
-        e.tick();
+    assert!(e.0.vdrum.seq_silent, "VDrum silences the ported sequencer");
+    e.0.vdrum.seq_silent = silent;
+    for bar in 0..4 {
+        e.0.seq_patternSet.seq_mainSteps[bar][0][0] = 0xffff;
     }
-    assert_eq!(e.seq_status().step[3], 2);
-    e.seq(SeqEv::HostStop);
-    assert!(!e.seq_status().running);
-    // silenced: the sequencer follows the clock but triggers no steps
-    e.seq(SeqEv::Silence(true));
-    assert!(e.seq_status().silent && e.0.vdrum.seq_silent);
-    e.seq(SeqEv::Silence(false));
-    assert!(!e.seq_status().silent);
-
-    // a bulk load replaces everything
-    let mut d = SeqData::default();
-    d.apply(&SeqEdit::Euclid { pat: 5, track: 0, fills: 3, rotate: 0 });
-    d.apply(&SeqEdit::Length { pat: 5, track: 0, length: 8 });
-    d.apply(&SeqEdit::Shuffle { pat: 5, value: 64 });
-    let mut e2 = crate::new_engine();
-    e2.seq_load(&d);
-    assert_eq!(e2.0.seq_patternSet.seq_mainSteps[0][5][0], crate::seq::euclid(8, 3, 0) as u16);
-    assert_eq!(e2.0.seq_patternSet.length[5][0], 8);
-    assert_eq!(e2.0.seq_patternSet.shuffle[5], 64);
-    assert_eq!(e2.0.seq_patternSet.length[0][0], 16);
-    e2.seq(SeqEv::NextPattern(5));
-    assert_eq!(e2.seq_status().pattern, 5);
-    assert!(!e2.faulted());
+    for st in e.0.seq_patternSet.seq_subStepPattern[0][0].iter_mut() {
+        st.volume = 0x80 | 127;
+        st.prob = 100;
+    }
+    e.0.seq_setRunning(1);
+    let mut sound = false;
+    for _ in 0..690 {
+        let b = e.tick();
+        sound |= b.dac1.iter().chain(b.dac2.iter()).any(|s| *s != 0);
+    }
+    assert!(!e.faulted());
+    sound
 }
 
 #[test]
-fn pattern_changes_keep_the_kit() {
-    // The firmware's PAR_PATTERN_MODE 1 loads the pattern's kit slot on a pattern change, which
-    // would undo edits; the plugin turns it off.
-    let mut e = crate::new_engine();
-    e.set_parameter(lxr_params::par::COARSE1, 12);
-    let before: Vec<u16> = (0..lxr_params::NUM_PARAMS).map(|p| e.get_parameter(p)).collect();
-    e.seq(crate::engine::SeqEv::NextPattern(5));
-    assert_eq!(e.seq_status().pattern, 5);
-    let after: Vec<u16> = (0..lxr_params::NUM_PARAMS).map(|p| e.get_parameter(p)).collect();
-    let changed: Vec<usize> = (0..before.len()).filter(|&i| before[i] != after[i]).collect();
-    assert!(changed.iter().all(|&i| i >= lxr_params::kit::KIT_PARAMS), "kit parameters changed: {changed:?}");
-    assert_eq!(e.get_parameter(lxr_params::par::COARSE1), 12);
+fn the_ported_sequencer_triggers_nothing() {
+    // VDrum has no sequencer: even with steps on and the ported sequencer running, nothing sounds.
+    assert!(sequencer_sounds(false), "the test's steps play when the sequencer is not silenced");
+    assert!(!sequencer_sounds(true));
 }
 
 #[test]
-fn mutes_and_lfo_reset() {
-    use crate::engine::SeqEv;
+fn host_tempo_sets_the_clock_of_synced_lfos() {
     let mut e = crate::new_engine();
-    e.seq(SeqEv::Mutes(0b101));
-    assert_eq!(e.0.seq_mutedTracks, 0b101);
-    for _ in 0..50 {
-        e.tick();
-    }
-    e.0.snareVoice.lfo.phaseOffset = 1234;
-    e.seq(SeqEv::LfoReset);
-    assert_eq!(e.0.snareVoice.lfo.phase, 1234);
+    // without a host tempo, Global Tempo (PAR_BPM) sets it, through the firmware's front panel path
+    e.set_parameter(lxr_params::par::BPM, 90);
+    assert_eq!(e.0.seq_tempo, 90);
+    e.set_tempo(140);
+    assert_eq!(e.0.seq_tempo, 140);
 }
 
 #[test]
@@ -383,43 +341,4 @@ fn host_ccs_do_not_reach_the_engine() {
     for status in [0x80u8, 0x90, 0xa0, 0xc0, 0xd0, 0xe0, 0x9f] {
         assert!(crate::host_message_reaches_engine([status, 36, 100]), "{status:#x}");
     }
-}
-
-/// An imported `.PAT` file puts the file's step, timing, main-step, length and shuffle bytes into
-/// the engine's pattern memory, where the firmware's `preset_readPatternData` would put them.
-#[test]
-fn imported_pattern_file_reaches_the_engine_as_in_the_file() {
-    use crate::lxr_files::{pat_from_bytes, pat_to_bytes, PatFile};
-    use crate::seq::{PatternData, SeqData, StepData};
-    let mut p = PatternData { shuffle: 33, ..Default::default() };
-    for (t, track) in p.tracks.iter_mut().enumerate() {
-        track.length = 5 + t as u8 * 9;
-        for (s, st) in track.steps.iter_mut().enumerate() {
-            let x = (s * 13 + t * 5) as u8;
-            *st = StepData { on: x.is_multiple_of(4), velocity: 1 + x % 127, prob: x % 101, note: x % 128, flam: x % 6, shift: x % 15, locks: [(x % 200, x % 128), (255, 0)] };
-        }
-    }
-    let bytes = pat_to_bytes(&PatFile { name: *b"TEST\0\0\0\0", pattern: p, kit_nr: 3 });
-    let file = pat_from_bytes(&bytes).unwrap();
-    let mut d = SeqData::default();
-    d.patterns[9] = file.pattern;
-    let mut e = crate::new_engine();
-    e.seq_load(&d);
-    let ps = &e.0.seq_patternSet;
-    let body = &bytes[14..];
-    for t in 0..7 {
-        for s in 0..64 {
-            let st = ps.seq_subStepPattern[9][t][s];
-            let o = t * 512 + s * 7;
-            assert_eq!([st.volume, st.prob, st.note, st.param1Nr, st.param1Val, st.param2Nr, st.param2Val], body[o..o + 7], "track {t} step {s}");
-            assert_eq!(ps.seq_stepTiming[9][t][s].bits, body[t * 512 + 448 + s]);
-        }
-        for bar in 0..4 {
-            let o = 7 * 512 + (t * 4 + bar) * 2;
-            assert_eq!(ps.seq_mainSteps[bar][9][t], u16::from_le_bytes([body[o], body[o + 1]]));
-        }
-        assert_eq!(ps.length[9][t], body[7 * 512 + 56 + 1 + t]);
-    }
-    assert_eq!(ps.shuffle[9], 33);
-    assert!(!e.faulted());
 }
