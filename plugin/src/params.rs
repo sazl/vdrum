@@ -102,6 +102,12 @@ pub enum Command {
     Fader(u8, i32),
     /// Set *Sum aux* (0) or *Hardware clock* (1) from OSC; handled like a learned CC.
     Switch(u8, bool),
+    /// Mute (true) or unmute track 0..7: its notes are dropped from any source.
+    Mute(u8, bool),
+    /// Restart every LFO at its phase offset.
+    LfoReset,
+    /// Silence every voice.
+    Panic,
 }
 
 /// The kit file the user works on: where it was loaded from or saved to, and its contents then
@@ -164,6 +170,15 @@ pub struct Shared {
     pub library: Mutex<crate::library::Library>,
     /// Incremented whenever the library changes (for the editor).
     pub library_generation: AtomicU32,
+    /// Muted tracks, bit `t` = track `t` (set by the audio thread from the engine).
+    pub mutes: AtomicU8,
+    /// Each track's LFO output, 0..=1, after the last buffer.
+    pub lfo: [AtomicF32; 7],
+    /// The host's transport: playing, tempo in bpm (0: unknown), and the position in beats at
+    /// which it last started playing.
+    pub transport_playing: AtomicBool,
+    pub transport_tempo: AtomicF32,
+    pub transport_start_beat: AtomicF32,
 }
 
 impl Shared {
@@ -191,6 +206,11 @@ impl Shared {
             osc_status: Mutex::new(String::new()),
             library: Mutex::new(crate::library::Library::default()),
             library_generation: AtomicU32::new(0),
+            mutes: AtomicU8::new(0),
+            lfo: std::array::from_fn(|_| AtomicF32::new(0.5)),
+            transport_playing: AtomicBool::new(false),
+            transport_tempo: AtomicF32::new(0.0),
+            transport_start_beat: AtomicF32::new(0.0),
         };
         let init = Kit::init();
         s.set_name(&init.name);

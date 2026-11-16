@@ -63,6 +63,15 @@ pub trait Engine: Send {
     fn lfo_values(&self) -> [f32; 7] {
         [0.5; 7]
     }
+    /// Mute track `t` (0..7): its notes are dropped before the engine, from any source; a sound
+    /// that plays decays. The default ignores it.
+    fn set_mute(&mut self, _t: u8, _on: bool) {}
+    /// The muted tracks, bit `t` = track `t`. The default is none.
+    fn mutes(&self) -> u8 {
+        0
+    }
+    /// Restart every voice's LFO at its phase offset. The default does nothing.
+    fn lfo_reset(&mut self) {}
     /// Whether the engine stopped after an internal error (it then renders silence and ignores
     /// input until the plugin replaces it in `initialize()`).
     fn faulted(&self) -> bool {
@@ -183,6 +192,20 @@ impl Engine for LxrEngine {
 
     fn lfo_values(&self) -> [f32; 7] {
         self.0.vdrum_lfo_values()
+    }
+
+    fn set_mute(&mut self, t: u8, on: bool) {
+        if t < 7 {
+            self.guarded(|e| e.seq_setMute(t, on as u8));
+        }
+    }
+
+    fn lfo_reset(&mut self) {
+        self.guarded(|e| e.vdrum_lfo_reset());
+    }
+
+    fn mutes(&self) -> u8 {
+        self.0.seq_mutedTracks & 0x7f
     }
 
     fn faulted(&self) -> bool {

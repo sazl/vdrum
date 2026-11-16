@@ -53,6 +53,22 @@ impl Lxr {
             lfo_peek(&self.vdrum.ohVoice.lfo),
         ]
     }
+
+    /// Restarts every voice's LFO at its phase offset (as a retrigger does for one voice).
+    pub fn vdrum_lfo_reset(&mut self) {
+        for i in 0..3 {
+            let l = &mut self.voiceArray[i].lfo;
+            l.phase = l.phaseOffset;
+        }
+        for l in [
+            &mut self.snareVoice.lfo,
+            &mut self.cymbalVoice.lfo,
+            &mut self.hatVoice.lfo,
+            &mut self.vdrum.ohVoice.lfo,
+        ] {
+            l.phase = l.phaseOffset;
+        }
+    }
 }
 
 #[cfg(test)]
@@ -72,5 +88,17 @@ mod tests {
                 assert_eq!(lfo_peek(&l).to_bits(), v.to_bits(), "wave {wave}");
             }
         }
+    }
+
+    #[test]
+    fn reset_puts_every_lfo_at_its_offset() {
+        let mut lxr = Lxr::new();
+        lxr.voiceArray[1].lfo.phase = 123;
+        lxr.voiceArray[1].lfo.phaseOffset = 7;
+        lxr.vdrum.ohVoice.lfo.phase = 99;
+        lxr.vdrum.ohVoice.lfo.phaseOffset = 3;
+        lxr.vdrum_lfo_reset();
+        assert_eq!(lxr.voiceArray[1].lfo.phase, 7);
+        assert_eq!(lxr.vdrum.ohVoice.lfo.phase, 3);
     }
 }

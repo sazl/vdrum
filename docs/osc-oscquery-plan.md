@@ -36,13 +36,33 @@ same names as a DAW.
 | `/vdrum/switch/sum_aux`, `/vdrum/switch/hardware_clock` | `T` | 3 | The two switches. |
 | `/vdrum/midi` | `m` | 2 | One MIDI message (OSC type `m`, 4 bytes), given to the engine as host MIDI is. This is how a client plays notes. |
 | `/vdrum/kit/name` | `s` | 1 | The kit name. |
+| `/vdrum/param/<id>/values` | `s` | 1 | Modulation destinations only: the values the destination's voice allows ("off" and that voice's targets, as the editor offers), decimal, separated by spaces. Changes with the LFO's voice. |
+| `/vdrum/hits/<n>` | `i` | 1 | Counts track `n`'s triggers from any source (host MIDI, OSC, the editor's pads); wraps at 10000. |
+| `/vdrum/mute/<n>` | `T` | 3 | Track mute (`seq_setMute`): the track's notes are dropped from any source; a sound that plays decays. |
+| `/vdrum/lfo/<n>` | `f` | 1 | Track `n`'s LFO output, 0 to 1 in steps of 0.01 (`vdrum_lfo_values`). |
+| `/vdrum/lfo/reset` | `T` | 2 | True restarts every LFO at its phase offset. |
+| `/vdrum/fx/p<n>/name` | `s` | 1 | What FX parameter `n` is for the current FX type (`FX Drive`), as the editor's FX page names it. |
+| `/vdrum/fx/sub` | `i` | 3 | The FX type's own type parameter (distortion type, ring modulator waveform, compressor ratio, delay type): the fourth entry of the FX page when it is not P1 to P4. `/text`: name and value, or `none for this FX`. |
+| `/vdrum/transport/beat` | `f` | 1 | The host's position in beats when its transport last started (before `playing` in the address space, so a client has it first). |
+| `/vdrum/transport/playing` | `T` | 1 | The host's transport plays. |
+| `/vdrum/transport/tempo` | `f` | 1 | The host's tempo in bpm; 0 while unknown. |
+| `/vdrum/kit/browse` | `i` | 3 | The place of the kit shown (library slot, or file in the folder of the current kit file). A higher value shows the next kit, a lower one the previous: the library's filled slots, or with an empty library the `.snd` files of that folder. `/text` is the kit shown. A set of any other address ends browsing. |
+| `/vdrum/kit/load` | `T` | 2 | True loads the kit browse shows. |
+| `/vdrum/kit/init` | `T` | 2 | True loads the init kit. |
+| `/vdrum/kit/save` | `T` | 2 | True saves the kit into its library slot when it came from the library, else into its kit file. |
+| `/vdrum/kit/compare` | `T` | 3 | True plays the kit as last loaded or saved; false the edited kit again. |
+| `/vdrum/kit/status` | `s` | 1 | The result of the last browse, load, init, save or compare (`Kit saved: library 05 MALWA`). |
+| `/vdrum/panic` | `T` | 2 | True silences every voice. |
 
 A parameter whose range has width zero (`PAR_FX_REVERB_TYPE`) is not listed, as it is not a host
 parameter. The address space does not change while the plugin runs, so `PATH_CHANGED` is never
 sent.
 
-Not included, because Sami said on 2026-11-14 that none of the removed controller features come
-back: kit browsing, kit save, undo and mutes. The sequencer is removed from VDrum (Sami,
+On 2026-11-14 Sami said that none of the removed controller features come back. On 2026-11-16
+Sami chose to add the state and actions a controller profile needs as OSC addresses (hits, mutes,
+LFO outputs and reset, FX names, modulation destination values, host transport, kit browse, load,
+init, save, compare, panic; the rows above from `/vdrum/param/<id>/values` on). Undo stays in the
+controller (surface-control's `history` component). The sequencer is removed from VDrum (Sami,
 2026-11-14); surface-control's sequencer plays VDrum through `/vdrum/midi`.
 
 ## Threads and data flow
