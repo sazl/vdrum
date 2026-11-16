@@ -314,6 +314,18 @@ impl Plugin for VDrum {
                     shared.extra_values[extra].store(on as i32, Ordering::Relaxed);
                     shared.extra_dirty[extra].store(true, Ordering::Relaxed);
                 }
+                Command::Mute(t, on) => {
+                    let _ieee = fp::IeeeGuard::new();
+                    pipeline.engine.set_mute(t, on);
+                }
+                Command::LfoReset => {
+                    let _ieee = fp::IeeeGuard::new();
+                    pipeline.engine.lfo_reset();
+                }
+                Command::Panic => {
+                    let _ieee = fp::IeeeGuard::new();
+                    pipeline.engine.all_sound_off();
+                }
             }
         }
 
@@ -349,6 +361,17 @@ impl Plugin for VDrum {
         }
 
         let frames = buffer.samples();
+        // The host's transport, for OSC clients (a sequencer that follows the host).
+        {
+            let t = context.transport();
+            let playing = t.playing;
+            if playing && !shared.transport_playing.load(Ordering::Relaxed) {
+                let beat = t.pos_beats().unwrap_or(0.0).max(0.0) as f32;
+                shared.transport_start_beat.store(beat, Ordering::Relaxed);
+            }
+            shared.transport_playing.store(playing, Ordering::Relaxed);
+            shared.transport_tempo.store(t.tempo.unwrap_or(0.0) as f32, Ordering::Relaxed);
+        }
         // The host's tempo sets the clock of synced LFOs.
         if let Some(tempo) = context.transport().tempo.filter(|t| *t > 0.0) {
             let bpm = tempo.round().clamp(1.0, 999.0) as u16;
@@ -462,6 +485,11 @@ impl Plugin for VDrum {
                 }
             },
         );
+
+        for (out, v) in shared.lfo.iter().zip(pipeline.engine.lfo_values()) {
+            out.store(v, Ordering::Relaxed);
+        }
+        shared.mutes.store(pipeline.engine.mutes(), Ordering::Relaxed);
 
         let decay = self.meter_decay_per_sample.powi(frames as i32);
         for ((m, p), out) in self.meter_state.iter_mut().zip(peak).zip(&shared.meters) {
