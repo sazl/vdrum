@@ -23,6 +23,7 @@
 //! | `/vdrum/transport/tempo` | `f` | read | the host's tempo in bpm (0: unknown) |
 //! | `/vdrum/kit/name` | `s` | read | |
 //! | `/vdrum/kit/browse` (and `/text`) | `i` | read-write | the place of the kit shown (library slot, or file in its folder); a higher value shows the next kit, a lower one the previous one: the library's filled slots, or without any the `.snd` files in the folder of the current kit file; the text is the kit shown |
+//! | `/vdrum/kit/browsing` | `T` | read | true while browse shows a kit that is not loaded (until a load or a set of any other address) |
 //! | `/vdrum/kit/load` | `T` | write | true loads the kit shown by browse |
 //! | `/vdrum/kit/init` | `T` | write | true loads the init kit |
 //! | `/vdrum/kit/save` | `T` | write | true saves the kit into its library slot, else into its kit file |
@@ -90,6 +91,7 @@ enum Kind {
     Tempo,
     KitName,
     Browse,
+    Browsing,
     Kit(KitAction),
     Compare,
     Status,
@@ -114,6 +116,7 @@ fn kinds() -> Vec<Kind> {
     v.extend([Kind::Beat, Kind::Playing, Kind::Tempo]);
     v.push(Kind::KitName);
     v.push(Kind::Browse);
+    v.push(Kind::Browsing);
     v.extend([KitAction::Load, KitAction::Init, KitAction::Save].map(Kind::Kit));
     v.extend([Kind::Compare, Kind::Status, Kind::Panic]);
     v
@@ -211,6 +214,7 @@ fn node(k: Kind) -> Node {
             .tag("Transport"),
         Kind::KitName => Node::string(format!("{ROOT}/kit/name")).description("Kit name"),
         Kind::Browse => Node::int(format!("{ROOT}/kit/browse"), 0, 1023).description("Kit Browse").tag("Kit").text(),
+        Kind::Browsing => Node::bool(format!("{ROOT}/kit/browsing")).read_only().description("Kit Browsing").tag("Kit"),
         Kind::Kit(a) => {
             let (n, d) = match a {
                 KitAction::Load => ("load", "Kit Load"),
@@ -436,6 +440,7 @@ impl oscq::App for Vdrum {
             Kind::Tempo => Value::Float(sh.transport_tempo.load(ld)),
             Kind::KitName => Value::String(kit_name(sh)),
             Kind::Browse => Value::Int(self.state().pos),
+            Kind::Browsing => Value::Bool(self.state().browsed.is_some()),
             Kind::Compare => Value::Bool(self.state().stash.is_some()),
             Kind::Status => Value::String(self.state().status.clone()),
             Kind::Midi | Kind::LfoReset | Kind::Kit(_) | Kind::Panic => return None,
@@ -503,6 +508,13 @@ mod tests {
     }
 
     #[test]
+    fn the_server_starts() {
+        let cfg = oscq::Config::new("VDrum test").mdns(false);
+        let server = oscq::Server::start(Vdrum::new(Arc::new(Shared::new())), cfg);
+        assert!(server.is_ok(), "{:?}", server.err());
+    }
+
+    #[test]
     fn address_space() {
         let app = Vdrum::new(Arc::new(Shared::new()));
         let nodes = app.nodes();
@@ -510,8 +522,8 @@ mod tests {
         let targets = infos.iter().filter(|i| i.is_mod_target()).count();
         assert!(targets > 0);
         // params, values, faders, switches, midi, hits, mutes, lfos, lfo reset, fx names, fx sub,
-        // transport, kit name, browse, load/init/save, compare, status, panic
-        assert_eq!(nodes.len(), infos.len() + targets + NUM_FADERS + 2 + 1 + 7 + 7 + 7 + 1 + 4 + 1 + 3 + 1 + 1 + 3 + 3);
+        // transport, kit name, browse, browsing, load/init/save, compare, status, panic
+        assert_eq!(nodes.len(), infos.len() + targets + NUM_FADERS + 2 + 1 + 7 + 7 + 7 + 1 + 4 + 1 + 3 + 1 + 1 + 1 + 3 + 3);
         let space = oscq::address_space(&app, &nodes, "/vdrum/param/coarse1").unwrap();
         assert_eq!(space["TYPE"], "i");
         assert_eq!(space["ACCESS"], 3);
@@ -613,9 +625,11 @@ mod tests {
         set("/vdrum/kit/browse", Value::Int(1));
         assert!(status().starts_with("Kit 05"), "{}", status());
         assert_eq!(app.value(index(&app, "/vdrum/kit/browse")), Some(Value::Int(5)));
+        assert_eq!(app.value(index(&app, "/vdrum/kit/browsing")), Some(Value::Bool(true)));
         while shared.commands.pop().is_some() {}
         set("/vdrum/kit/load", Value::Bool(true));
         assert!(status().starts_with("Kit loaded"), "{}", status());
+        assert_eq!(app.value(index(&app, "/vdrum/kit/browsing")), Some(Value::Bool(false)));
         assert!(matches!(shared.commands.pop(), Some(Command::LoadKit(_))));
         // Compare plays the kit as last loaded, then the edited one again.
         set("/vdrum/kit/compare", Value::Bool(true));

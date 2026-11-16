@@ -338,7 +338,7 @@ and set VDrum's parameters.
   `/vdrum/midi` (OSC MIDI messages, type `m`, played like host MIDI), `/vdrum/kit/name`
   (read-only). Each parameter and fader has `<address>/text`, the value as the editor shows it.
   For controllers (2026-11-16): track hits, mutes and LFO outputs, LFO reset, FX parameter names
-  and sub-type, the allowed values of modulation destinations, the host transport, kit browse,
+  and sub-type, the allowed values of modulation destinations, the host transport, kit browse (and whether a kit is shown unloaded),
   load, init, save and compare, and panic; the table is in `docs/osc-oscquery-plan.md`.
 * **Transport.** HTTP and the OSCQuery WebSocket on one TCP port, OSC on UDP; both bound to
   `127.0.0.1` on ports the system chooses, announced over mDNS as `VDrum` (`VDrum 2`, ... for

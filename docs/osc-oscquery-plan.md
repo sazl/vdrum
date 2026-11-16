@@ -47,6 +47,7 @@ same names as a DAW.
 | `/vdrum/transport/playing` | `T` | 1 | The host's transport plays. |
 | `/vdrum/transport/tempo` | `f` | 1 | The host's tempo in bpm; 0 while unknown. |
 | `/vdrum/kit/browse` | `i` | 3 | The place of the kit shown (library slot, or file in the folder of the current kit file). A higher value shows the next kit, a lower one the previous: the library's filled slots, or with an empty library the `.snd` files of that folder. `/text` is the kit shown. A set of any other address ends browsing. |
+| `/vdrum/kit/browsing` | `T` | 1 | True while browse shows a kit that is not loaded; false after a load or a set of any other address. |
 | `/vdrum/kit/load` | `T` | 2 | True loads the kit browse shows. |
 | `/vdrum/kit/init` | `T` | 2 | True loads the init kit. |
 | `/vdrum/kit/save` | `T` | 2 | True saves the kit into its library slot when it came from the library, else into its kit file. |
