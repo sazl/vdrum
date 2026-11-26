@@ -1,6 +1,11 @@
 # Consolidation of VDrum, Hexa FM Drum and nano-thump: review
 
-Status: draft, 2026-11-25. Covers the feature inventory, the conflicts, the open questions and three
+Status: answered 2026-11-26. Sami's answers and the chosen layout (B with the Mix, FX and
+Modulation pages of C) are in [implementation-plan.md](implementation-plan.md), section 1. They
+supersede the defaults in section 4 and the track model of the mockups (B now has 10 tracks and
+no voice pool, because every voice type can be used on any number of tracks).
+
+Original status: draft, 2026-11-25. Covers the feature inventory, the conflicts, the open questions and three
 UX proposals. The implementation plan follows in `implementation-plan.md`, after the questions in
 section 4 are answered and one proposal is chosen.
 
